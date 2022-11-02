@@ -123,6 +123,10 @@ Online examples:
                                               mode="visibility"
                                               property="Backend"
                                               value="0" />
+                      <PropertyWidgetDecorator type="GenericDecorator"
+                                                  mode="visibility"
+                                                  property="Backend"
+                                                  value="4" />
                     </Expression>
                   </PropertyWidgetDecorator>
                   </Hints>

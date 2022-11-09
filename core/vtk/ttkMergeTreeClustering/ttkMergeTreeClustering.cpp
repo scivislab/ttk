@@ -187,17 +187,20 @@ int ttkMergeTreeClustering::runCompute(
   setDataVisualization(numInputs, numInputs2);
 
   std::vector<MergeTree<dataType>> intermediateMTrees(numInputs),
-    intermediateMTrees2(numInputs2), barycenters(NumberOfBarycenters);
+    intermediateMTrees2(numInputs2), barycenters(NumberOfBarycenters), intermediateMTrees3(numInputs);
   std::vector<FTMTree_MT *> intermediateTrees(numInputs),
-    intermediateTrees2(numInputs2);
+    intermediateTrees2(numInputs2), intermediateTrees3(numInputs);
 
   constructTrees<dataType>(
     inputTrees, intermediateMTrees, treesNodes, treesArcs, treesSegmentation);
   constructTrees<dataType>(inputTrees2, intermediateMTrees2, treesNodes2,
                            treesArcs2, treesSegmentation2);
+  constructTrees<dataType>(
+    inputTrees, intermediateMTrees3, treesNodes, treesArcs, treesSegmentation);
 
   mergeTreeToFTMTree<dataType>(intermediateMTrees, intermediateTrees);
   mergeTreeToFTMTree<dataType>(intermediateMTrees2, intermediateTrees2);
+  mergeTreeToFTMTree<dataType>(intermediateMTrees3, intermediateTrees3);
 
   // ------------------------------------------------------------------------------------
   // --- Call base
@@ -272,12 +275,13 @@ int ttkMergeTreeClustering::runCompute(
       finalDistances = std::vector<double>{distance};
     }
     else if(baseModule==1){
-      
       BranchMappingDistance branchDist;
       branchDist.setBaseMetric(branchMetric);
       branchDist.setAssignmentSolver(AssignmentSolver);
       branchDist.setSquared(false);
-      distance = branchDist.editDistance_branch<dataType>(intermediateTrees[0], intermediateTrees[1]);
+      branchDist.setComputeMapping(true);
+      branchDist.setWriteBD(true);
+      distance = branchDist.editDistance_branch<dataType>(intermediateTrees[0], intermediateTrees[1], &outputMatching);
       
       std::vector<ttk::SimplexId> nodeCorr1(intermediateTrees[0]->getNumberOfNodes());
       std::vector<ttk::SimplexId> nodeCorr2(intermediateTrees[1]->getNumberOfNodes());
@@ -287,6 +291,32 @@ int ttkMergeTreeClustering::runCompute(
       finalDistances = std::vector<double>{distance};
     }
     else{
+      MergeTreeDistance mergeTreeDistance;
+      mergeTreeDistance.setAssignmentSolver(AssignmentSolver);
+      mergeTreeDistance.setEpsilonTree1(EpsilonTree1);
+      mergeTreeDistance.setEpsilonTree2(EpsilonTree2);
+      mergeTreeDistance.setEpsilon2Tree1(Epsilon2Tree1);
+      mergeTreeDistance.setEpsilon2Tree2(Epsilon2Tree2);
+      mergeTreeDistance.setEpsilon3Tree1(Epsilon3Tree1);
+      mergeTreeDistance.setEpsilon3Tree2(Epsilon3Tree2);
+      mergeTreeDistance.setProgressiveComputation(ProgressiveComputation);
+      mergeTreeDistance.setBranchDecomposition(BranchDecomposition);
+      mergeTreeDistance.setPersistenceThreshold(PersistenceThreshold);
+      mergeTreeDistance.setNormalizedWasserstein(NormalizedWasserstein);
+      mergeTreeDistance.setNormalizedWassersteinReg(NormalizedWassersteinReg);
+      mergeTreeDistance.setRescaledWasserstein(RescaledWasserstein);
+      mergeTreeDistance.setKeepSubtree(KeepSubtree);
+      mergeTreeDistance.setUseMinMaxPair(UseMinMaxPair);
+      mergeTreeDistance.setCleanTree(true);
+      mergeTreeDistance.setPostprocess(OutputTrees);
+      mergeTreeDistance.setDeleteMultiPersPairs(DeleteMultiPersPairs);
+      mergeTreeDistance.setEpsilon1UseFarthestSaddle(Epsilon1UseFarthestSaddle);
+      mergeTreeDistance.setThreadNumber(this->threadNumber_);
+      mergeTreeDistance.setDebugLevel(this->debugLevel_);
+
+      distance = mergeTreeDistance.execute<dataType>(
+        intermediateMTrees[0], intermediateMTrees[1], outputMatching);
+      trees1NodeCorrMesh = mergeTreeDistance.getTreesNodeCorr();
 
       PathMappingDistance pathDist;
       pathDist.setBaseMetric(pathMetric);
@@ -294,12 +324,14 @@ int ttkMergeTreeClustering::runCompute(
       pathDist.setSquared(false);
       pathDist.setComputeMapping(true);
       distance = pathDist.editDistance_path<dataType>(intermediateTrees[0], intermediateTrees[1], &outputMatching);
+      //pathDist.computeBranchDecomposition(intermediateTrees[0]);
+      //pathDist.computeBranchDecomposition(intermediateTrees[1]);
 
-      std::vector<ttk::SimplexId> nodeCorr1(intermediateTrees[0]->getNumberOfNodes());
-      std::vector<ttk::SimplexId> nodeCorr2(intermediateTrees[1]->getNumberOfNodes());
-      for(ttk::SimplexId i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
-      for(ttk::SimplexId i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
-      trees1NodeCorrMesh = std::vector<std::vector<ttk::SimplexId>>{nodeCorr1,nodeCorr2};
+      // std::vector<ttk::SimplexId> nodeCorr1(intermediateTrees[0]->getNumberOfNodes());
+      // std::vector<ttk::SimplexId> nodeCorr2(intermediateTrees[1]->getNumberOfNodes());
+      // for(ttk::SimplexId i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
+      // for(ttk::SimplexId i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
+      // trees1NodeCorrMesh = std::vector<std::vector<ttk::SimplexId>>{nodeCorr1,nodeCorr2};
       finalDistances = std::vector<double>{distance};
     }
   } else {

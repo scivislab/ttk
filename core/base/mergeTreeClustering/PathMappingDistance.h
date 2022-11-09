@@ -111,10 +111,6 @@ namespace ttk {
          and tree2->getNumberOfChildren(curr2) == 0) {
         mapping.emplace_back(std::make_pair(
           std::make_pair(curr1, parent1), std::make_pair(curr2, parent2)));
-        tree1->getNode(curr1)->setOrigin(parent1);
-        tree1->getNode(parent1)->setOrigin(curr1);
-        tree1->getNode(curr2)->setOrigin(parent2);
-        tree1->getNode(parent2)->setOrigin(curr2);
         return;
       }
       //---------------------------------------------------------------------------
@@ -182,10 +178,6 @@ namespace ttk {
                     curr1, parent1, curr2, parent2, tree1, tree2)) {
             mapping.emplace_back(std::make_pair(
               std::make_pair(curr1, parent1), std::make_pair(curr2, parent2)));
-            tree1->getNode(curr1)->setOrigin(parent1);
-            tree1->getNode(parent1)->setOrigin(curr1);
-            tree1->getNode(curr2)->setOrigin(parent2);
-            tree1->getNode(parent2)->setOrigin(curr2);
             traceMapping_path(tree1, tree2, child11, 1, child21, 1,
                               predecessors1, predecessors2, depth1, depth2,
                               memT, mapping);
@@ -200,10 +192,6 @@ namespace ttk {
                     curr1, parent1, curr2, parent2, tree1, tree2)) {
             mapping.emplace_back(std::make_pair(
               std::make_pair(curr1, parent1), std::make_pair(curr2, parent2)));
-            tree1->getNode(curr1)->setOrigin(parent1);
-            tree1->getNode(parent1)->setOrigin(curr1);
-            tree1->getNode(curr2)->setOrigin(parent2);
-            tree1->getNode(parent2)->setOrigin(curr2);
             traceMapping_path(tree1, tree2, child11, 1, child22, 1,
                               predecessors1, predecessors2, depth1, depth2,
                               memT, mapping);
@@ -262,10 +250,6 @@ namespace ttk {
           if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4] == d_) {
             mapping.emplace_back(std::make_pair(
               std::make_pair(curr1, parent1), std::make_pair(curr2, parent2)));
-            tree1->getNode(curr1)->setOrigin(parent1);
-            tree1->getNode(parent1)->setOrigin(curr1);
-            tree1->getNode(curr2)->setOrigin(parent2);
-            tree1->getNode(parent2)->setOrigin(curr2);
             for(auto m : matching) {
               int n1 = std::get<0>(m) < tree1->getNumberOfChildren(curr1)
                          ? children1[std::get<0>(m)]
@@ -373,8 +357,6 @@ namespace ttk {
         std::vector<ftm::idNode> children;
         tree1->getChildren(nIdx, children);
         for(int cIdx : children) {
-          tree1->getNode(nIdx)->setOrigin(cIdx);
-          tree1->getNode(cIdx)->setOrigin(nIdx);
           stack.push(cIdx);
           predecessors1[cIdx].reserve(predecessors1[nIdx].size() + 1);
           predecessors1[cIdx].insert(predecessors1[cIdx].end(),
@@ -395,8 +377,6 @@ namespace ttk {
         tree2->getChildren(nIdx, children);
         for(int cIdx : children) {
           stack.push(cIdx);
-          tree2->getNode(nIdx)->setOrigin(cIdx);
-          tree2->getNode(cIdx)->setOrigin(nIdx);
           predecessors2[cIdx].reserve(predecessors2[nIdx].size() + 1);
           predecessors2[cIdx].insert(predecessors2[cIdx].end(),
                                      predecessors2[nIdx].begin(),
@@ -643,6 +623,7 @@ namespace ttk {
 
       if(computeMapping_ && outputMatching){
 
+        outputMatching->clear();
         std::vector<ftm::idNode> matchedNodes(tree1->getNumberOfNodes(),-1);
         std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> mapping;
         traceMapping_path(tree1,tree2,children1[0],1,children2[0],1,predecessors1,predecessors2,depth1,depth2,memT,mapping);
@@ -657,6 +638,45 @@ namespace ttk {
       }
 
       return squared_ ? std::sqrt(res) : res;
+    }
+
+    void computeBranchDecomposition(ftm::FTMTree_MT *tree){
+
+      auto rootID = tree->getRoot();
+
+      computeBranchDecomposition(tree,rootID);
+
+    }
+
+    ftm::idNode computeBranchDecomposition(ftm::FTMTree_MT *tree,ftm::idNode rootID){
+
+      std::vector<ftm::idNode> children;
+      tree->getChildren(rootID, children);
+      if(children.empty()) return rootID;
+      if(children.size() == 1){
+        auto me = computeBranchDecomposition(tree, children[0]);
+        tree->getNode(rootID)->setOrigin(me);
+        tree->getNode(me)->setOrigin(rootID);
+        return me;
+      }
+      std::vector<ftm::idNode> extrema(children.size());
+      ftm::idNode me = computeBranchDecomposition(tree, children[0]);
+      extrema[0] = me;
+      for(int i=1; i<children.size(); i++){
+        auto e = computeBranchDecomposition(tree, children[i]);
+        extrema[i] = e;
+        //if(std::abs(tree->getValue<double>(e)-tree->getValue<double>(rootID)) > std::abs(tree->getValue<double>(me)-tree->getValue<double>(rootID))){
+        if(tree->getValue<double>(e) > tree->getValue<double>(me)){
+          me = e;
+        }
+      }
+      for(auto e : extrema){
+        if(e==me) continue;
+        tree->getNode(rootID)->setOrigin(e);
+        tree->getNode(e)->setOrigin(rootID);
+      }
+      return me;
+
     }
   };
 } // namespace ttk

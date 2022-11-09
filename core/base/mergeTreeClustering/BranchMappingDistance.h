@@ -42,6 +42,8 @@ namespace ttk {
     int baseMetric_ = 0;
     int assignmentSolverID_ = 0;
     bool squared_ = false;
+    bool computeMapping_ = false;
+    bool writeOptimalBranchDecomposition_ = false;
 
     template <class dataType>
     inline dataType editCost_Wasserstein1(int n1,
@@ -193,9 +195,18 @@ namespace ttk {
       squared_ = s;
     }
 
+    void setComputeMapping(bool m) {
+      computeMapping_ = m;
+    }
+
+    void setWriteBD(bool w) {
+      writeOptimalBranchDecomposition_ = w;
+    }
+
     template <class dataType>
     dataType editDistance_branch(ftm::FTMTree_MT *tree1,
-                                 ftm::FTMTree_MT *tree2) {
+                                 ftm::FTMTree_MT *tree2,
+                                 std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching=nullptr) {
 
       // initialize memoization tables
 
@@ -550,8 +561,409 @@ namespace ttk {
 
       dataType res
         = memT[children1[0] + 1 * dim2 + children2[0] * dim3 + 1 * dim4];
+      
+      if(computeMapping_ && outputMatching){
+
+        outputMatching->clear();
+        std::vector<ftm::idNode> matchedNodes(tree1->getNumberOfNodes(),-1);
+        std::vector<std::pair<std::pair<int,int>,std::pair<int,int>>> mapping;
+        traceMapping_branch(tree1,tree2,children1[0],1,children2[0],1,predecessors1,predecessors2,depth1,depth2,memT,mapping);
+        for(auto m : mapping){
+          if(writeOptimalBranchDecomposition_ && m.first.first >=0 && m.first.second >=0){
+            tree1->getNode(m.first.first)->setOrigin(m.first.second);
+            tree1->getNode(m.first.second)->setOrigin(m.first.first);
+          }
+          if(writeOptimalBranchDecomposition_ && m.second.first >=0 && m.second.second >=0){
+            tree2->getNode(m.second.first)->setOrigin(m.second.second);
+            tree2->getNode(m.second.second)->setOrigin(m.second.first);
+          }
+          if(m.first.first == -1) continue;
+          if(m.first.second == -1) continue;
+          if(m.second.first == -1) continue;
+          if(m.second.second == -1) continue;
+          matchedNodes[m.first.first] = m.second.first;
+          matchedNodes[m.first.second] = m.second.second;
+        }
+        for(ftm::idNode i=0; i<matchedNodes.size(); i++){
+          if(matchedNodes[i]>=0) outputMatching->emplace_back(std::make_tuple(i,matchedNodes[i], 0.0));
+        }
+
+      }
 
       return squared_ ? std::sqrt(res) : res;
+    }
+
+    template <class dataType>
+    void traceMapping_branch(
+      ftm::FTMTree_MT *tree1,
+      ftm::FTMTree_MT *tree2,
+      int curr1,
+      int l1,
+      int curr2,
+      int l2,
+      std::vector<std::vector<int>> &predecessors1,
+      std::vector<std::vector<int>> &predecessors2,
+      int depth1,
+      int depth2,
+      std::vector<dataType> &memT,
+      std::vector<std::pair<std::pair<int, int>,
+                            std::pair<int, int>>> &mapping) {
+
+      size_t nn1 = tree1->getNumberOfNodes();
+      size_t nn2 = tree2->getNumberOfNodes();
+      size_t dim1 = 1;
+      size_t dim2 = (nn1 + 1) * dim1;
+      size_t dim3 = (depth1 + 1) * dim2;
+      size_t dim4 = (nn2 + 1) * dim3;
+
+      //===============================================================================
+      // If second tree empty, track optimal branch decomposition of first tree
+
+      if(curr2 == nn2){                   
+        std::vector<ftm::idNode> children1;
+        tree1->getChildren(curr1, children1);
+        int parent1 = predecessors1[curr1][predecessors1[curr1].size() - l1];
+        //-----------------------------------------------------------------------
+        // If first subtree has only one branch, return deletion cost of this
+        // branch
+        if(tree1->getNumberOfChildren(curr1) == 0) {
+          mapping.emplace_back(std::make_pair(
+            std::make_pair(curr1, parent1), std::make_pair(-1, -1)));
+        }
+        //-----------------------------------------------------------------------
+        // If first subtree has more than one branch, try all decompositions
+        else {
+          for(auto child1_mb : children1) {
+            dataType c_
+              = memT[child1_mb + (l1 + 1) * dim2 + nn2 * dim3 + 0 * dim4];
+            for(auto child1 : children1) {
+              if(child1 == child1_mb) {
+                continue;
+              }
+              c_ += memT[child1 + 1 * dim2 + nn2 * dim3 + 0 * dim4];
+            }
+            if(c_ == memT[curr1 + l1 * dim2 + nn2 * dim3 + 0 * dim4]){
+              traceMapping_branch(tree1, tree2, child1_mb, (l1 + 1), nn2, 0,
+                                  predecessors1, predecessors2, depth1, depth2,
+                                  memT, mapping);
+              for(auto child1 : children1) {
+                if(child1 == child1_mb) {
+                  continue;
+                }
+                traceMapping_branch(tree1, tree2, child1, 1, nn2, 0,
+                                    predecessors1, predecessors2, depth1, depth2,
+                                    memT, mapping);
+              }
+            }
+          }
+        }
+        return;
+      }
+
+      //===============================================================================
+      // If first tree empty, track optimal branch decomposition of second tree
+
+      if(curr1 == nn1){
+        std::vector<ftm::idNode> children2;
+        tree2->getChildren(curr2, children2);
+        int parent2 = predecessors2[curr2][predecessors2[curr2].size() - l2];
+        //-----------------------------------------------------------------------
+        // If first subtree has only one branch, return deletion cost of this
+        // branch
+        if(tree2->getNumberOfChildren(curr2) == 0) {
+          mapping.emplace_back(std::make_pair(
+            std::make_pair(-1, -1), std::make_pair(curr2, parent2)));
+        }
+        //-----------------------------------------------------------------------
+        // If first subtree has more than one branch, try all decompositions
+        else {
+          for(auto child2_mb : children2) {
+            dataType c_
+              = memT[nn1 + 0 * dim2 + child2_mb * dim3 + (l2 + 1) * dim4];
+            for(auto child2 : children2) {
+              if(child2 == child2_mb) {
+                continue;
+              }
+              c_ += memT[nn1 + 0 * dim2 + child2 * dim3 + 1 * dim4];
+            }
+            if(c_ == memT[nn1 + 0 * dim2 + curr2 * dim3 + l2 * dim4]){
+              traceMapping_branch(tree1, tree2, nn1, 0, child2_mb, (l2+1),
+                                  predecessors1, predecessors2, depth1, depth2,
+                                  memT, mapping);
+              for(auto child2 : children2) {
+                if(child2 == child2_mb) {
+                  continue;
+                }
+                traceMapping_branch(tree1, tree2, nn1, 0, child2, 1,
+                                    predecessors1, predecessors2, depth1, depth2,
+                                    memT, mapping);
+              }
+            }
+          }
+        }
+        return;
+      }
+                              
+      std::vector<ftm::idNode> children1;
+      tree1->getChildren(curr1, children1);
+      std::vector<ftm::idNode> children2;
+      tree2->getChildren(curr2, children2);
+      int parent1 = predecessors1[curr1][predecessors1[curr1].size() - l1];
+      int parent2 = predecessors2[curr2][predecessors2[curr2].size() - l2];
+
+      //===============================================================================
+      // If both trees not empty, find optimal edit operation
+
+      //---------------------------------------------------------------------------
+      // If both trees only have one branch, return edit cost between
+      // the two branches
+      if(tree1->getNumberOfChildren(curr1) == 0
+          and tree2->getNumberOfChildren(curr2) == 0) {
+        mapping.emplace_back(std::make_pair(
+          std::make_pair(curr1, parent1), std::make_pair(curr2, parent2)));
+        return;
+      }
+      //---------------------------------------------------------------------------
+      // If first tree only has one branch, try all decompositions of
+      // second tree
+      else if(children1.size() == 0) {
+        for(auto child2_mb : children2) {
+          dataType d_ = memT[curr1 + l1 * dim2 + child2_mb * dim3
+                              + (l2 + 1) * dim4];
+          for(auto child2 : children2) {
+            if(child2 == child2_mb) {
+              continue;
+            }
+            d_ += memT[nn1 + 0 * dim2 + child2 * dim3 + 1 * dim4];
+          }
+          if(d_ == memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4]){
+            traceMapping_branch(tree1, tree2, curr1, l1, child2_mb, (l2+1),
+                                predecessors1, predecessors2, depth1, depth2,
+                                memT, mapping);
+            for(auto child2 : children2) {
+              if(child2 == child2_mb) {
+                continue;
+              }
+              traceMapping_branch(tree1, tree2, nn1, 0, child2, 1,
+                                  predecessors1, predecessors2, depth1, depth2,
+                                  memT, mapping);
+            }
+            return;
+          }
+        }
+      }
+      //---------------------------------------------------------------------------
+      // If second tree only has one branch, try all decompositions of
+      // first tree
+      else if(children2.size() == 0) {
+        for(auto child1_mb : children1) {
+          dataType d_ = memT[child1_mb + (l1 + 1) * dim2 + curr2 * dim3
+                              + l2 * dim4];
+          for(auto child1 : children1) {
+            if(child1 == child1_mb) {
+              continue;
+            }
+            d_ += memT[child1 + 1 * dim2 + nn2 * dim3 + 0 * dim4];
+          }
+          if(d_ == memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4]){
+            traceMapping_branch(tree1, tree2, child1_mb, (l1 + 1), curr2, l2,
+                                predecessors1, predecessors2, depth1, depth2,
+                                memT, mapping);
+            for(auto child1 : children1) {
+              if(child1 == child1_mb) {
+                continue;
+              }
+              traceMapping_branch(tree1, tree2, child1, 1, nn2, 0,
+                                  predecessors1, predecessors2, depth1, depth2,
+                                  memT, mapping);
+            }
+            return;
+          }
+        }
+      }
+      //---------------------------------------------------------------------------
+      // If both trees have more than one branch, try all decompositions
+      // of both trees
+      else {
+        //-----------------------------------------------------------------------
+        // Try all possible main branches of first tree (child1_mb) and
+        // all possible main branches of second tree (child2_mb) Then
+        // try all possible matchings of subtrees
+        if(children1.size() == 2 && children2.size() == 2) {
+          int child11 = children1[0];
+          int child12 = children1[1];
+          int child21 = children2[0];
+          int child22 = children2[1];
+          if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4] ==
+              memT[child11 + (l1 + 1) * dim2 + child21 * dim3 + (l2 + 1) * dim4]
+              + memT[child12 + 1 * dim2 + child22 * dim3 + 1 * dim4]){
+            
+            traceMapping_branch(tree1, tree2, child11, (l1 + 1), child21, (l2+1),
+                                predecessors1, predecessors2, depth1, depth2,
+                                memT, mapping);
+            traceMapping_branch(tree1, tree2, child12, 1, child22, 1,
+                                predecessors1, predecessors2, depth1, depth2,
+                                memT, mapping);
+            
+            return;
+          }
+          if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4] == 
+              memT[child12 + (l1 + 1) * dim2 + child22 * dim3 + (l2 + 1) * dim4]
+              + memT[child11 + 1 * dim2 + child21 * dim3 + 1 * dim4]){
+            
+            traceMapping_branch(tree1, tree2, child12, (l1 + 1), child22, (l2+1),
+                                predecessors1, predecessors2, depth1, depth2,
+                                memT, mapping);
+            traceMapping_branch(tree1, tree2, child11, 1, child21, 1,
+                                predecessors1, predecessors2, depth1, depth2,
+                                memT, mapping);
+            
+            return;
+
+          }
+          if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4] ==
+              memT[child11 + (l1 + 1) * dim2 + child22 * dim3 + (l2 + 1) * dim4]
+              + memT[child12 + 1 * dim2 + child21 * dim3 + 1 * dim4]){
+            
+            traceMapping_branch(tree1, tree2, child11, (l1 + 1), child22, (l2+1),
+                                predecessors1, predecessors2, depth1, depth2,
+                                memT, mapping);
+            traceMapping_branch(tree1, tree2, child12, 1, child21, 1,
+                                predecessors1, predecessors2, depth1, depth2,
+                                memT, mapping);
+            
+            return;
+
+          }
+          if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4] ==
+              memT[child12 + (l1 + 1) * dim2 + child21 * dim3 + (l2 + 1) * dim4]
+              + memT[child11 + 1 * dim2 + child22 * dim3 + 1 * dim4]){
+            
+            traceMapping_branch(tree1, tree2, child12, (l1 + 1), child21, (l2+1),
+                                predecessors1, predecessors2, depth1, depth2,
+                                memT, mapping);
+            traceMapping_branch(tree1, tree2, child11, 1, child22, 1,
+                                predecessors1, predecessors2, depth1, depth2,
+                                memT, mapping);
+            
+            return;
+
+          }
+        }
+        else {
+          // ToDo !!!
+          // for(auto child1_mb : children1) {
+          //   auto topo1_ = children1;
+          //   topo1_.erase(
+          //     std::remove(topo1_.begin(), topo1_.end(), child1_mb),
+          //     topo1_.end());
+          //   for(auto child2_mb : children2) {
+          //     auto topo2_ = children2;
+          //     topo2_.erase(
+          //       std::remove(topo2_.begin(), topo2_.end(), child2_mb),
+          //       topo2_.end());
+
+          //     auto f = [&](unsigned r, unsigned c) {
+          //       int c1 = r < topo1_.size() ? topo1_[r] : -1;
+          //       int c2 = c < topo2_.size() ? topo2_[c] : -1;
+          //       return memT[c1 + 1 * dim2 + c2 * dim3 + 1 * dim4];
+          //     };
+          //     int size = std::max(topo1_.size(), topo2_.size()) + 1;
+          //     auto costMatrix = std::vector<std::vector<dataType>>(
+          //       size, std::vector<dataType>(size, 0));
+          //     std::vector<MatchingType> matching;
+          //     for(int r = 0; r < size; r++) {
+          //       for(int c = 0; c < size; c++) {
+          //         costMatrix[r][c] = f(r, c);
+          //       }
+          //     }
+
+          //     AssignmentSolver<dataType> *assignmentSolver;
+          //     AssignmentExhaustive<dataType> solverExhaustive;
+          //     AssignmentMunkres<dataType> solverMunkres;
+          //     AssignmentAuction<dataType> solverAuction;
+          //     switch(assignmentSolverID_) {
+          //       case 1:
+          //         solverExhaustive = AssignmentExhaustive<dataType>();
+          //         assignmentSolver = &solverExhaustive;
+          //         break;
+          //       case 2:
+          //         solverMunkres = AssignmentMunkres<dataType>();
+          //         assignmentSolver = &solverMunkres;
+          //         break;
+          //       case 0:
+          //       default:
+          //         solverAuction = AssignmentAuction<dataType>();
+          //         assignmentSolver = &solverAuction;
+          //     }
+          //     assignmentSolver->setInput(costMatrix);
+          //     assignmentSolver->setBalanced(true);
+          //     assignmentSolver->run(matching);
+          //     dataType d_ = memT[child1_mb + (l1 + 1) * dim2
+          //                         + child2_mb * dim3 + (l2 + 1) * dim4];
+          //     for(auto m : matching)
+          //       d_ += std::get<2>(m);
+          //     d = std::min(d, d_);
+          //   }
+          // }
+        }
+        //-----------------------------------------------------------------------
+        // Try to continue main branch on one child of first tree and
+        // delete all other subtrees Then match continued branch to
+        // current branch in second tree
+        for(auto child1_mb : children1) {
+          dataType d_ = memT[child1_mb + (l1 + 1) * dim2 + curr2 * dim3
+                              + l2 * dim4];
+          for(auto child1 : children1) {
+            if(child1 == child1_mb) {
+              continue;
+            }
+            d_ += memT[child1 + 1 * dim2 + nn2 * dim3 + 0 * dim4];
+          }
+          if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4] == d_){
+            traceMapping_branch(tree1, tree2, child1_mb, (l1 + 1), curr2, l2,
+                                predecessors1, predecessors2, depth1, depth2,
+                                memT, mapping);
+            for(auto child1 : children1) {
+              if(child1 == child1_mb) {
+                continue;
+              }
+              traceMapping_branch(tree1, tree2, child1, 1, nn2, 0,
+                                  predecessors1, predecessors2, depth1, depth2,
+                                  memT, mapping);
+            }
+            return;
+          }
+        }
+        //-----------------------------------------------------------------------
+        // Try to continue main branch on one child of second tree and
+        // delete all other subtrees Then match continued branch to
+        // current branch in first tree
+        for(auto child2_mb : children2) {
+          dataType d_ = memT[curr1 + l1 * dim2 + child2_mb * dim3
+                              + (l2 + 1) * dim4];
+          for(auto child2 : children2) {
+            if(child2 == child2_mb) {
+              continue;
+            }
+            d_ += memT[nn1 + 0 * dim2 + child2 * dim3 + 1 * dim4];
+          }
+          if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4] == d_){
+            traceMapping_branch(tree1, tree2, curr1, l1, child2_mb, (l2+1),
+                                predecessors1, predecessors2, depth1, depth2,
+                                memT, mapping);
+            for(auto child2 : children2) {
+              if(child2 == child2_mb) {
+                continue;
+              }
+              traceMapping_branch(tree1, tree2, nn1, 0, child2, 1,
+                                  predecessors1, predecessors2, depth1, depth2,
+                                  memT, mapping);
+            }
+            return;
+          }
+        }
+      }
     }
   };
 

@@ -28,6 +28,7 @@
 #include <vector>
 
 // ttk common includes
+#include "MergeTreeBase.h"
 #include <AssignmentAuction.h>
 #include <AssignmentExhaustive.h>
 #include <AssignmentMunkres.h>
@@ -36,7 +37,7 @@
 
 namespace ttk {
 
-  class BranchMappingDistance : virtual public Debug {
+  class BranchMappingDistance : virtual public Debug, public MergeTreeBase {
 
   private:
     int baseMetric_ = 0;
@@ -44,6 +45,8 @@ namespace ttk {
     bool squared_ = false;
     bool computeMapping_ = false;
     bool writeOptimalBranchDecomposition_ = false;
+
+    bool preprocess_ = true;
 
     template <class dataType>
     inline dataType editCost_Wasserstein1(int n1,
@@ -203,12 +206,32 @@ namespace ttk {
       writeOptimalBranchDecomposition_ = w;
     }
 
+    void setPreprocess(bool p) {
+      preprocess_ = p;
+    }
+
     template <class dataType>
     dataType editDistance_branch(ftm::FTMTree_MT *tree1,
                                  ftm::FTMTree_MT *tree2,
                                  std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching=nullptr) {
 
-      // initialize memoization tables
+      // optional preprocessing
+
+      if(preprocess_){
+        std::vector<std::vector<ftm::idNode>> treeNodeMerged1( tree1->getNumberOfNodes() );
+        preprocessTree<dataType>(tree1, epsilonTree1_, persistenceThreshold_,
+                                  treeNodeMerged1, true);
+        std::vector<std::vector<ftm::idNode>> treeNodeMerged2( tree2->getNumberOfNodes() );
+        preprocessTree<dataType>(tree2, epsilonTree2_, persistenceThreshold_,
+                                  treeNodeMerged2, true);
+        
+        if(deleteMultiPersPairs_)
+          deleteMultiPersPairs<dataType>(tree1, false);
+        if(deleteMultiPersPairs_)
+          deleteMultiPersPairs<dataType>(tree2, false);
+      }
+      
+      // compute preorder of both trees (necessary for bottom-up dynamic programming)
 
       std::vector<std::vector<int>> predecessors1(tree1->getNumberOfNodes());
       std::vector<std::vector<int>> predecessors2(tree2->getNumberOfNodes());
@@ -258,6 +281,8 @@ namespace ttk {
           predecessors2[cIdx].push_back(nIdx);
         }
       }
+
+      // initialize memoization tables
 
       size_t nn1 = tree1->getNumberOfNodes();
       size_t nn2 = tree2->getNumberOfNodes();
@@ -565,7 +590,7 @@ namespace ttk {
       if(computeMapping_ && outputMatching){
 
         outputMatching->clear();
-        std::vector<ftm::idNode> matchedNodes(tree1->getNumberOfNodes(),-1);
+        std::vector<int> matchedNodes(tree1->getNumberOfNodes(),-1);
         std::vector<std::pair<std::pair<int,int>,std::pair<int,int>>> mapping;
         traceMapping_branch(tree1,tree2,children1[0],1,children2[0],1,predecessors1,predecessors2,depth1,depth2,memT,mapping);
         for(auto m : mapping){
@@ -851,61 +876,78 @@ namespace ttk {
           }
         }
         else {
-          // ToDo !!!
-          // for(auto child1_mb : children1) {
-          //   auto topo1_ = children1;
-          //   topo1_.erase(
-          //     std::remove(topo1_.begin(), topo1_.end(), child1_mb),
-          //     topo1_.end());
-          //   for(auto child2_mb : children2) {
-          //     auto topo2_ = children2;
-          //     topo2_.erase(
-          //       std::remove(topo2_.begin(), topo2_.end(), child2_mb),
-          //       topo2_.end());
+          for(auto child1_mb : children1) {
+            auto topo1_ = children1;
+            topo1_.erase(
+              std::remove(topo1_.begin(), topo1_.end(), child1_mb),
+              topo1_.end());
+            for(auto child2_mb : children2) {
+              auto topo2_ = children2;
+              topo2_.erase(
+                std::remove(topo2_.begin(), topo2_.end(), child2_mb),
+                topo2_.end());
 
-          //     auto f = [&](unsigned r, unsigned c) {
-          //       int c1 = r < topo1_.size() ? topo1_[r] : -1;
-          //       int c2 = c < topo2_.size() ? topo2_[c] : -1;
-          //       return memT[c1 + 1 * dim2 + c2 * dim3 + 1 * dim4];
-          //     };
-          //     int size = std::max(topo1_.size(), topo2_.size()) + 1;
-          //     auto costMatrix = std::vector<std::vector<dataType>>(
-          //       size, std::vector<dataType>(size, 0));
-          //     std::vector<MatchingType> matching;
-          //     for(int r = 0; r < size; r++) {
-          //       for(int c = 0; c < size; c++) {
-          //         costMatrix[r][c] = f(r, c);
-          //       }
-          //     }
+              auto f = [&](unsigned r, unsigned c) {
+                int c1 = r < topo1_.size() ? topo1_[r] : -1;
+                int c2 = c < topo2_.size() ? topo2_[c] : -1;
+                return memT[c1 + 1 * dim2 + c2 * dim3 + 1 * dim4];
+              };
+              int size = std::max(topo1_.size(), topo2_.size()) + 1;
+              auto costMatrix = std::vector<std::vector<dataType>>(
+                size, std::vector<dataType>(size, 0));
+              std::vector<MatchingType> matching;
+              for(int r = 0; r < size; r++) {
+                for(int c = 0; c < size; c++) {
+                  costMatrix[r][c] = f(r, c);
+                }
+              }
 
-          //     AssignmentSolver<dataType> *assignmentSolver;
-          //     AssignmentExhaustive<dataType> solverExhaustive;
-          //     AssignmentMunkres<dataType> solverMunkres;
-          //     AssignmentAuction<dataType> solverAuction;
-          //     switch(assignmentSolverID_) {
-          //       case 1:
-          //         solverExhaustive = AssignmentExhaustive<dataType>();
-          //         assignmentSolver = &solverExhaustive;
-          //         break;
-          //       case 2:
-          //         solverMunkres = AssignmentMunkres<dataType>();
-          //         assignmentSolver = &solverMunkres;
-          //         break;
-          //       case 0:
-          //       default:
-          //         solverAuction = AssignmentAuction<dataType>();
-          //         assignmentSolver = &solverAuction;
-          //     }
-          //     assignmentSolver->setInput(costMatrix);
-          //     assignmentSolver->setBalanced(true);
-          //     assignmentSolver->run(matching);
-          //     dataType d_ = memT[child1_mb + (l1 + 1) * dim2
-          //                         + child2_mb * dim3 + (l2 + 1) * dim4];
-          //     for(auto m : matching)
-          //       d_ += std::get<2>(m);
-          //     d = std::min(d, d_);
-          //   }
-          // }
+              AssignmentSolver<dataType> *assignmentSolver;
+              AssignmentExhaustive<dataType> solverExhaustive;
+              AssignmentMunkres<dataType> solverMunkres;
+              AssignmentAuction<dataType> solverAuction;
+              switch(assignmentSolverID_) {
+                case 1:
+                  solverExhaustive = AssignmentExhaustive<dataType>();
+                  assignmentSolver = &solverExhaustive;
+                  break;
+                case 2:
+                  solverMunkres = AssignmentMunkres<dataType>();
+                  assignmentSolver = &solverMunkres;
+                  break;
+                case 0:
+                default:
+                  solverAuction = AssignmentAuction<dataType>();
+                  assignmentSolver = &solverAuction;
+              }
+              assignmentSolver->setInput(costMatrix);
+              assignmentSolver->setBalanced(true);
+              assignmentSolver->run(matching);
+              dataType d_ = memT[child1_mb + (l1 + 1) * dim2
+                                  + child2_mb * dim3 + (l2 + 1) * dim4];
+              for(auto m : matching)
+                d_ += std::get<2>(m);
+              
+              if(d_ == memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4]){
+                traceMapping_branch(tree1, tree2, child1_mb, (l1 + 1), child2_mb, (l2 + 1),
+                                    predecessors1, predecessors2, depth1, depth2,
+                                    memT, mapping);
+                for(auto m : matching){
+                  int n1 = std::get<0>(m) < topo1_.size()
+                         ? topo1_[std::get<0>(m)]
+                         : -1;
+                  int n2 = std::get<1>(m) < topo2_.size()
+                            ? topo2_[std::get<1>(m)]
+                            : -1;
+                  if(n1 >= 0 && n2 >= 0)
+                    traceMapping_branch(tree1, tree2, n1, 1, n2, 1,
+                                        predecessors1, predecessors2, depth1, depth2,
+                                        memT, mapping);
+                }
+                return;
+              }
+            }
+          }
         }
         //-----------------------------------------------------------------------
         // Try to continue main branch on one child of first tree and

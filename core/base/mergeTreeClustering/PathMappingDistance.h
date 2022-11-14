@@ -28,6 +28,7 @@
 #include <vector>
 
 // ttk common includes
+#include "MergeTreeBase.h"
 #include <AssignmentAuction.h>
 #include <AssignmentExhaustive.h>
 #include <AssignmentMunkres.h>
@@ -36,13 +37,15 @@
 
 namespace ttk {
 
-  class PathMappingDistance : virtual public Debug {
+  class PathMappingDistance : virtual public Debug, public MergeTreeBase {
 
   private:
     int baseMetric_ = 0;
     int assignmentSolverID_ = 0;
     bool squared_ = false;
     bool computeMapping_ = false;
+
+    bool preprocess_ = true;
 
     template <class dataType>
     inline dataType editCost_Persistence(int n1,
@@ -331,10 +334,30 @@ namespace ttk {
       computeMapping_ = m;
     }
 
+    void setPreprocess(bool p) {
+      preprocess_ = p;
+    }
+
     template <class dataType>
     dataType editDistance_path(ftm::FTMTree_MT *tree1, ftm::FTMTree_MT *tree2, std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching=nullptr) {
 
-      // initialize memoization tables
+      // optional preprocessing
+
+      if(preprocess_){
+        std::vector<std::vector<ftm::idNode>> treeNodeMerged1( tree1->getNumberOfNodes() );
+        preprocessTree<dataType>(tree1, epsilonTree1_, persistenceThreshold_,
+                                  treeNodeMerged1, true);
+        std::vector<std::vector<ftm::idNode>> treeNodeMerged2( tree2->getNumberOfNodes() );
+        preprocessTree<dataType>(tree2, epsilonTree2_, persistenceThreshold_,
+                                  treeNodeMerged2, true);
+        
+        if(deleteMultiPersPairs_)
+          deleteMultiPersPairs<dataType>(tree1, false);
+        if(deleteMultiPersPairs_)
+          deleteMultiPersPairs<dataType>(tree2, false);
+      }
+      
+      // compute preorder of both trees (necessary for bottom-up dynamic programming)
 
       std::vector<std::vector<int>> predecessors1(tree1->getNumberOfNodes());
       std::vector<std::vector<int>> predecessors2(tree2->getNumberOfNodes());
@@ -384,6 +407,8 @@ namespace ttk {
           predecessors2[cIdx].push_back(nIdx);
         }
       }
+
+      // initialize memoization tables
 
       size_t nn1 = tree1->getNumberOfNodes();
       size_t nn2 = tree2->getNumberOfNodes();
@@ -624,7 +649,7 @@ namespace ttk {
       if(computeMapping_ && outputMatching){
 
         outputMatching->clear();
-        std::vector<ftm::idNode> matchedNodes(tree1->getNumberOfNodes(),-1);
+        std::vector<int> matchedNodes(tree1->getNumberOfNodes(),-1);
         std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> mapping;
         traceMapping_path(tree1,tree2,children1[0],1,children2[0],1,predecessors1,predecessors2,depth1,depth2,memT,mapping);
         for(auto m : mapping){
@@ -638,45 +663,6 @@ namespace ttk {
       }
 
       return squared_ ? std::sqrt(res) : res;
-    }
-
-    void computeBranchDecomposition(ftm::FTMTree_MT *tree){
-
-      auto rootID = tree->getRoot();
-
-      computeBranchDecomposition(tree,rootID);
-
-    }
-
-    ftm::idNode computeBranchDecomposition(ftm::FTMTree_MT *tree,ftm::idNode rootID){
-
-      std::vector<ftm::idNode> children;
-      tree->getChildren(rootID, children);
-      if(children.empty()) return rootID;
-      if(children.size() == 1){
-        auto me = computeBranchDecomposition(tree, children[0]);
-        tree->getNode(rootID)->setOrigin(me);
-        tree->getNode(me)->setOrigin(rootID);
-        return me;
-      }
-      std::vector<ftm::idNode> extrema(children.size());
-      ftm::idNode me = computeBranchDecomposition(tree, children[0]);
-      extrema[0] = me;
-      for(int i=1; i<children.size(); i++){
-        auto e = computeBranchDecomposition(tree, children[i]);
-        extrema[i] = e;
-        //if(std::abs(tree->getValue<double>(e)-tree->getValue<double>(rootID)) > std::abs(tree->getValue<double>(me)-tree->getValue<double>(rootID))){
-        if(tree->getValue<double>(e) > tree->getValue<double>(me)){
-          me = e;
-        }
-      }
-      for(auto e : extrema){
-        if(e==me) continue;
-        tree->getNode(rootID)->setOrigin(e);
-        tree->getNode(e)->setOrigin(rootID);
-      }
-      return me;
-
     }
   };
 } // namespace ttk

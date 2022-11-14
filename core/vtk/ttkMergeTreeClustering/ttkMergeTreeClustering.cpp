@@ -280,7 +280,17 @@ int ttkMergeTreeClustering::runCompute(
       branchDist.setAssignmentSolver(AssignmentSolver);
       branchDist.setSquared(false);
       branchDist.setComputeMapping(true);
-      branchDist.setWriteBD(true);
+      branchDist.setWriteBD(false);
+
+      branchDist.setEpsilonTree1(EpsilonTree1);
+      branchDist.setEpsilonTree2(EpsilonTree2);
+      branchDist.setPersistenceThreshold(PersistenceThreshold);
+      //branchDist.setUseMinMaxPair(UseMinMaxPair);
+      branchDist.setDeleteMultiPersPairs(DeleteMultiPersPairs);
+      //branchDist.setEpsilon1UseFarthestSaddle(Epsilon1UseFarthestSaddle);
+      branchDist.setThreadNumber(this->threadNumber_);
+      branchDist.setDebugLevel(this->debugLevel_);
+
       distance = branchDist.editDistance_branch<dataType>(intermediateTrees[0], intermediateTrees[1], &outputMatching);
       
       std::vector<ttk::SimplexId> nodeCorr1(intermediateTrees[0]->getNumberOfNodes());
@@ -291,47 +301,29 @@ int ttkMergeTreeClustering::runCompute(
       finalDistances = std::vector<double>{distance};
     }
     else{
-      MergeTreeDistance mergeTreeDistance;
-      mergeTreeDistance.setAssignmentSolver(AssignmentSolver);
-      mergeTreeDistance.setEpsilonTree1(EpsilonTree1);
-      mergeTreeDistance.setEpsilonTree2(EpsilonTree2);
-      mergeTreeDistance.setEpsilon2Tree1(Epsilon2Tree1);
-      mergeTreeDistance.setEpsilon2Tree2(Epsilon2Tree2);
-      mergeTreeDistance.setEpsilon3Tree1(Epsilon3Tree1);
-      mergeTreeDistance.setEpsilon3Tree2(Epsilon3Tree2);
-      mergeTreeDistance.setProgressiveComputation(ProgressiveComputation);
-      mergeTreeDistance.setBranchDecomposition(BranchDecomposition);
-      mergeTreeDistance.setPersistenceThreshold(PersistenceThreshold);
-      mergeTreeDistance.setNormalizedWasserstein(NormalizedWasserstein);
-      mergeTreeDistance.setNormalizedWassersteinReg(NormalizedWassersteinReg);
-      mergeTreeDistance.setRescaledWasserstein(RescaledWasserstein);
-      mergeTreeDistance.setKeepSubtree(KeepSubtree);
-      mergeTreeDistance.setUseMinMaxPair(UseMinMaxPair);
-      mergeTreeDistance.setCleanTree(true);
-      mergeTreeDistance.setPostprocess(OutputTrees);
-      mergeTreeDistance.setDeleteMultiPersPairs(DeleteMultiPersPairs);
-      mergeTreeDistance.setEpsilon1UseFarthestSaddle(Epsilon1UseFarthestSaddle);
-      mergeTreeDistance.setThreadNumber(this->threadNumber_);
-      mergeTreeDistance.setDebugLevel(this->debugLevel_);
-
-      distance = mergeTreeDistance.execute<dataType>(
-        intermediateMTrees[0], intermediateMTrees[1], outputMatching);
-      trees1NodeCorrMesh = mergeTreeDistance.getTreesNodeCorr();
-
       PathMappingDistance pathDist;
       pathDist.setBaseMetric(pathMetric);
       pathDist.setAssignmentSolver(AssignmentSolver);
       pathDist.setSquared(false);
       pathDist.setComputeMapping(true);
-      distance = pathDist.editDistance_path<dataType>(intermediateTrees[0], intermediateTrees[1], &outputMatching);
-      //pathDist.computeBranchDecomposition(intermediateTrees[0]);
-      //pathDist.computeBranchDecomposition(intermediateTrees[1]);
+      pathDist.setPreprocess(true);
 
-      // std::vector<ttk::SimplexId> nodeCorr1(intermediateTrees[0]->getNumberOfNodes());
-      // std::vector<ttk::SimplexId> nodeCorr2(intermediateTrees[1]->getNumberOfNodes());
-      // for(ttk::SimplexId i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
-      // for(ttk::SimplexId i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
-      // trees1NodeCorrMesh = std::vector<std::vector<ttk::SimplexId>>{nodeCorr1,nodeCorr2};
+      pathDist.setEpsilonTree1(EpsilonTree1);
+      pathDist.setEpsilonTree2(EpsilonTree2);
+      pathDist.setPersistenceThreshold(PersistenceThreshold);
+      //pathDist.setUseMinMaxPair(UseMinMaxPair);
+      pathDist.setDeleteMultiPersPairs(DeleteMultiPersPairs);
+      //pathDist.setEpsilon1UseFarthestSaddle(Epsilon1UseFarthestSaddle);
+      pathDist.setThreadNumber(this->threadNumber_);
+      pathDist.setDebugLevel(this->debugLevel_);
+
+      distance = pathDist.editDistance_path<dataType>(intermediateTrees[0], intermediateTrees[1], &outputMatching);
+
+      std::vector<ttk::SimplexId> nodeCorr1(intermediateTrees[0]->getNumberOfNodes());
+      std::vector<ttk::SimplexId> nodeCorr2(intermediateTrees[1]->getNumberOfNodes());
+      for(ttk::SimplexId i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
+      for(ttk::SimplexId i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
+      trees1NodeCorrMesh = std::vector<std::vector<ttk::SimplexId>>{nodeCorr1,nodeCorr2};
       finalDistances = std::vector<double>{distance};
     }
   } else {

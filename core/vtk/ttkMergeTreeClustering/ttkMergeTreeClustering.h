@@ -323,11 +323,13 @@ public:
   void SetBranchMetric(int m) {
     branchMetric = m;
     Modified();
+    resetDataVisualization();
   }
 
   void SetPathMetric(int m) {
     pathMetric = m;
     Modified();
+    resetDataVisualization();
   }
 
   // Output Options

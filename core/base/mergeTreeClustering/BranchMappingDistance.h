@@ -217,7 +217,7 @@ namespace ttk {
 
       // optional preprocessing
 
-      if(preprocess_){
+      if(preprocess_ && !writeOptimalBranchDecomposition_){
         std::vector<std::vector<ftm::idNode>> treeNodeMerged1( tree1->getNumberOfNodes() );
         preprocessTree<dataType>(tree1, epsilonTree1_, persistenceThreshold_,
                                   treeNodeMerged1, true);
@@ -602,6 +602,17 @@ namespace ttk {
             tree2->getNode(m.second.first)->setOrigin(m.second.second);
             tree2->getNode(m.second.second)->setOrigin(m.second.first);
           }
+          dataType cost = this->baseMetric_ == 0 ? editCost_Wasserstein1<dataType>(
+                            m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2)
+                          : this->baseMetric_ == 1 ? editCost_Wasserstein2<dataType>(
+                              m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2)
+                          : this->baseMetric_ == 2
+                            ? editCost_Persistence<dataType>(
+                              m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2)
+                            : editCost_Shifting<dataType>(
+                              m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2);
+          //std::cout << "(" << m.first.first << " " << m.first.second << ") - (" << m.second.first << " " << m.second.second << ") : " << cost << std::endl;
+          std::cout << "(" << tree1->getValue<dataType>(m.first.first) << " " << tree1->getValue<dataType>(m.first.second) << ") - (" << tree2->getValue<dataType>(m.second.first) << " " << tree2->getValue<dataType>(m.second.second) << ") : " << cost << std::endl;
           if(m.first.first == -1) continue;
           if(m.first.second == -1) continue;
           if(m.second.first == -1) continue;

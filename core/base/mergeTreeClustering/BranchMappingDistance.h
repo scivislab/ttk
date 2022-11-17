@@ -218,12 +218,22 @@ namespace ttk {
       // optional preprocessing
 
       if(preprocess_ && !writeOptimalBranchDecomposition_){
+        preprocessTree<dataType>(tree1, true);
+        preprocessTree<dataType>(tree2, true);
+
+        // - Delete null persistence pairs and persistence thresholding
+        persistenceThresholding<dataType>(tree1, persistenceThreshold_);
+        persistenceThresholding<dataType>(tree2, persistenceThreshold_);
+
+        // - Merge saddle points according epsilon
         std::vector<std::vector<ftm::idNode>> treeNodeMerged1( tree1->getNumberOfNodes() );
-        preprocessTree<dataType>(tree1, epsilonTree1_, persistenceThreshold_,
-                                  treeNodeMerged1, true);
         std::vector<std::vector<ftm::idNode>> treeNodeMerged2( tree2->getNumberOfNodes() );
-        preprocessTree<dataType>(tree2, epsilonTree2_, persistenceThreshold_,
-                                  treeNodeMerged2, true);
+        if(not isPersistenceDiagram_) {
+          if(epsilonTree1_ != 0)
+            mergeSaddle<dataType>(tree1, epsilonTree1_, treeNodeMerged1);
+          if(epsilonTree2_ != 0)
+            mergeSaddle<dataType>(tree2, epsilonTree2_, treeNodeMerged2);
+        }
         
         if(deleteMultiPersPairs_)
           deleteMultiPersPairs<dataType>(tree1, false);

@@ -100,6 +100,9 @@ private:
   bool RescaleTreesIndividually = false;
   double DimensionSpacing = 1.;
   int DimensionToShift = 0;
+  double XShift = 1.0;
+  double YShift = 0.0;
+  double ZShift = 0.0;
   double ImportantPairs = 50.;
   int MaximumImportantPairs = 0;
   int MinimumImportantPairs = 0;
@@ -362,6 +365,15 @@ public:
 
   vtkSetMacro(DimensionToShift, int);
   vtkGetMacro(DimensionToShift, int);
+
+  vtkSetMacro(XShift, double);
+  vtkGetMacro(XShift, double);
+
+  vtkSetMacro(YShift, double);
+  vtkGetMacro(YShift, double);
+
+  vtkSetMacro(ZShift, double);
+  vtkGetMacro(ZShift, double);
 
   vtkSetMacro(ImportantPairs, double);
   vtkGetMacro(ImportantPairs, double);

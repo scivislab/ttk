@@ -358,10 +358,6 @@ Online examples:
                                            mode="visibility"
                                            property="OutputTrees"
                                            value="1" />
-                  <PropertyWidgetDecorator type="GenericDecorator"
-                                           mode="visibility"
-                                           property="MergeTreePlanarLayout"
-                                           value="0" />
                   </Hints>
                 <EnumerationDomain name="enum">
                     <Entry value="0" text="X"/>

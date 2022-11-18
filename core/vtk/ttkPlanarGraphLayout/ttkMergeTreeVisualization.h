@@ -903,19 +903,6 @@ public:
             break;
         }
 
-        // Get dimension shift
-        printMsg("// Get dimension shift", ttk::debug::Priority::VERBOSE);
-        double diff_z = PlanarLayout ? 0 : -std::get<4>(allBounds[i]);
-        // TODO DimensionToShift for Planar Layout
-        if(not PlanarLayout)
-          if(DimensionToShift != 0) { // is not X
-            if(DimensionToShift == 2) // is Z
-              diff_z = diff_x;
-            else if(DimensionToShift == 1) // is Y
-              diff_y = diff_x;
-            diff_x = -std::get<0>(allBounds[i]);
-          }
-
         // Planar layout
         printMsg("// Planar Layout", ttk::debug::Priority::VERBOSE);
         std::vector<float> layout;
@@ -932,6 +919,27 @@ public:
               trees[i], allBaryBounds[c], refPersistence, layout);
           else {
             persistenceDiagramPlanarLayout<dataType>(trees[i], layout);
+          }
+        }
+
+        // Get dimension shift
+        printMsg("// Get dimension shift", ttk::debug::Priority::VERBOSE);
+        double diff_z = PlanarLayout ? 0 : -std::get<4>(allBounds[i]);
+        if(DimensionToShift != 0) { // is not X
+          float minX = 0;
+          if(PlanarLayout) {
+            minX = layout[0];
+            for(unsigned int l = 0; l < layout.size(); ++l) {
+              if(l % 2 == 0)
+                minX = std::min(minX, layout[l]);
+            }
+          }
+          if(DimensionToShift == 2) { // is Z
+            diff_z = diff_x;
+            diff_x = PlanarLayout ? -minX : -std::get<0>(allBounds[i]);
+          } else if(not clusteringOutput and DimensionToShift == 1) { // is Y
+            diff_y = diff_x;
+            diff_x = PlanarLayout ? -minX : -std::get<0>(allBounds[i]);
           }
         }
 

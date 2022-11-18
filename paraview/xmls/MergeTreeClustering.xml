@@ -362,19 +362,73 @@ Online examples:
                                            mode="visibility"
                                            property="OutputTrees"
                                            value="1" />
-                  <PropertyWidgetDecorator type="GenericDecorator"
-                                           mode="visibility"
-                                           property="MergeTreePlanarLayout"
-                                           value="0" />
                   </Hints>
                 <EnumerationDomain name="enum">
                     <Entry value="0" text="X"/>
                     <Entry value="1" text="Y"/>
                     <Entry value="2" text="Z"/>
+                    <Entry value="3" text="Custom"/>
                 </EnumerationDomain>
                   <Documentation>
                   </Documentation>
                 </IntVectorProperty>
+                
+                <DoubleVectorProperty
+                name="XShift"
+                command="SetXShift"
+                label="X Shift"
+                number_of_elements="1"
+                default_values="1"
+                panel_visibility="advanced">
+                  <Hints>
+                  <PropertyWidgetDecorator type="GenericDecorator"
+                                           mode="visibility"
+                                           property="DimensionToShift"
+                                           value="3" />
+                  </Hints>
+                  <Documentation>
+                    
+                  </Documentation>
+                  <DoubleRangeDomain name="range" min="0" max="1" />
+                </DoubleVectorProperty>
+                
+                <DoubleVectorProperty
+                name="YShift"
+                command="SetYShift"
+                label="Y Shift"
+                number_of_elements="1"
+                default_values="0"
+                panel_visibility="advanced">
+                  <Hints>
+                  <PropertyWidgetDecorator type="GenericDecorator"
+                                           mode="visibility"
+                                           property="DimensionToShift"
+                                           value="3" />
+                  </Hints>
+                  <Documentation>
+                    
+                  </Documentation>
+                  <DoubleRangeDomain name="range" min="0" max="1" />
+                </DoubleVectorProperty>
+                
+                <DoubleVectorProperty
+                name="ZShift"
+                command="SetZShift"
+                label="Z Shift"
+                number_of_elements="1"
+                default_values="0"
+                panel_visibility="advanced">
+                  <Hints>
+                  <PropertyWidgetDecorator type="GenericDecorator"
+                                           mode="visibility"
+                                           property="DimensionToShift"
+                                           value="3" />
+                  </Hints>
+                  <Documentation>
+                    
+                  </Documentation>
+                  <DoubleRangeDomain name="range" min="0" max="1" />
+                </DoubleVectorProperty>
                 
                 <IntVectorProperty
                 name="BarycenterPositionAlpha"
@@ -469,6 +523,9 @@ Online examples:
               <Property name="OutputTrees"/>
               <Property name="DimensionSpacing"/>
               <Property name="DimensionToShift"/>
+              <Property name="XShift"/>
+              <Property name="YShift"/>
+              <Property name="ZShift"/>
               <Property name="BarycenterPositionAlpha"/>
               <Property name="MergeTreePlanarLayout"/>
             </PropertyGroup>

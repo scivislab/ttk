@@ -35,6 +35,9 @@ private:
   bool PlanarLayout = false;
   double DimensionSpacing = 1.;
   int DimensionToShift = 0;
+  double XShift = 1.0;
+  double YShift = 0.0;
+  double ZShift = 0.0;
   bool OutputSegmentation = false;
   int MaximumImportantPairs = 0;
   int MinimumImportantPairs = 0;
@@ -117,6 +120,20 @@ public:
   }
   void setDimensionToShift(int i) {
     DimensionToShift = i;
+  }
+  void setXshift(double shift) {
+    XShift = shift;
+  }
+  void setYshift(double shift) {
+    YShift = shift;
+  }
+  void setZshift(double shift) {
+    ZShift = shift;
+  }
+  void setDimensionsShift(double xShift, double yShift, double zShift) {
+    setXshift(xShift);
+    setYshift(yShift);
+    setZshift(zShift);
   }
   void setOutputSegmentation(bool b) {
     OutputSegmentation = b;
@@ -903,19 +920,6 @@ public:
             break;
         }
 
-        // Get dimension shift
-        printMsg("// Get dimension shift", ttk::debug::Priority::VERBOSE);
-        double diff_z = PlanarLayout ? 0 : -std::get<4>(allBounds[i]);
-        // TODO DimensionToShift for Planar Layout
-        if(not PlanarLayout)
-          if(DimensionToShift != 0) { // is not X
-            if(DimensionToShift == 2) // is Z
-              diff_z = diff_x;
-            else if(DimensionToShift == 1) // is Y
-              diff_y = diff_x;
-            diff_x = -std::get<0>(allBounds[i]);
-          }
-
         // Planar layout
         printMsg("// Planar Layout", ttk::debug::Priority::VERBOSE);
         std::vector<float> layout;
@@ -932,6 +936,33 @@ public:
               trees[i], allBaryBounds[c], refPersistence, layout);
           else {
             persistenceDiagramPlanarLayout<dataType>(trees[i], layout);
+          }
+        }
+
+        // Get dimension shift
+        printMsg("// Get dimension shift", ttk::debug::Priority::VERBOSE);
+        double diff_z = PlanarLayout ? 0 : -std::get<4>(allBounds[i]);
+        if(DimensionToShift != 0) { // is not X
+          float minX = 0;
+          if(PlanarLayout) {
+            minX = layout[0];
+            for(unsigned int l = 0; l < layout.size(); ++l) {
+              if(l % 2 == 0)
+                minX = std::min(minX, layout[l]);
+            }
+          }
+          double new_diff_x = PlanarLayout ? -minX : -std::get<0>(allBounds[i]);
+          if(DimensionToShift == 2) { // is Z
+            diff_z = -diff_x;
+            diff_x = new_diff_x;
+          } else if(not clusteringOutput and DimensionToShift == 1) { // is Y
+            diff_y = diff_x;
+            diff_x = new_diff_x;
+          } else if(DimensionToShift == 3) { // Custom
+            if(not clusteringOutput)
+              diff_y = YShift * diff_x + (1 - YShift) * diff_y;
+            diff_z = ZShift * -diff_x + (1 - ZShift) * diff_z;
+            diff_x = XShift * diff_x + (1 - XShift) * new_diff_x;
           }
         }
 

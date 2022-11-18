@@ -602,15 +602,22 @@ namespace ttk {
         outputMatching->clear();
         std::vector<int> matchedNodes(tree1->getNumberOfNodes(),-1);
         std::vector<std::pair<std::pair<int,int>,std::pair<int,int>>> mapping;
+        std::vector<int> linkedNodes1(tree1->getNumberOfNodes(),-1);
+        std::vector<int> linkedNodes2(tree2->getNumberOfNodes(),-1);
         traceMapping_branch(tree1,tree2,children1[0],1,children2[0],1,predecessors1,predecessors2,depth1,depth2,memT,mapping);
+        dataType cost_mapping = 0;
         for(auto m : mapping){
           if(writeOptimalBranchDecomposition_ && m.first.first >=0 && m.first.second >=0){
             tree1->getNode(m.first.first)->setOrigin(m.first.second);
             tree1->getNode(m.first.second)->setOrigin(m.first.first);
+            linkedNodes1[m.first.first] = m.first.second;
+            linkedNodes1[m.first.second] = m.first.first;
           }
           if(writeOptimalBranchDecomposition_ && m.second.first >=0 && m.second.second >=0){
             tree2->getNode(m.second.first)->setOrigin(m.second.second);
             tree2->getNode(m.second.second)->setOrigin(m.second.first);
+            linkedNodes2[m.second.first] = m.second.second;
+            linkedNodes2[m.second.second] = m.second.first;
           }
           dataType cost = this->baseMetric_ == 0 ? editCost_Wasserstein1<dataType>(
                             m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2)
@@ -621,8 +628,9 @@ namespace ttk {
                               m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2)
                             : editCost_Shifting<dataType>(
                               m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2);
-          //std::cout << "(" << m.first.first << " " << m.first.second << ") - (" << m.second.first << " " << m.second.second << ") : " << cost << std::endl;
-          std::cout << "(" << tree1->getValue<dataType>(m.first.first) << " " << tree1->getValue<dataType>(m.first.second) << ") - (" << tree2->getValue<dataType>(m.second.first) << " " << tree2->getValue<dataType>(m.second.second) << ") : " << cost << std::endl;
+          cost_mapping += cost;
+          std::cout << "(" << m.first.first << " " << m.first.second << ") - (" << m.second.first << " " << m.second.second << ") : " << cost << std::endl;
+          //std::cout << "(" << tree1->getValue<dataType>(m.first.first) << " " << tree1->getValue<dataType>(m.first.second) << ") - (" << tree2->getValue<dataType>(m.second.first) << " " << tree2->getValue<dataType>(m.second.second) << ") : " << cost << std::endl;
           if(m.first.first == -1) continue;
           if(m.first.second == -1) continue;
           if(m.second.first == -1) continue;
@@ -630,9 +638,19 @@ namespace ttk {
           matchedNodes[m.first.first] = m.second.first;
           matchedNodes[m.first.second] = m.second.second;
         }
+        std::cout << "Pairs Tree 1:\n";
+        for(int i=0; i<linkedNodes1.size(); i++){
+          std::cout << i << ": " << linkedNodes1[i] << std::endl;
+        }
+        std::cout << "Pairs Tree 2:\n";
+        for(int i=0; i<linkedNodes2.size(); i++){
+          std::cout << i << ": " << linkedNodes2[i] << std::endl;
+        }
         for(ftm::idNode i=0; i<matchedNodes.size(); i++){
           if(matchedNodes[i]>=0) outputMatching->emplace_back(std::make_tuple(i,matchedNodes[i], 0.0));
         }
+
+        std::cout << res << " " << cost_mapping << std::endl;
 
       }
 
@@ -675,6 +693,7 @@ namespace ttk {
         if(tree1->getNumberOfChildren(curr1) == 0) {
           mapping.emplace_back(std::make_pair(
             std::make_pair(curr1, parent1), std::make_pair(-1, -1)));
+          return;
         }
         //-----------------------------------------------------------------------
         // If first subtree has more than one branch, try all decompositions
@@ -700,10 +719,11 @@ namespace ttk {
                                     predecessors1, predecessors2, depth1, depth2,
                                     memT, mapping);
               }
+              return;
             }
           }
+          this->printErr("Mapping traceback not correct.");
         }
-        return;
       }
 
       //===============================================================================
@@ -719,6 +739,7 @@ namespace ttk {
         if(tree2->getNumberOfChildren(curr2) == 0) {
           mapping.emplace_back(std::make_pair(
             std::make_pair(-1, -1), std::make_pair(curr2, parent2)));
+          return;
         }
         //-----------------------------------------------------------------------
         // If first subtree has more than one branch, try all decompositions
@@ -744,10 +765,11 @@ namespace ttk {
                                     predecessors1, predecessors2, depth1, depth2,
                                     memT, mapping);
               }
+              return;
             }
           }
+          this->printErr("Mapping traceback not correct.");
         }
-        return;
       }
                               
       std::vector<ftm::idNode> children1;
@@ -898,12 +920,14 @@ namespace ttk {
         }
         else {
           for(auto child1_mb : children1) {
-            auto topo1_ = children1;
+            std::vector<ftm::idNode> topo1_;
+            tree1->getChildren(curr1, topo1_);
             topo1_.erase(
               std::remove(topo1_.begin(), topo1_.end(), child1_mb),
               topo1_.end());
             for(auto child2_mb : children2) {
-              auto topo2_ = children2;
+              std::vector<ftm::idNode> topo2_;
+              tree1->getChildren(curr2, topo2_);
               topo2_.erase(
                 std::remove(topo2_.begin(), topo2_.end(), child2_mb),
                 topo2_.end());
@@ -962,6 +986,14 @@ namespace ttk {
                             : -1;
                   if(n1 >= 0 && n2 >= 0)
                     traceMapping_branch(tree1, tree2, n1, 1, n2, 1,
+                                        predecessors1, predecessors2, depth1, depth2,
+                                        memT, mapping);
+                  else if(n1 >= 0)
+                    traceMapping_branch(tree1, tree2, n1, 1, nn2, 0,
+                                        predecessors1, predecessors2, depth1, depth2,
+                                        memT, mapping);
+                  else if(n2 >= 0)
+                    traceMapping_branch(tree1, tree2, nn1, 0, n2, 1,
                                         predecessors1, predecessors2, depth1, depth2,
                                         memT, mapping);
                 }
@@ -1026,6 +1058,7 @@ namespace ttk {
             return;
           }
         }
+        this->printErr("Mapping traceback not correct");
       }
     }
   };

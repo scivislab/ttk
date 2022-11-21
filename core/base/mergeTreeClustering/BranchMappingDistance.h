@@ -498,12 +498,14 @@ namespace ttk {
                       + memT[child11 + 1 * dim2 + child22 * dim3 + 1 * dim4]);
                 } else {
                   for(auto child1_mb : children1) {
-                    auto topo1_ = children1;
+                    std::vector<ftm::idNode> topo1_;
+                    tree1->getChildren(curr1, topo1_);
                     topo1_.erase(
                       std::remove(topo1_.begin(), topo1_.end(), child1_mb),
                       topo1_.end());
                     for(auto child2_mb : children2) {
-                      auto topo2_ = children2;
+                      std::vector<ftm::idNode> topo2_;
+                      tree2->getChildren(curr2, topo2_);
                       topo2_.erase(
                         std::remove(topo2_.begin(), topo2_.end(), child2_mb),
                         topo2_.end());
@@ -628,9 +630,11 @@ namespace ttk {
                               m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2)
                             : editCost_Shifting<dataType>(
                               m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2);
-          cost_mapping += cost;
-          std::cout << "(" << m.first.first << " " << m.first.second << ") - (" << m.second.first << " " << m.second.second << ") : " << cost << std::endl;
-          //std::cout << "(" << tree1->getValue<dataType>(m.first.first) << " " << tree1->getValue<dataType>(m.first.second) << ") - (" << tree2->getValue<dataType>(m.second.first) << " " << tree2->getValue<dataType>(m.second.second) << ") : " << cost << std::endl;
+          dataType cost_ = editCost_Wasserstein1<dataType>(
+                            m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2);
+          cost_mapping += cost_;
+          std::cout << "(" << m.first.first << " " << m.first.second << ") - (" << m.second.first << " " << m.second.second << ") : " << cost << " " << cost_;// << std::endl;
+          std::cout << ";        (" << tree1->getValue<dataType>(m.first.first) << " " << tree1->getValue<dataType>(m.first.second) << ") - (" << tree2->getValue<dataType>(m.second.first) << " " << tree2->getValue<dataType>(m.second.second) << ")" << std::endl;
           if(m.first.first == -1) continue;
           if(m.first.second == -1) continue;
           if(m.second.first == -1) continue;
@@ -638,14 +642,14 @@ namespace ttk {
           matchedNodes[m.first.first] = m.second.first;
           matchedNodes[m.first.second] = m.second.second;
         }
-        std::cout << "Pairs Tree 1:\n";
-        for(int i=0; i<linkedNodes1.size(); i++){
-          std::cout << i << ": " << linkedNodes1[i] << std::endl;
-        }
-        std::cout << "Pairs Tree 2:\n";
-        for(int i=0; i<linkedNodes2.size(); i++){
-          std::cout << i << ": " << linkedNodes2[i] << std::endl;
-        }
+        // std::cout << "Pairs Tree 1:\n";
+        // for(int i=0; i<linkedNodes1.size(); i++){
+        //   std::cout << i << ": " << linkedNodes1[i] << std::endl;
+        // }
+        // std::cout << "Pairs Tree 2:\n";
+        // for(int i=0; i<linkedNodes2.size(); i++){
+        //   std::cout << i << ": " << linkedNodes2[i] << std::endl;
+        // }
         for(ftm::idNode i=0; i<matchedNodes.size(); i++){
           if(matchedNodes[i]>=0) outputMatching->emplace_back(std::make_tuple(i,matchedNodes[i], 0.0));
         }
@@ -927,7 +931,7 @@ namespace ttk {
               topo1_.end());
             for(auto child2_mb : children2) {
               std::vector<ftm::idNode> topo2_;
-              tree1->getChildren(curr2, topo2_);
+              tree2->getChildren(curr2, topo2_);
               topo2_.erase(
                 std::remove(topo2_.begin(), topo2_.end(), child2_mb),
                 topo2_.end());

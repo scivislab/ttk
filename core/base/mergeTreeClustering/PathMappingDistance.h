@@ -352,13 +352,42 @@ namespace ttk {
         persistenceThresholding<dataType>(tree2, persistenceThreshold_);
 
         // - Merge saddle points according epsilon
-        std::vector<std::vector<ftm::idNode>> treeNodeMerged1( tree1->getNumberOfNodes() );
-        std::vector<std::vector<ftm::idNode>> treeNodeMerged2( tree2->getNumberOfNodes() );
         if(not isPersistenceDiagram_) {
-          if(epsilonTree1_ != 0)
+          treesNodeCorr_.resize(2);
+          if(epsilonTree1_ != 0){
+            std::vector<std::vector<ftm::idNode>> treeNodeMerged1( tree1->getNumberOfNodes() );
             mergeSaddle<dataType>(tree1, epsilonTree1_, treeNodeMerged1);
-          if(epsilonTree2_ != 0)
+            for(int i=0; i<treeNodeMerged1.size(); i++){
+              for(auto j : treeNodeMerged1[i]){
+                auto nodeToDelete = tree1->getNode(j)->getOrigin();
+                tree1->getNode(j)->setOrigin(i);
+                tree1->getNode(nodeToDelete)->setOrigin(-1);
+              }
+            }
+            ftm::cleanMergeTree<dataType>(tree1, treesNodeCorr_[0], true);
+          }
+          else{
+            std::vector<ttk::SimplexId> nodeCorr1(tree1->getNumberOfNodes());
+            for(ttk::SimplexId i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
+            treesNodeCorr_[0] = nodeCorr1;
+          }
+          if(epsilonTree2_ != 0){
+            std::vector<std::vector<ftm::idNode>> treeNodeMerged2( tree2->getNumberOfNodes() );
             mergeSaddle<dataType>(tree2, epsilonTree2_, treeNodeMerged2);
+            for(int i=0; i<treeNodeMerged2.size(); i++){
+              for(auto j : treeNodeMerged2[i]){
+                auto nodeToDelete = tree2->getNode(j)->getOrigin();
+                tree2->getNode(j)->setOrigin(i);
+                tree2->getNode(nodeToDelete)->setOrigin(-1);
+              }
+            }
+            ftm::cleanMergeTree<dataType>(tree2, treesNodeCorr_[1], true);
+          }
+          else{
+            std::vector<ttk::SimplexId> nodeCorr2(tree2->getNumberOfNodes());
+            for(ttk::SimplexId i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
+            treesNodeCorr_[1] = nodeCorr2;
+          }
         }
         
         if(deleteMultiPersPairs_)

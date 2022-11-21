@@ -292,7 +292,7 @@ int ttkMergeTreeClustering::runCompute(
       branchDist.setAssignmentSolver(AssignmentSolver);
       branchDist.setSquared(false);
       branchDist.setComputeMapping(true);
-      branchDist.setWriteBD(true);
+      branchDist.setWriteBD(false);
 
       branchDist.setEpsilonTree1(EpsilonTree1);
       branchDist.setEpsilonTree2(EpsilonTree2);
@@ -332,12 +332,13 @@ int ttkMergeTreeClustering::runCompute(
       pathDist.setDebugLevel(this->debugLevel_);
 
       distance = pathDist.editDistance_path<dataType>(intermediateTrees[0], intermediateTrees[1], &outputMatching);
+      trees1NodeCorrMesh = pathDist.getTreesNodeCorr();
 
-      std::vector<ttk::SimplexId> nodeCorr1(intermediateTrees[0]->getNumberOfNodes());
-      std::vector<ttk::SimplexId> nodeCorr2(intermediateTrees[1]->getNumberOfNodes());
-      for(ttk::SimplexId i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
-      for(ttk::SimplexId i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
-      trees1NodeCorrMesh = std::vector<std::vector<ttk::SimplexId>>{nodeCorr1,nodeCorr2};
+      // std::vector<ttk::SimplexId> nodeCorr1(intermediateTrees[0]->getNumberOfNodes());
+      // std::vector<ttk::SimplexId> nodeCorr2(intermediateTrees[1]->getNumberOfNodes());
+      // for(ttk::SimplexId i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
+      // for(ttk::SimplexId i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
+      // trees1NodeCorrMesh = std::vector<std::vector<ttk::SimplexId>>{nodeCorr1,nodeCorr2};
       finalDistances = std::vector<double>{distance};
     }
   } else {

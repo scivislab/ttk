@@ -356,12 +356,18 @@ int ttkMergeTreeClustering::runCompute(
       mergeTreeBarycenter.setIsPersistenceDiagram(IsPersistenceDiagram);
       mergeTreeBarycenter.setAlpha(Alpha);
       mergeTreeBarycenter.setDeterministic(Deterministic);
+        mergeTreeBarycenter.setPersistenceThreshold(PersistenceThreshold);
       if(baseModule==2){
         mergeTreeBarycenter.setPathMetric(this->pathMetric);
+        mergeTreeBarycenter.setBranchDecomposition(false);
+        mergeTreeBarycenter.setNormalizedWasserstein(false);
+        mergeTreeBarycenter.setKeepSubtree(false);
+        mergeTreeBarycenter.setUseMinMaxPair(false);
+        mergeTreeBarycenter.setAddNodes(false);
+        mergeTreeBarycenter.setPostprocess(false);
       }
       else{
         mergeTreeBarycenter.setBranchDecomposition(BranchDecomposition);
-        mergeTreeBarycenter.setPersistenceThreshold(PersistenceThreshold);
         mergeTreeBarycenter.setNormalizedWasserstein(NormalizedWasserstein);
         mergeTreeBarycenter.setKeepSubtree(KeepSubtree);
         mergeTreeBarycenter.setUseMinMaxPair(UseMinMaxPair);

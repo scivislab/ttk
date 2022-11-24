@@ -828,7 +828,7 @@ namespace ttk {
       for(unsigned int i=0; i<trees.size(); i++){
         for(auto match : matchings[i]){
           baryNodesMatched[match.first.first] = true;
-          baryNodesMatched[match.first.first] = true;
+          baryNodesMatched[match.first.second] = true;
         }
       }
       for(ftm::idNode i=0; i<baryTree->getNumberOfNodes(); i++){
@@ -849,7 +849,7 @@ namespace ttk {
           dataType tv2 = tree->getValue<dataType>(match.second.second);
           dataType pathRangeB = bv1 > bv2 ? bv1 - bv2 : bv2 - bv1;
           dataType pathRangeT = tv1 > tv2 ? tv1 - tv2 : tv2 - tv1;
-          ftm::idNode currB = baryTree->getValue<dataType>(match.first.first);
+          ftm::idNode currB = baryTree->getParentSafe(match.first.first);
           ftm::idNode lastB = match.first.first;
           while(lastB != match.first.second){
             dataType currValueB = baryTree->getValue<dataType>(currB);
@@ -1312,8 +1312,26 @@ namespace ttk {
       printMsg("Final assignment");
 
       std::vector<dataType> distances(trees.size(), -1);
-      assignment<dataType>(trees, baryMergeTree, finalMatchings, distances,
-                           finalAsgnDoubleInput, finalAsgnFirstInput);
+      if(baseModule_ == 2){
+        std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
+          matchings_path(trees.size());
+        assignment_path<dataType>(trees, baryMergeTree, matchings_path, distances);
+        for(unsigned int i=0; i<matchings_path.size(); i++){
+          finalMatchings[i].clear();
+          std::vector<int> matchedNodes(trees[i]->getNumberOfNodes(),-1);
+          for(auto m : matchings_path[i]){
+            matchedNodes[m.first.first] = m.second.first;
+            matchedNodes[m.first.second] = m.second.second;
+          }
+          for(ftm::idNode j=0; j<matchedNodes.size(); j++){
+            //if(matchedNodes[j]>=0) finalMatchings[i].emplace_back(std::make_tuple(j,matchedNodes[j], 0.0));
+          }
+        }
+      }
+      else{
+        assignment<dataType>(trees, baryMergeTree, finalMatchings, distances,
+                             finalAsgnDoubleInput, finalAsgnFirstInput);
+      }
       for(auto dist : distances)
         finalDistances_.push_back(dist);
       dataType currentFrechetEnergy = 0;
@@ -1328,7 +1346,7 @@ namespace ttk {
                debug::LineMode::NEW, debug::Priority::INFO);
       // std::cout << "Bary Distance Time = " << allDistanceTime_ << std::endl;
 
-      if(trees.size() == 2 and not isCalled_)
+      if(trees.size() == 2 and not isCalled_ && baseModule_!=2)
         verifyBarycenterTwoTrees<dataType>(
           trees, baryMergeTree, finalMatchings, distances);
 
@@ -1352,11 +1370,45 @@ namespace ttk {
       // --- Preprocessing
       if(preprocess_) {
         treesNodeCorr_.resize(trees.size());
-        for(unsigned int i = 0; i < trees.size(); ++i)
-          preprocessingPipeline<dataType>(trees[i], epsilonTree2_,
-                                          epsilon2Tree2_, epsilon3Tree2_,
-                                          branchDecomposition_, useMinMaxPair_,
-                                          cleanTree_, treesNodeCorr_[i]);
+        for(unsigned int i = 0; i < trees.size(); ++i){
+          if(baseModule_==2){
+            ftm::FTMTree_MT *tree = &(trees[i].tree);
+            preprocessTree<dataType>(tree, true);
+
+            // - Delete null persistence pairs and persistence thresholding
+            persistenceThresholding<dataType>(tree, persistenceThreshold_);
+
+            // - Merge saddle points according epsilon
+            if(not isPersistenceDiagram_) {
+              treesNodeCorr_.resize(2);
+              if(epsilonTree2_ != 0){
+                std::vector<std::vector<ftm::idNode>> treeNodeMerged( tree->getNumberOfNodes() );
+                mergeSaddle<dataType>(tree, epsilonTree2_, treeNodeMerged);
+                for(unsigned int i=0; i<treeNodeMerged.size(); i++){
+                  for(auto j : treeNodeMerged[i]){
+                    auto nodeToDelete = tree->getNode(j)->getOrigin();
+                    tree->getNode(j)->setOrigin(i);
+                    tree->getNode(nodeToDelete)->setOrigin(-1);
+                  }
+                }
+                ftm::cleanMergeTree<dataType>(trees[i], treesNodeCorr_[i], true);
+              }
+              else{
+                std::vector<ttk::SimplexId> nodeCorr(tree->getNumberOfNodes());
+                for(unsigned int i=0; i<nodeCorr.size(); i++) nodeCorr[i] = i;
+                treesNodeCorr_[i] = nodeCorr;
+              }
+            }
+            if(deleteMultiPersPairs_)
+              deleteMultiPersPairs<dataType>(tree, false);
+          }
+          else{
+            preprocessingPipeline<dataType>(trees[i], epsilonTree2_,
+                                            epsilon2Tree2_, epsilon3Tree2_,
+                                            branchDecomposition_, useMinMaxPair_,
+                                            cleanTree_, treesNodeCorr_[i]);
+          }
+        }
         printTreesStats(trees);
       }
 
@@ -1368,6 +1420,10 @@ namespace ttk {
       // --- Execute
       computeBarycenter<dataType>(treesT, baryMergeTree, alphas, finalMatchings,
                                   finalAsgnDoubleInput, finalAsgnFirstInput);
+    
+      if(baseModule_==2){
+        preprocessTree<dataType>(&(baryMergeTree.tree),true);
+      }
 
       // --- Postprocessing
       if(postprocess_) {

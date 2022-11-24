@@ -132,9 +132,8 @@ int ttkMergeTreeClustering::RequestData(vtkInformation *ttkNotUsed(request),
   }
 
   // filter out new backends (not yet supported)
-  if(baseModule != 0 && ComputeBarycenter) {
-    printErr("Invalid Backend chosen. Path Mapping Distance and Branch Mapping "
-             "Distance not yet supported for Barycenter computation. Canceling computation.");
+  if(baseModule == 1 && ComputeBarycenter) {
+    printErr("Invalid Backend chosen. Branch Mapping Distance not yet supported for Barycenter computation. Canceling computation.");
     return 1;
   }
 
@@ -308,8 +307,8 @@ int ttkMergeTreeClustering::runCompute(
       
       std::vector<ttk::SimplexId> nodeCorr1(intermediateTrees[0]->getNumberOfNodes());
       std::vector<ttk::SimplexId> nodeCorr2(intermediateTrees[1]->getNumberOfNodes());
-      for(ttk::SimplexId i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
-      for(ttk::SimplexId i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
+      for(unsigned int i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
+      for(unsigned int i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
       trees1NodeCorrMesh = std::vector<std::vector<ttk::SimplexId>>{nodeCorr1,nodeCorr2};
       finalDistances = std::vector<double>{distance};
     }
@@ -351,23 +350,29 @@ int ttkMergeTreeClustering::runCompute(
       mergeTreeBarycenter.setEpsilon2Tree2(Epsilon2Tree2);
       mergeTreeBarycenter.setEpsilon3Tree1(Epsilon3Tree1);
       mergeTreeBarycenter.setEpsilon3Tree2(Epsilon3Tree2);
-      mergeTreeBarycenter.setBranchDecomposition(BranchDecomposition);
-      mergeTreeBarycenter.setPersistenceThreshold(PersistenceThreshold);
-      mergeTreeBarycenter.setNormalizedWasserstein(NormalizedWasserstein);
-      mergeTreeBarycenter.setKeepSubtree(KeepSubtree);
-      mergeTreeBarycenter.setUseMinMaxPair(UseMinMaxPair);
-      mergeTreeBarycenter.setAddNodes(AddNodes);
-      mergeTreeBarycenter.setDeterministic(Deterministic);
-      mergeTreeBarycenter.setBarycenterSizeLimitPercent(
-        BarycenterSizeLimitPercent);
-      mergeTreeBarycenter.setAlpha(Alpha);
-      mergeTreeBarycenter.setPostprocess(OutputTrees);
-      mergeTreeBarycenter.setDeleteMultiPersPairs(DeleteMultiPersPairs);
-      mergeTreeBarycenter.setEpsilon1UseFarthestSaddle(
-        Epsilon1UseFarthestSaddle);
-      mergeTreeBarycenter.setIsPersistenceDiagram(IsPersistenceDiagram);
       mergeTreeBarycenter.setThreadNumber(this->threadNumber_);
       mergeTreeBarycenter.setDebugLevel(this->debugLevel_);
+      mergeTreeBarycenter.setBaseModule(this->baseModule);
+      mergeTreeBarycenter.setIsPersistenceDiagram(IsPersistenceDiagram);
+      mergeTreeBarycenter.setAlpha(Alpha);
+      mergeTreeBarycenter.setDeterministic(Deterministic);
+      if(baseModule==2){
+        mergeTreeBarycenter.setPathMetric(this->pathMetric);
+      }
+      else{
+        mergeTreeBarycenter.setBranchDecomposition(BranchDecomposition);
+        mergeTreeBarycenter.setPersistenceThreshold(PersistenceThreshold);
+        mergeTreeBarycenter.setNormalizedWasserstein(NormalizedWasserstein);
+        mergeTreeBarycenter.setKeepSubtree(KeepSubtree);
+        mergeTreeBarycenter.setUseMinMaxPair(UseMinMaxPair);
+        mergeTreeBarycenter.setAddNodes(AddNodes);
+        mergeTreeBarycenter.setBarycenterSizeLimitPercent(
+          BarycenterSizeLimitPercent);
+        mergeTreeBarycenter.setPostprocess(OutputTrees);
+        mergeTreeBarycenter.setDeleteMultiPersPairs(DeleteMultiPersPairs);
+        mergeTreeBarycenter.setEpsilon1UseFarthestSaddle(
+          Epsilon1UseFarthestSaddle);
+      }
 
       mergeTreeBarycenter.execute<dataType>(
         intermediateMTrees, outputMatchingBarycenter[0], barycenters[0]);

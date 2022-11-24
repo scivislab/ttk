@@ -339,7 +339,7 @@ namespace ttk {
     }
 
     template <class dataType>
-    dataType editDistance_path(ftm::FTMTree_MT *tree1, ftm::FTMTree_MT *tree2, std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching=nullptr) {
+    dataType editDistance_path(ftm::FTMTree_MT *tree1, ftm::FTMTree_MT *tree2, std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> *outputMatching) {
 
       // optional preprocessing
 
@@ -357,7 +357,7 @@ namespace ttk {
           if(epsilonTree1_ != 0){
             std::vector<std::vector<ftm::idNode>> treeNodeMerged1( tree1->getNumberOfNodes() );
             mergeSaddle<dataType>(tree1, epsilonTree1_, treeNodeMerged1);
-            for(int i=0; i<treeNodeMerged1.size(); i++){
+            for(unsigned int i=0; i<treeNodeMerged1.size(); i++){
               for(auto j : treeNodeMerged1[i]){
                 auto nodeToDelete = tree1->getNode(j)->getOrigin();
                 tree1->getNode(j)->setOrigin(i);
@@ -368,13 +368,13 @@ namespace ttk {
           }
           else{
             std::vector<ttk::SimplexId> nodeCorr1(tree1->getNumberOfNodes());
-            for(ttk::SimplexId i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
+            for(unsigned int i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
             treesNodeCorr_[0] = nodeCorr1;
           }
           if(epsilonTree2_ != 0){
             std::vector<std::vector<ftm::idNode>> treeNodeMerged2( tree2->getNumberOfNodes() );
             mergeSaddle<dataType>(tree2, epsilonTree2_, treeNodeMerged2);
-            for(int i=0; i<treeNodeMerged2.size(); i++){
+            for(unsigned int i=0; i<treeNodeMerged2.size(); i++){
               for(auto j : treeNodeMerged2[i]){
                 auto nodeToDelete = tree2->getNode(j)->getOrigin();
                 tree2->getNode(j)->setOrigin(i);
@@ -385,7 +385,7 @@ namespace ttk {
           }
           else{
             std::vector<ttk::SimplexId> nodeCorr2(tree2->getNumberOfNodes());
-            for(ttk::SimplexId i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
+            for(unsigned int i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
             treesNodeCorr_[1] = nodeCorr2;
           }
         }
@@ -688,9 +688,20 @@ namespace ttk {
       if(computeMapping_ && outputMatching){
 
         outputMatching->clear();
-        std::vector<int> matchedNodes(tree1->getNumberOfNodes(),-1);
-        std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> mapping;
-        traceMapping_path(tree1,tree2,children1[0],1,children2[0],1,predecessors1,predecessors2,depth1,depth2,memT,mapping);
+        traceMapping_path(tree1,tree2,children1[0],1,children2[0],1,predecessors1,predecessors2,depth1,depth2,memT,*outputMatching);
+      }
+
+      return squared_ ? std::sqrt(res) : res;
+    }
+
+    template <class dataType>
+    dataType editDistance_path(ftm::FTMTree_MT *tree1, ftm::FTMTree_MT *tree2, std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching){
+      
+      std::vector<int> matchedNodes(tree1->getNumberOfNodes(),-1);
+      std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> mapping;
+      dataType res = editDistance_path<dataType>(tree1,tree2,&mapping);
+      if(computeMapping_ && outputMatching){
+        outputMatching->clear();
         for(auto m : mapping){
           matchedNodes[m.first.first] = m.second.first;
           matchedNodes[m.first.second] = m.second.second;
@@ -698,10 +709,15 @@ namespace ttk {
         for(ftm::idNode i=0; i<matchedNodes.size(); i++){
           if(matchedNodes[i]>=0) outputMatching->emplace_back(std::make_tuple(i,matchedNodes[i], 0.0));
         }
-
       }
 
-      return squared_ ? std::sqrt(res) : res;
+      return res;
+
+    }
+
+    template <class dataType>
+    dataType editDistance_path(ftm::FTMTree_MT *tree1, ftm::FTMTree_MT *tree2){
+      return editDistance_path<dataType>(tree1,tree2,(std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>*) nullptr);
     }
   };
 } // namespace ttk

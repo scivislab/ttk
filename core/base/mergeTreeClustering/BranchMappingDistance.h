@@ -677,12 +677,12 @@ namespace ttk {
       std::vector<std::pair<std::pair<int, int>,
                             std::pair<int, int>>> &mapping) {
 
-      size_t nn1 = tree1->getNumberOfNodes();
-      size_t nn2 = tree2->getNumberOfNodes();
-      size_t dim1 = 1;
-      size_t dim2 = (nn1 + 1) * dim1;
-      size_t dim3 = (depth1 + 1) * dim2;
-      size_t dim4 = (nn2 + 1) * dim3;
+      int nn1 = tree1->getNumberOfNodes();
+      int nn2 = tree2->getNumberOfNodes();
+      int dim1 = 1;
+      int dim2 = (nn1 + 1) * dim1;
+      int dim3 = (depth1 + 1) * dim2;
+      int dim4 = (nn2 + 1) * dim3;
 
       //===============================================================================
       // If second tree empty, track optimal branch decomposition of first tree
@@ -982,10 +982,10 @@ namespace ttk {
                                     predecessors1, predecessors2, depth1, depth2,
                                     memT, mapping);
                 for(auto m : matching){
-                  int n1 = std::get<0>(m) < topo1_.size()
+                  int n1 = std::get<0>(m) < static_cast<int>(topo1_.size())
                          ? topo1_[std::get<0>(m)]
                          : -1;
-                  int n2 = std::get<1>(m) < topo2_.size()
+                  int n2 = std::get<1>(m) < static_cast<int>(topo2_.size())
                             ? topo2_[std::get<1>(m)]
                             : -1;
                   if(n1 >= 0 && n2 >= 0)

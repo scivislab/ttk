@@ -291,7 +291,8 @@ int ttkMergeTreeClustering::runCompute(
       branchDist.setAssignmentSolver(AssignmentSolver);
       branchDist.setSquared(false);
       branchDist.setComputeMapping(true);
-      branchDist.setWriteBD(false);
+      // branchDist.setWriteBD(false);
+      branchDist.setWriteBD(true);
 
       branchDist.setEpsilonTree1(EpsilonTree1);
       branchDist.setEpsilonTree2(EpsilonTree2);

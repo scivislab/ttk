@@ -44,6 +44,7 @@ private:
   bool outputTreeNodeIndex = false;
   bool isPersistenceDiagram = false;
   bool isPDSadMax = true;
+  bool pathMappingLayout = false;
 
   // Shift mode
   // -1: None ; 0: Star ; 1: Star Barycenter ; 2: Line ; 3: Double Line
@@ -157,6 +158,10 @@ public:
   }
   void setIsPDSadMax(bool isSadMax) {
     isPDSadMax = isSadMax;
+  }
+  
+  void setPathMappingLayout(bool pathLayout) {
+      pathMappingLayout = pathLayout;
   }
 
   // Offset
@@ -1108,7 +1113,7 @@ public:
           SimplexId nextPointId = points->InsertNextPoint(point);
           treeSimplexId[node] = nextPointId;
           nodeCorr[i][node] = nextPointId;
-          if(dummyNode)
+          if(dummyNode and not pathMappingLayout)
             nodeCorr[i][node] = treeDummySimplexId[node];
           if(isPersistenceDiagram)
             nodeCorr[i][node] = nextPointId;

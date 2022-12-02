@@ -285,8 +285,15 @@ namespace ttk {
     void initBarycenterTree(std::vector<ftm::FTMTree_MT *> &trees,
                             ftm::MergeTree<dataType> &baryTree,
                             bool distMinimizer = true) {
-      int bestIndex = getBestInitTreeIndex<dataType>(trees, distMinimizer);
-      baryTree = ftm::copyMergeTree<dataType>(trees[bestIndex], true);
+      //int bestIndex = getBestInitTreeIndex<dataType>(trees, distMinimizer);
+      int bestIndex = trees.size()-1;
+      //baryTree = ftm::copyMergeTree<dataType>(trees[bestIndex], true);
+      baryTree = ftm::copyMergeTree<dataType>(trees[bestIndex], baseModule_!=2);
+      ftm::FTMTree_MT* bt = &(baryTree.tree);
+      std::cout << "Bary Root: " << bt->getRoot() << std::endl;
+      std::cout << "Tree Root: " << trees[bestIndex]->getRoot() << std::endl;
+      std::cout << "Bary Root Scalar Value: " << bt->getValue<dataType>(bt->getRoot()) << std::endl;
+      std::cout << "Tree Root Scalar Value: " << trees[bestIndex]->getValue<dataType>(trees[bestIndex]->getRoot()) << std::endl;
       limitSizeBarycenter(baryTree, trees);
     }
 
@@ -823,16 +830,30 @@ namespace ttk {
         &matchings) {
       ftm::FTMTree_MT* baryTree = &(baryMergeTree.tree);
 
-      // delete not-matched nodes in barycenter
+      // compute matched and unmatched nodes for all trees and barycenter
       std::vector<bool> baryNodesMatched(baryTree->getNumberOfNodes(),false);
+      std::vector<std::vector<bool>> treeNodesMatched(trees.size());
       for(unsigned int i=0; i<trees.size(); i++){
+        treeNodesMatched[i].resize(trees[i]->getNumberOfNodes(),false);
         for(auto match : matchings[i]){
           baryNodesMatched[match.first.first] = true;
           baryNodesMatched[match.first.second] = true;
+          treeNodesMatched[i][match.second.first] = true;
+          treeNodesMatched[i][match.second.second] = true;
         }
       }
+      // compute size of new barycenter tree
+      int oldSize = baryTree->getNumberOfNodes();
+      int newSize = baryTree->getNumberOfNodes();
+      for(unsigned int i=0; i<treeNodesMatched.size(); i++){
+        for(unsigned int j=0; j<treeNodesMatched[i].size(); j++){
+          if(!treeNodesMatched[i][j]) newSize++;
+        }
+      }
+      // delete not-matched nodes in barycenter
       for(ftm::idNode i=0; i<baryTree->getNumberOfNodes(); i++){
         if(not baryNodesMatched[i]){
+          std::cout << "Node deleted: " << baryTree->getValue<dataType>(i) << std::endl;
           baryTree->getNode(i)->setOrigin(-1);
           baryTree->deleteNode(i);
         }
@@ -849,6 +870,7 @@ namespace ttk {
           dataType tv2 = tree->getValue<dataType>(match.second.second);
           dataType pathRangeB = bv1 > bv2 ? bv1 - bv2 : bv2 - bv1;
           dataType pathRangeT = tv1 > tv2 ? tv1 - tv2 : tv2 - tv1;
+          std::cout << "Path matched: (" << match.first.first << "," << match.first.second << ")-(" << match.second.first << "," << match.second.second << ") ; " << pathRangeB << "-" << pathRangeT << std::endl;
           ftm::idNode currB = baryTree->getParentSafe(match.first.first);
           ftm::idNode lastB = match.first.first;
           while(lastB != match.first.second){
@@ -867,6 +889,7 @@ namespace ttk {
       q.push(baryTree->getRoot());
       std::vector<dataType> newScalars(baryTree->getNumberOfNodes(),0);
       newScalars[baryTree->getRoot()] = baryTree->getValue<dataType>(baryTree->getRoot());
+      dataType maxScalar = std::numeric_limits<dataType>::min();
       while(!q.empty()){
         auto curr = q.front();
         q.pop();
@@ -880,56 +903,189 @@ namespace ttk {
           }
           avgEdgeLength = avgEdgeLength/static_cast<dataType>(trees.size());
           newScalars[child] = newScalars[curr] + avgEdgeLength;
+          std::cout << "Node relabel " << child << ": " << baryTree->getValue<dataType>(child) << "->" << newScalars[child] << std::endl;
+          if(newScalars[child] > maxScalar) maxScalar = newScalars[child];
         }
       }
       setTreeScalars(baryMergeTree, newScalars);
 
-      // insert new nodes (ToDo!!)
-      // for(unsigned int i=0; i<trees.size(); i++){
-      //   auto tree = trees[i];
-      //   for(auto match : matchings[i]){
-      //     dataType bv1 = baryTree->getValue(match.first.first);
-      //     dataType bv2 = baryTree->getValue(match.first.second);
-      //     dataType tv1 = tree->getValue(match.second.first);
-      //     dataType tv2 = tree->getValue(match.second.second);
-      //     dataType pathRangeB = bv1 > bv2 ? bv1 - bv2 : bv2 - bv1;
-      //     dataType pathRangeT = tv1 > tv2 ? tv1 - tv2 : tv2 - tv1;
-      //     ftm::idNode currB = baryTree->getValue(match.first.first);
-      //     ftm::idNode currT = tree->getValue(match.second.first);
-      //     ftm::idNode lastB = match.first.first;
-      //     ftm::idNode lastT = match.second.first;
-      //     while(currB != match.first.second && currT != match.second.second){
-      //       dataType currValueB = baryTree->getValue(currB);
-      //       dataType currValueT = tree->getValue(currT);
-      //       dataType relativeValueB = bv1 > bv2 ? bv1 - currValueB : currValueB - bv1;
-      //       dataType relativeValueT = tv1 > tv2 ? tv1 - currValueT : currValueT - tv1;
-      //       relativeValueB = relativeValueB/pathRangeB;
-      //       relativeValueT = relativeValueT/pathRangeT;
-      //       // if next node in tree, ignore
-      //       if(relativeValueB < relativeValueT){
-      //         // continue iteration
-      //         lastB = currB;
-      //         currB = baryTree->getParentSafe(currB);
-      //       }
-      //       // if next node in tree, ignore
-      //       else if(relativeValueB > relativeValueT){
-      //         // continue iteration
-      //         lastT = currT;
-      //         currT = tree->getParentSafe(currT);
-      //       }
-      //       else{
-      //         // this should not happen
-      //         printErr("Impossible Matching behaviour.")
-      //         lastB = currB;
-      //         lastT = currT;
-      //         currB = baryTree->getParentSafe(currB);
-      //         currT = tree->getParentSafe(currT);
-      //       }
-      //     }
-      //   }
-      // }
+      // Create new barycenter tree
+      ftm::MergeTree<dataType> baryMergeTreeNew
+        = ftm::createEmptyMergeTree<dataType>(newSize);
+      //newScalars.resize(newSize);
+      //ftm::setTreeScalars<dataType>(baryMergeTreeNew, newScalars);
+      ftm::FTMTree_MT *baryTreeNew = &(baryMergeTreeNew.tree);
 
-      ftm::cleanMergeTree<dataType>(baryMergeTree);
+      // Copy the old tree structure
+      baryTreeNew->copyMergeTreeStructure(baryTree);
+
+      // insert new nodes
+      for(unsigned int i=0; i<trees.size(); i++){
+        auto tree = trees[i];
+        std::vector<int> newIndices(tree->getNumberOfNodes(),-1);
+        for(auto match : matchings[i]){
+          dataType bv1 = baryTree->getValue<dataType>(match.first.first);
+          dataType bv2 = baryTree->getValue<dataType>(match.first.second);
+          dataType tv1 = tree->getValue<dataType>(match.second.first);
+          dataType tv2 = tree->getValue<dataType>(match.second.second);
+          dataType pathRangeB = bv1 > bv2 ? bv1 - bv2 : bv2 - bv1;
+          dataType pathRangeT = tv1 > tv2 ? tv1 - tv2 : tv2 - tv1;
+          ftm::idNode currB = baryTree->getParentSafe(match.first.first);
+          ftm::idNode currT = tree->getParentSafe(match.second.first);
+          ftm::idNode lastB = match.first.first;
+          ftm::idNode lastT = match.second.first;
+          ftm::idNode lastNode = lastB;
+          while(currB != match.first.second || currT != match.second.second){
+            dataType currValueB = baryTree->getValue<dataType>(currB);
+            dataType currValueT = tree->getValue<dataType>(currT);
+            dataType relativeValueB = bv1 > bv2 ? bv1 - currValueB : currValueB - bv1;
+            dataType relativeValueT = tv1 > tv2 ? tv1 - currValueT : currValueT - tv1;
+            relativeValueB = relativeValueB/pathRangeB;
+            relativeValueT = relativeValueT/pathRangeT;
+            // if next node in barycenter, ignore
+            if(relativeValueB < relativeValueT){
+              // continue iteration
+              lastB = currB;
+              currB = baryTree->getParentSafe(currB);
+              lastNode = lastB;
+            }
+            // if next node in tree, add nodes
+            else if(relativeValueB > relativeValueT){
+              std::queue<ftm::idNode> q;
+              std::vector<ftm::idNode> currChildren;
+              tree->getChildren(currT,currChildren);
+              newIndices[currT] = newScalars.size();
+              ftm::idNode nI = newIndices[currT];
+              newScalars.emplace_back(tree->getValue<dataType>(currT));
+              baryTreeNew->makeNode(nI);
+              baryTreeNew->setParent(nI, currB);
+              baryTreeNew->deleteParent(lastNode);
+              baryTreeNew->setParent(lastNode, nI);
+              //baryTree->getNode(nI)->setOrigin(newIndices[tree->getNode(currT)->getOrigin()]);
+              lastNode = newIndices[currT];
+              for(auto child : currChildren){
+                if(child==lastT) continue;
+                q.emplace(child);
+                newIndices[child] = newScalars.size();
+                nI = newIndices[child];
+                newScalars.emplace_back(tree->getValue<dataType>(child));
+                baryTreeNew->makeNode(nI);
+                baryTreeNew->setParent(nI, newIndices[currT]);
+                if(tree->getNumberOfChildren(child) == 0){
+                  baryTreeNew->getNode(nI)->setOrigin(newIndices[tree->getNode(child)->getOrigin()]);
+                  baryTreeNew->getNode(newIndices[tree->getNode(child)->getOrigin()])->setOrigin(nI);
+                }
+              }
+              while(!q.empty()){
+                auto currNode = q.front();
+                q.pop();
+                currChildren.clear();
+                tree->getChildren(currNode,currChildren);
+                for(auto child : currChildren){
+                  q.emplace(child);
+                  newIndices[child] = newScalars.size();
+                  ftm::idNode nI = newIndices[child];
+                  newScalars.emplace_back(tree->getValue<dataType>(child));
+                  baryTree->makeNode(nI);
+                  baryTree->setParent(nI, newIndices[currNode]);
+                  if(tree->getNumberOfChildren(child) == 0){
+                    baryTreeNew->getNode(nI)->setOrigin(newIndices[tree->getNode(child)->getOrigin()]);
+                    baryTreeNew->getNode(newIndices[tree->getNode(child)->getOrigin()])->setOrigin(nI);
+                  }
+                }
+              }
+              // continue iteration
+              lastT = currT;
+              currT = tree->getParentSafe(currT);
+            }
+            else{
+              // this should not happen
+              printErr("Impossible Matching behaviour.");
+              lastB = currB;
+              lastT = currT;
+              currB = baryTree->getParentSafe(currB);
+              currT = tree->getParentSafe(currT);
+            }
+          }
+        }
+        setTreeScalars(baryMergeTreeNew,newScalars);
+        // for(auto match : matchings[i]){
+        //   dataType bv1 = baryTree->getValue<dataType>(match.first.first);
+        //   dataType bv2 = baryTree->getValue<dataType>(match.first.second);
+        //   dataType tv1 = tree->getValue<dataType>(match.second.first);
+        //   dataType tv2 = tree->getValue<dataType>(match.second.second);
+        //   dataType pathRangeB = bv1 > bv2 ? bv1 - bv2 : bv2 - bv1;
+        //   dataType pathRangeT = tv1 > tv2 ? tv1 - tv2 : tv2 - tv1;
+        //   ftm::idNode currB = baryTree->getParentSafe(match.first.first);
+        //   ftm::idNode currT = tree->getParentSafe(match.second.first);
+        //   ftm::idNode lastB = match.first.first;
+        //   ftm::idNode lastT = match.second.first;
+        //   ftm::idNode lastNode = lastB;
+        //   while(currB != match.first.second || currT != match.second.second){
+        //     dataType currValueB = baryTree->getValue<dataType>(currB);
+        //     dataType currValueT = tree->getValue<dataType>(currT);
+        //     dataType relativeValueB = bv1 > bv2 ? bv1 - currValueB : currValueB - bv1;
+        //     dataType relativeValueT = tv1 > tv2 ? tv1 - currValueT : currValueT - tv1;
+        //     relativeValueB = relativeValueB/pathRangeB;
+        //     relativeValueT = relativeValueT/pathRangeT;
+        //     // if next node in barycenter, ignore
+        //     if(relativeValueB < relativeValueT){
+        //       // continue iteration
+        //       lastB = currB;
+        //       currB = baryTree->getParentSafe(currB);
+        //       lastNode = lastB;
+        //     }
+        //     // if next node in tree, add nodes
+        //     else if(relativeValueB > relativeValueT){
+        //       std::queue<ftm::idNode> q;
+        //       std::vector<ftm::idNode> currChildren;
+        //       tree->getChildren(currT,currChildren);
+        //       ftm::idNode nI = newIndices[currT];
+        //       baryTree->makeNode(nI);
+        //       baryTree->setParent(nI, currB);
+        //       baryTree->deleteParent(lastNode);
+        //       baryTree->setParent(lastNode, nI);
+        //       baryTree->getNode(nI)->setOrigin(newIndices[tree->getNode(currT)->getOrigin()]);
+        //       lastNode = newIndices[currT];
+        //       for(auto child : currChildren){
+        //         if(child==lastT) continue;
+        //         q.emplace(child);
+        //         ftm::idNode nI = newIndices[child];
+        //         baryTree->makeNode(nI);
+        //         baryTree->setParent(nI, newIndices[currT]);
+        //         baryTree->getNode(nI)->setOrigin(newIndices[tree->getNode(child)->getOrigin()]);
+        //       }
+        //       while(!q.empty()){
+        //         auto currNode = q.front();
+        //         q.pop();
+        //         currChildren.clear();
+        //         tree->getChildren(currNode,currChildren);
+        //         for(auto child : currChildren){
+        //           q.emplace(child);
+        //           ftm::idNode nI = newIndices[child];
+        //           baryTree->makeNode(nI);
+        //           baryTree->setParent(nI, newIndices[currNode]);
+        //           baryTree->getNode(nI)->setOrigin(newIndices[tree->getNode(child)->getOrigin()]);
+        //         }
+        //       }
+        //       // continue iteration
+        //       lastT = currT;
+        //       currT = tree->getParentSafe(currT);
+        //     }
+        //     else{
+        //       // this should not happen
+        //       printErr("Impossible Matching behaviour.");
+        //       lastB = currB;
+        //       lastT = currT;
+        //       currB = baryTree->getParentSafe(currB);
+        //       currT = tree->getParentSafe(currT);
+        //     }
+        //   }
+        // }
+      }
+
+      ftm::cleanMergeTree<dataType>(baryMergeTreeNew);
+      baryMergeTree = baryMergeTreeNew;
     }
 
     template <class dataType>
@@ -1320,11 +1476,11 @@ namespace ttk {
           finalMatchings[i].clear();
           std::vector<int> matchedNodes(trees[i]->getNumberOfNodes(),-1);
           for(auto m : matchings_path[i]){
-            matchedNodes[m.first.first] = m.second.first;
-            matchedNodes[m.first.second] = m.second.second;
+            matchedNodes[m.second.first] = m.first.first;
+            matchedNodes[m.second.second] = m.first.second;
           }
           for(ftm::idNode j=0; j<matchedNodes.size(); j++){
-            //if(matchedNodes[j]>=0) finalMatchings[i].emplace_back(std::make_tuple(j,matchedNodes[j], 0.0));
+            if(matchedNodes[j]>=0) finalMatchings[i].emplace_back(std::make_tuple(matchedNodes[j],j, 0.0));
           }
         }
       }
@@ -1380,7 +1536,6 @@ namespace ttk {
 
             // - Merge saddle points according epsilon
             if(not isPersistenceDiagram_) {
-              treesNodeCorr_.resize(2);
               if(epsilonTree2_ != 0){
                 std::vector<std::vector<ftm::idNode>> treeNodeMerged( tree->getNumberOfNodes() );
                 mergeSaddle<dataType>(tree, epsilonTree2_, treeNodeMerged);
@@ -1421,9 +1576,9 @@ namespace ttk {
       computeBarycenter<dataType>(treesT, baryMergeTree, alphas, finalMatchings,
                                   finalAsgnDoubleInput, finalAsgnFirstInput);
     
-      if(baseModule_==2){
-        preprocessTree<dataType>(&(baryMergeTree.tree),true);
-      }
+      // if(baseModule_==2){
+      //   preprocessTree<dataType>(&(baryMergeTree.tree),false);
+      // }
 
       // --- Postprocessing
       if(postprocess_) {

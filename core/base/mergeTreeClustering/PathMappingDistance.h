@@ -187,6 +187,7 @@ namespace ttk {
             traceMapping_path(tree1, tree2, child12, 1, child22, 1,
                               predecessors1, predecessors2, depth1, depth2,
                               memT, mapping);
+            return;
           }
           if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4]
              == memT[child11 + 1 * dim2 + child22 * dim3 + 1 * dim4]
@@ -689,6 +690,16 @@ namespace ttk {
 
         outputMatching->clear();
         traceMapping_path(tree1,tree2,children1[0],1,children2[0],1,predecessors1,predecessors2,depth1,depth2,memT,*outputMatching);
+
+        dataType cost_mapping = 0;
+        for(auto m : *outputMatching){
+          dataType cost = editCost_Persistence<dataType>(
+                            m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2);
+          cost_mapping += cost;
+          std::cout << "   (" << m.first.first << " " << m.first.second << ") - (" << m.second.first << " " << m.second.second << ") : " << cost << "\n";
+        }
+        std::cout << res << " " << cost_mapping << std::endl;
+
       }
 
       return squared_ ? std::sqrt(res) : res;

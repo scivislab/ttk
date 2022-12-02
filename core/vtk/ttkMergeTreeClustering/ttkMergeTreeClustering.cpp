@@ -596,6 +596,7 @@ int ttkMergeTreeClustering::runOutput(
       visuMaker.setExcludeImportantPairsHigher(ExcludeImportantPairsHigher);
       visuMaker.setExcludeImportantPairsLower(ExcludeImportantPairsLower);
       visuMaker.setIsPersistenceDiagram(IsPersistenceDiagram);
+      visuMaker.setPathMappingLayout(baseModule==2);
 
       nodeCorr.clear();
       // First tree
@@ -700,6 +701,7 @@ int ttkMergeTreeClustering::runOutput(
       visuMakerMatching.setVtkOutputNode1(vtkOutputNode2);
       visuMakerMatching.setNodeCorr1(nodeCorr);
       visuMakerMatching.setDebugLevel(this->debugLevel_);
+      visuMakerMatching.setPathMappingLayout(baseModule==2);
 
       visuMakerMatching.makeMatchingOutput<dataType>(tree1, tree2);
 
@@ -803,6 +805,7 @@ int ttkMergeTreeClustering::runOutput(
           visuMaker.setDebugLevel(this->debugLevel_);
           visuMaker.setIsPersistenceDiagram(IsPersistenceDiagram);
           visuMaker.setIsPDSadMax(JoinSplitMixtureCoefficient == 0);
+          visuMaker.setPathMappingLayout(baseModule==2);
 
           visuMaker.makeTreesOutput<dataType>(
             intermediateTrees, barycentersTree);
@@ -920,6 +923,7 @@ int ttkMergeTreeClustering::runOutput(
         visuMakerBary.setDebugLevel(this->debugLevel_);
         visuMakerBary.setIsPersistenceDiagram(IsPersistenceDiagram);
         visuMakerBary.setIsPDSadMax(JoinSplitMixtureCoefficient == 0);
+        visuMakerBary.setPathMappingLayout(baseModule==2);
 
         visuMakerBary.makeTreesOutput<dataType>(
           intermediateTrees, barycentersTree);
@@ -995,6 +999,7 @@ int ttkMergeTreeClustering::runOutput(
           visuMakerMatching.setPrintTreeId(i);
           visuMakerMatching.setPrintClusterId(c);
           visuMakerMatching.setDebugLevel(this->debugLevel_);
+          visuMakerMatching.setPathMappingLayout(baseModule==2);
 
           visuMakerMatching.makeMatchingOutput<dataType>(
             intermediateTrees, barycentersTree);

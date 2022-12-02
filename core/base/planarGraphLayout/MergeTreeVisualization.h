@@ -370,8 +370,12 @@ namespace ttk {
       if(not rescaleTreesIndividually_) {
         // diff *= getNodePersistence<dataType>(tree, treeRoot) /
         // refPersistence;
-        diff = tree->getNodePersistence<dataType>(treeRoot);
-        offset = tree->getBirth<dataType>(treeRoot);
+        dataType rootVal = tree->getValue<dataType>(treeRoot);
+        dataType lowestNodeVal
+          = tree->getValue<dataType>(tree->getLowestNode<dataType>(treeRoot));
+        diff = (rootVal > lowestNodeVal ? rootVal - lowestNodeVal
+                                        : lowestNodeVal - rootVal);
+        offset = std::min(rootVal, lowestNodeVal);
       }
 
       for(int i = 0; i < outNumberOfPoints; i += 2) {

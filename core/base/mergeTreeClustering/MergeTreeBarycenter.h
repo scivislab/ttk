@@ -832,6 +832,7 @@ namespace ttk {
       double alphaSum = 0;
       for(unsigned int i = 0; i < trees.size(); ++i)
         alphaSum += alphas[i];
+      bool joinTrees = trees[0]->isJoinTree<dataType>();
 
       // compute matched and unmatched nodes for all trees and barycenter
       std::vector<bool> baryNodesMatched(baryTree->getNumberOfNodes(),false);
@@ -855,7 +856,6 @@ namespace ttk {
       // delete not-matched nodes in barycenter
       for(ftm::idNode i=0; i<baryTree->getNumberOfNodes(); i++){
         if(not baryNodesMatched[i]){
-          std::cout << "Node deleted: " << baryTree->getValue<dataType>(i) << std::endl;
           baryTree->getNode(i)->setOrigin(-1);
           baryTree->deleteNode(i);
         }
@@ -872,7 +872,6 @@ namespace ttk {
           dataType tv2 = tree->getValue<dataType>(match.second.second);
           dataType pathRangeB = bv1 > bv2 ? bv1 - bv2 : bv2 - bv1;
           dataType pathRangeT = tv1 > tv2 ? tv1 - tv2 : tv2 - tv1;
-          std::cout << "Path matched: (" << match.first.first << "," << match.first.second << ")-(" << match.second.first << "," << match.second.second << ") ; " << pathRangeB << "-" << pathRangeT << std::endl;
           ftm::idNode currB = baryTree->getParentSafe(match.first.first);
           ftm::idNode lastB = match.first.first;
           while(lastB != match.first.second){
@@ -891,7 +890,6 @@ namespace ttk {
       q.push(baryTree->getRoot());
       std::vector<dataType> newScalars(baryTree->getNumberOfNodes(),0);
       newScalars[baryTree->getRoot()] = baryTree->getValue<dataType>(baryTree->getRoot());
-      dataType maxScalar = std::numeric_limits<dataType>::min();
       while(!q.empty()){
         auto curr = q.front();
         q.pop();
@@ -905,9 +903,7 @@ namespace ttk {
           }
           //avgEdgeLength = avgEdgeLength/static_cast<dataType>(trees.size());
           avgEdgeLength = avgEdgeLength/alphaSum;
-          newScalars[child] = newScalars[curr] + avgEdgeLength;
-          std::cout << "Node relabel " << child << ": " << baryTree->getValue<dataType>(child) << "->" << newScalars[child] << std::endl;
-          if(newScalars[child] > maxScalar) maxScalar = newScalars[child];
+          newScalars[child] = newScalars[curr] + (joinTrees ? - avgEdgeLength : avgEdgeLength);
         }
       }
       setTreeScalars(baryMergeTree, newScalars);
@@ -960,11 +956,13 @@ namespace ttk {
               newIndices[currT] = newScalars.size();
               ftm::idNode nI = newIndices[currT];
               //newScalars.emplace_back(tree->getValue<dataType>(currT));
-              newScalars.emplace_back(relativeValueT * pathRangeB + bv2);
+              newScalars.emplace_back(bv2 + (joinTrees ? - relativeValueT * pathRangeB : relativeValueT * pathRangeB));
               baryTreeNew->makeNode(nI);
               baryTreeNew->setParent(nI, currB);
               baryTreeNew->deleteParent(lastNode);
               baryTreeNew->setParent(lastNode, nI);
+              baryTreeNew->getNode(nI)->setOrigin(-1);
+              std::vector<int> nodesWithoutLink;
               //baryTree->getNode(nI)->setOrigin(newIndices[tree->getNode(currT)->getOrigin()]);
               lastNode = newIndices[currT];
               for(auto child : currChildren){
@@ -973,13 +971,18 @@ namespace ttk {
                 newIndices[child] = newScalars.size();
                 nI = newIndices[child];
                 //newScalars.emplace_back(tree->getValue<dataType>(child));
-                dataType edgeLength = tree->getValue<dataType>(child) - tree->getValue<dataType>(currT);
-                newScalars.emplace_back(newScalars[newIndices[currT]] + edgeLength * (alphas[i]/alphaSum));
+                dataType edgeLength = (joinTrees ? tree->getValue<dataType>(currT) - tree->getValue<dataType>(child) : tree->getValue<dataType>(child) - tree->getValue<dataType>(currT));
+                newScalars.emplace_back(newScalars[newIndices[currT]] + (joinTrees ? - edgeLength * (alphas[i]/alphaSum) : edgeLength * (alphas[i]/alphaSum)));
                 baryTreeNew->makeNode(nI);
                 baryTreeNew->setParent(nI, newIndices[currT]);
-                if(tree->getNumberOfChildren(child) == 0){
-                  baryTreeNew->getNode(nI)->setOrigin(newIndices[tree->getNode(child)->getOrigin()]);
-                  baryTreeNew->getNode(newIndices[tree->getNode(child)->getOrigin()])->setOrigin(nI);
+                baryTreeNew->getNode(nI)->setOrigin(-1);
+                if(tree->getNumberOfChildren(child) == 0 && newIndices[tree->getNode(child)->getOrigin()] >= 0){
+                  ftm::idNode ln = newIndices[tree->getNode(child)->getOrigin()];
+                  baryTreeNew->getNode(nI)->setOrigin(ln);
+                  baryTreeNew->getNode(ln)->setOrigin(nI);
+                }
+                else{
+                  nodesWithoutLink.push_back(nI);
                 }
               }
               while(!q.empty()){
@@ -992,15 +995,27 @@ namespace ttk {
                   newIndices[child] = newScalars.size();
                   nI = newIndices[child];
                   //newScalars.emplace_back(tree->getValue<dataType>(child));
-                  dataType edgeLength = tree->getValue<dataType>(child) - tree->getValue<dataType>(currNode);
-                  newScalars.emplace_back(newScalars[newIndices[currNode]] + edgeLength * (alphas[i]/alphaSum));
-                  baryTree->makeNode(nI);
-                  baryTree->setParent(nI, newIndices[currNode]);
-                  if(tree->getNumberOfChildren(child) == 0){
-                    baryTreeNew->getNode(nI)->setOrigin(newIndices[tree->getNode(child)->getOrigin()]);
-                    baryTreeNew->getNode(newIndices[tree->getNode(child)->getOrigin()])->setOrigin(nI);
+                  dataType edgeLength = (joinTrees ? tree->getValue<dataType>(currNode) - tree->getValue<dataType>(child) : tree->getValue<dataType>(child) - tree->getValue<dataType>(currNode));
+                  newScalars.emplace_back(newScalars[newIndices[currNode]] + (joinTrees ? - edgeLength * (alphas[i]/alphaSum) : edgeLength * (alphas[i]/alphaSum)));
+                  baryTreeNew->makeNode(nI);
+                  baryTreeNew->getNode(nI)->setOrigin(-1);
+                  baryTreeNew->setParent(nI, newIndices[currNode]);
+                  if(tree->getNumberOfChildren(child) == 0 && newIndices[tree->getNode(child)->getOrigin()] >= 0){
+                    ftm::idNode ln = newIndices[tree->getNode(child)->getOrigin()];
+                    baryTreeNew->getNode(nI)->setOrigin(ln);
+                    baryTreeNew->getNode(ln)->setOrigin(nI);
+                  }
+                  else{
+                    nodesWithoutLink.push_back(nI);
                   }
                 }
+              }
+              std::cout << baryTreeNew->getNode(newIndices[currT])->getOrigin() << " " << nodesWithoutLink.size() << std::endl;
+              if(baryTreeNew->getNode(newIndices[currT])->getOrigin() < 0){
+                baryTreeNew->getNode(newIndices[currT])->setOrigin(nodesWithoutLink[0]);
+              }
+              for(ftm::idNode n : nodesWithoutLink){
+                baryTreeNew->getNode(n)->setOrigin(newIndices[currT]);
               }
               // continue iteration
               lastT = currT;
@@ -1019,7 +1034,7 @@ namespace ttk {
         setTreeScalars(baryMergeTreeNew,newScalars);
       }
 
-      ftm::cleanMergeTree<dataType>(baryMergeTreeNew);
+      ftm::cleanMergeTree<dataType>(baryMergeTreeNew,true);
       baryMergeTree = baryMergeTreeNew;
     }
 
@@ -1511,9 +1526,13 @@ namespace ttk {
       computeBarycenter<dataType>(treesT, baryMergeTree, alphas, finalMatchings,
                                   finalAsgnDoubleInput, finalAsgnFirstInput);
     
-      // if(baseModule_==2){
-      //   preprocessTree<dataType>(&(baryMergeTree.tree),false);
-      // }
+      if(baseModule_==2){
+        ftm::FTMTree_MT* baryTree = &(baryMergeTree.tree);
+        for(ftm::idNode node=0; node<baryTree->getNumberOfNodes(); node++){
+          baryTree->getNode(node)->setOrigin(-1);
+        }
+        preprocessTree<dataType>(baryTree,false);
+      }
 
       // --- Postprocessing
       if(postprocess_) {

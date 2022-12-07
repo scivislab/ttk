@@ -852,9 +852,41 @@ namespace ttk {
                                  std::vector<std::vector<int>> &nodeCorr,
                                  bool useMinMaxPairT = true) {
       for(unsigned int i = 0; i < trees.size(); ++i) {
-        preprocessingPipeline<dataType>(
-          trees[i], epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
-          branchDecomposition_, useMinMaxPairT, cleanTree_, nodeCorr[i]);
+        if(baseModule_==2){
+          ftm::FTMTree_MT *tree = &(trees[i].tree);
+          preprocessTree<dataType>(tree, true);
+
+          // - Delete null persistence pairs and persistence thresholding
+          persistenceThresholding<dataType>(tree, persistenceThreshold_);
+
+          // - Merge saddle points according epsilon
+          if(not isPersistenceDiagram_) {
+            if(epsilonTree2_ != 0){
+              std::vector<std::vector<ftm::idNode>> treeNodeMerged( tree->getNumberOfNodes() );
+              mergeSaddle<dataType>(tree, epsilonTree2_, treeNodeMerged);
+              for(unsigned int j=0; j<treeNodeMerged.size(); j++){
+                for(auto k : treeNodeMerged[j]){
+                  auto nodeToDelete = tree->getNode(j)->getOrigin();
+                  tree->getNode(k)->setOrigin(j);
+                  tree->getNode(nodeToDelete)->setOrigin(-1);
+                }
+              }
+              ftm::cleanMergeTree<dataType>(trees[i], nodeCorr[i], true);
+            }
+            else{
+              std::vector<ttk::SimplexId> nodeCorri(tree->getNumberOfNodes());
+              for(unsigned int j=0; j<nodeCorr.size(); j++) nodeCorri[j] = j;
+              nodeCorr[i] = nodeCorri;
+            }
+          }
+          if(deleteMultiPersPairs_)
+            deleteMultiPersPairs<dataType>(tree, false);
+        }
+        else{
+          preprocessingPipeline<dataType>(
+            trees[i], epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
+            branchDecomposition_, useMinMaxPairT, cleanTree_, nodeCorr[i]);
+        }
         if(trees.size() < 40)
           printTreeStats(trees[i]);
       }

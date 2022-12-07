@@ -357,7 +357,8 @@ int ttkMergeTreeClustering::runCompute(
       mergeTreeBarycenter.setIsPersistenceDiagram(IsPersistenceDiagram);
       mergeTreeBarycenter.setAlpha(Alpha);
       mergeTreeBarycenter.setDeterministic(Deterministic);
-        mergeTreeBarycenter.setPersistenceThreshold(PersistenceThreshold);
+      mergeTreeBarycenter.setPersistenceThreshold(PersistenceThreshold);
+      mergeTreeBarycenter.setIterationLimit(iterationLimit);
       if(baseModule==2){
         mergeTreeBarycenter.setPathMetric(this->pathMetric);
         mergeTreeBarycenter.setBranchDecomposition(false);

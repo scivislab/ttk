@@ -186,6 +186,55 @@ Online examples:
                   </Documentation>
                 </IntVectorProperty>
 
+                <IntVectorProperty
+                name="IterationLimit"
+                command="SetIterationLimit"
+                label="Max Number of Iterations"
+                number_of_elements="1"
+                default_values="20">
+                  <Hints>
+                  <PropertyWidgetDecorator type="CompositeDecorator">
+                    <Expression type="and">
+                      <Expression type="or">
+                        <Expression type="and">
+                          <Expression type="or">
+                            <Expression type="and">
+                              <PropertyWidgetDecorator type="GenericDecorator"
+                                                      mode="visibility"
+                                                      property="BranchDecomposition"
+                                                      value="1" />
+                              <PropertyWidgetDecorator type="GenericDecorator"
+                                                      mode="visibility"
+                                                      property="Backend"
+                                                      value="2" />
+                            </Expression>
+                            <PropertyWidgetDecorator type="GenericDecorator"
+                                                    mode="visibility"
+                                                    property="Backend"
+                                                    value="0" />
+                          </Expression>
+                          <PropertyWidgetDecorator type="GenericDecorator"
+                                                  mode="visibility"
+                                                  property="KeepSubtree"
+                                                  value="0" />
+                        </Expression>
+                        <PropertyWidgetDecorator type="GenericDecorator"
+                                                    mode="visibility"
+                                                    property="Backend"
+                                                    value="4" />
+                        </Expression>
+                      <PropertyWidgetDecorator type="GenericDecorator"
+                                              mode="visibility"
+                                              property="ComputeBarycenter"
+                                              value="1" />
+                    </Expression>
+                  </PropertyWidgetDecorator>
+                  </Hints>
+                  <Documentation>
+                    Maximum number of iterations in barycenter computation.
+                  </Documentation>
+                </IntVectorProperty>
+
                 <DoubleVectorProperty
                 name="BarycenterSizeLimitPercent"
                 command="SetBarycenterSizeLimitPercent"

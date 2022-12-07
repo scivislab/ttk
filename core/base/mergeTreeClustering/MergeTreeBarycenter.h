@@ -52,7 +52,7 @@ namespace ttk {
     
     int pathMetric_ = 0;
     int baseModule_ = 0;
-    int iterationLimit_ = 0;
+    //int iterationLimit_ = 0;
 
     // Output
     std::vector<double> finalDistances_;
@@ -132,9 +132,9 @@ namespace ttk {
       pathMetric_ = m;
     }
 
-    void setIterationLimit(int l) {
-      iterationLimit_ = l;
-    }
+    // void setIterationLimit(int l) {
+    //   iterationLimit_ = l;
+    // }
 
     /**
      * Implementation of the algorithm.
@@ -295,10 +295,6 @@ namespace ttk {
       //baryTree = ftm::copyMergeTree<dataType>(trees[bestIndex], true);
       baryTree = ftm::copyMergeTree<dataType>(trees[bestIndex], baseModule_!=2);
       ftm::FTMTree_MT* bt = &(baryTree.tree);
-      std::cout << "Bary Root: " << bt->getRoot() << std::endl;
-      std::cout << "Tree Root: " << trees[bestIndex]->getRoot() << std::endl;
-      std::cout << "Bary Root Scalar Value: " << bt->getValue<dataType>(bt->getRoot()) << std::endl;
-      std::cout << "Tree Root Scalar Value: " << trees[bestIndex]->getValue<dataType>(trees[bestIndex]->getRoot()) << std::endl;
       limitSizeBarycenter(baryTree, trees);
     }
 
@@ -1029,7 +1025,7 @@ namespace ttk {
                   }
                 }
               }
-              std::cout << baryTreeNew->getNode(newIndices[currT])->getOrigin() << " " << nodesWithoutLink.size() << std::endl;
+              //std::cout << baryTreeNew->getNode(newIndices[currT])->getOrigin() << " " << nodesWithoutLink.size() << std::endl;
               if(baryTreeNew->getNode(newIndices[currT])->getOrigin() < 0){
                 baryTreeNew->getNode(newIndices[currT])->setOrigin(nodesWithoutLink[0]);
               }
@@ -1355,7 +1351,7 @@ namespace ttk {
       dataType minFrechet = std::numeric_limits<dataType>::max();
       int cptBlocked = 0;
       int NoIteration = 0;
-      while(not converged && NoIteration<iterationLimit_) {
+      while(not converged){// && NoIteration<iterationLimit_) {
         ++NoIteration;
 
         printMsg(debug::Separator::L2);

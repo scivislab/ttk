@@ -607,7 +607,7 @@ namespace ttk {
         std::vector<int> linkedNodes1(tree1->getNumberOfNodes(),-1);
         std::vector<int> linkedNodes2(tree2->getNumberOfNodes(),-1);
         traceMapping_branch(tree1,tree2,children1[0],1,children2[0],1,predecessors1,predecessors2,depth1,depth2,memT,mapping);
-        dataType cost_mapping = 0;
+        //dataType cost_mapping = 0;
         for(auto m : mapping){
           if(writeOptimalBranchDecomposition_ && m.first.first >=0 && m.first.second >=0){
             tree1->getNode(m.first.first)->setOrigin(m.first.second);
@@ -621,20 +621,20 @@ namespace ttk {
             linkedNodes2[m.second.first] = m.second.second;
             linkedNodes2[m.second.second] = m.second.first;
           }
-          dataType cost = this->baseMetric_ == 0 ? editCost_Wasserstein1<dataType>(
-                            m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2)
-                          : this->baseMetric_ == 1 ? editCost_Wasserstein2<dataType>(
-                              m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2)
-                          : this->baseMetric_ == 2
-                            ? editCost_Persistence<dataType>(
-                              m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2)
-                            : editCost_Shifting<dataType>(
-                              m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2);
-          dataType cost_ = editCost_Wasserstein1<dataType>(
-                            m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2);
-          cost_mapping += cost_;
-          std::cout << "(" << m.first.first << " " << m.first.second << ") - (" << m.second.first << " " << m.second.second << ") : " << cost << " " << cost_;// << std::endl;
-          std::cout << ";        (" << tree1->getValue<dataType>(m.first.first) << " " << tree1->getValue<dataType>(m.first.second) << ") - (" << tree2->getValue<dataType>(m.second.first) << " " << tree2->getValue<dataType>(m.second.second) << ")" << std::endl;
+          // dataType cost = this->baseMetric_ == 0 ? editCost_Wasserstein1<dataType>(
+          //                   m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2)
+          //                 : this->baseMetric_ == 1 ? editCost_Wasserstein2<dataType>(
+          //                     m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2)
+          //                 : this->baseMetric_ == 2
+          //                   ? editCost_Persistence<dataType>(
+          //                     m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2)
+          //                   : editCost_Shifting<dataType>(
+          //                     m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2);
+          // dataType cost_ = editCost_Wasserstein1<dataType>(
+          //                   m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2);
+          // cost_mapping += cost_;
+          //std::cout << "(" << m.first.first << " " << m.first.second << ") - (" << m.second.first << " " << m.second.second << ") : " << cost << " " << cost_;// << std::endl;
+          //std::cout << ";        (" << tree1->getValue<dataType>(m.first.first) << " " << tree1->getValue<dataType>(m.first.second) << ") - (" << tree2->getValue<dataType>(m.second.first) << " " << tree2->getValue<dataType>(m.second.second) << ")" << std::endl;
           if(m.first.first == -1) continue;
           if(m.first.second == -1) continue;
           if(m.second.first == -1) continue;
@@ -654,7 +654,7 @@ namespace ttk {
           if(matchedNodes[i]>=0) outputMatching->emplace_back(std::make_tuple(i,matchedNodes[i], 0.0));
         }
 
-        std::cout << res << " " << cost_mapping << std::endl;
+        //std::cout << res << " " << cost_mapping << std::endl;
 
       }
 

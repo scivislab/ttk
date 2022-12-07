@@ -148,12 +148,12 @@ namespace ttk {
           "Init index : " + std::to_string(bestIndex), debug::Priority::DETAIL);
         // Create new centroid
         allCentroids[0][i]
-          = ftm::copyMergeTree<dataType>(trees[bestIndex], true);
+          = ftm::copyMergeTree<dataType>(trees[bestIndex], baseModule_!=2);
         limitSizeBarycenter(allCentroids[0][i], trees, limitPercent);
         ftm::cleanMergeTree<dataType>(allCentroids[0][i]);
         if(trees2.size() != 0) {
           allCentroids[1][i]
-            = ftm::copyMergeTree<dataType>(trees2[bestIndex], true);
+            = ftm::copyMergeTree<dataType>(trees2[bestIndex], baseModule_!=2);
           limitSizeBarycenter(allCentroids[1][i], trees2, limitPercent);
           ftm::cleanMergeTree<dataType>(allCentroids[1][i]);
         }
@@ -195,7 +195,7 @@ namespace ttk {
         distancesAndIndexes[i] = std::make_tuple(-bestDistance_[i], i);
       std::sort(distancesAndIndexes.begin(), distancesAndIndexes.end());
       int bestIndex = std::get<1>(distancesAndIndexes[noNewCentroid]);
-      centroid = ftm::copyMergeTree<dataType>(trees[bestIndex], true);
+      centroid = ftm::copyMergeTree<dataType>(trees[bestIndex], baseModule_!=2);
       limitSizeBarycenter(centroid, trees);
       ftm::cleanMergeTree<dataType>(centroid);
     }
@@ -576,7 +576,7 @@ namespace ttk {
                   lowerBound_[t][i] = 0;
               } else if(assignedTrees[i].size() == 1) {
                 centroids[i]
-                  = ftm::copyMergeTree<dataType>(assignedTrees[i][0], true);
+                  = ftm::copyMergeTree<dataType>(assignedTrees[i][0], baseModule_!=2);
                 limitSizeBarycenter(centroids[i], assignedTrees[i]);
                 ftm::cleanMergeTree<dataType>(centroids[i]);
               } else if(not samePreviousAssignment(i)) {

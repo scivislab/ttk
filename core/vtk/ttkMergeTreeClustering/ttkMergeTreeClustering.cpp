@@ -389,6 +389,8 @@ int ttkMergeTreeClustering::runCompute(
     } else {
       MergeTreeClustering<dataType> mergeTreeClustering;
       mergeTreeClustering.setAssignmentSolver(AssignmentSolver);
+      mergeTreeClustering.setBaseModule(this->baseModule);
+      mergeTreeClustering.setPathMetric(this->pathMetric);
       mergeTreeClustering.setEpsilonTree1(EpsilonTree1);
       mergeTreeClustering.setEpsilonTree2(EpsilonTree2);
       mergeTreeClustering.setEpsilon2Tree1(Epsilon2Tree1);

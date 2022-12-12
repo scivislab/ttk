@@ -291,7 +291,7 @@ namespace ttk {
                             ftm::MergeTree<dataType> &baryTree,
                             bool distMinimizer = true) {
       int bestIndex = getBestInitTreeIndex<dataType>(trees, distMinimizer);
-      bestIndex = trees.size()-1;
+      // bestIndex = trees.size()-1;
       //baryTree = ftm::copyMergeTree<dataType>(trees[bestIndex], true);
       baryTree = ftm::copyMergeTree<dataType>(trees[bestIndex], baseModule_!=2);
       ftm::FTMTree_MT* bt = &(baryTree.tree);

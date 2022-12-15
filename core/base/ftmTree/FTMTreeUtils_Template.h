@@ -37,21 +37,55 @@ namespace ttk {
                                      double threshold,
                                      std::vector<double> &excludeLower,
                                      std::vector<double> &excludeHigher) {
-      dataType rootPers = this->getNodePersistence<dataType>(this->getRoot());
-      if(threshold > 1)
-        threshold /= 100.0;
+      idNode treeRoot = this->getRoot();
+      dataType rootValue = this->getValue<dataType>(treeRoot);
+      dataType lowestNodeValue
+        = this->getValue<dataType>(this->getLowestNode<dataType>(treeRoot));
+      dataType rootPers
+        = (rootValue > lowestNodeValue ? rootValue - lowestNodeValue
+                                       : lowestNodeValue - rootValue);
+      threshold /= 100.0;
       threshold = rootPers * threshold;
-      auto pers = this->getNodePersistence<dataType>(nodeId);
 
-      // Excluded pairs
-      bool isExcluded = false;
-      if(excludeLower.size() == excludeHigher.size())
-        for(unsigned i = 0; i < excludeLower.size(); ++i) {
-          isExcluded |= (pers > rootPers * excludeLower[i] / 100.0
-                         and pers < rootPers * excludeHigher[i] / 100.0);
-        }
+      auto isImportantPairOneNode = [&](idNode node) {
+        auto pers = this->getNodePersistence<dataType>(node);
 
-      return pers > threshold and not isExcluded;
+        // Excluded pairs
+        bool isExcluded = false;
+        if(excludeLower.size() == excludeHigher.size())
+          for(unsigned i = 0; i < excludeLower.size(); ++i) {
+            isExcluded |= (pers > rootPers * excludeLower[i] / 100.0
+                           and pers < rootPers * excludeHigher[i] / 100.0);
+          }
+        return (pers > threshold and not isExcluded);
+      };
+
+      if(isImportantPairOneNode(nodeId))
+        return true;
+
+      // Test if it is a parent of an important pair (for not persistence based
+      // branch decomposition)
+      bool parentOfImportantPair = false;
+      std::queue<idNode> queue;
+      queue.emplace(nodeId);
+      while(!queue.empty()) {
+        idNode node = queue.front();
+        queue.pop();
+
+        if(this->isLeaf(node))
+          continue;
+
+        parentOfImportantPair |= isImportantPairOneNode(node);
+
+        if(parentOfImportantPair)
+          break;
+        std::vector<idNode> children;
+        this->getChildren(node, children);
+        for(auto child : children)
+          queue.emplace(child);
+      }
+
+      return parentOfImportantPair;
     }
 
     template <class dataType>

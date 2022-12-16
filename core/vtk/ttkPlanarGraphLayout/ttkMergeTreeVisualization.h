@@ -159,9 +159,9 @@ public:
   void setIsPDSadMax(bool isSadMax) {
     isPDSadMax = isSadMax;
   }
-  
+
   void setPathMappingLayout(bool pathLayout) {
-      pathMappingLayout = pathLayout;
+    pathMappingLayout = pathLayout;
   }
 
   // Offset

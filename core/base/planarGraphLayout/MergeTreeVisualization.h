@@ -301,7 +301,8 @@ namespace ttk {
 
       std::queue<ftm::idNode> queue;
       ftm::idNode treeRoot = tree->getRoot();
-      ftm::idNode treeRootOrigin = tree->getNode(treeRoot)->getOrigin();
+      // ftm::idNode treeRootOrigin = tree->getNode(treeRoot)->getOrigin();
+      ftm::idNode lowestNode = tree->getLowestNode<dataType>(treeRoot);
       queue.emplace(treeRoot);
       while(!queue.empty()) {
         ftm::idNode node = queue.front();
@@ -371,8 +372,7 @@ namespace ttk {
         // diff *= getNodePersistence<dataType>(tree, treeRoot) /
         // refPersistence;
         dataType rootVal = tree->getValue<dataType>(treeRoot);
-        dataType lowestNodeVal
-          = tree->getValue<dataType>(tree->getLowestNode<dataType>(treeRoot));
+        dataType lowestNodeVal = tree->getValue<dataType>(lowestNode);
         diff = (rootVal > lowestNodeVal ? rootVal - lowestNodeVal
                                         : lowestNodeVal - rootVal);
         offset = std::min(rootVal, lowestNodeVal);
@@ -415,10 +415,13 @@ namespace ttk {
       printMsg("Move nodes given scalars", debug::Priority::VERBOSE);
 
       float rootY = retVec[treeSimplexId[treeRoot] * 2 + 1];
-      float rootOriginY = retVec[treeSimplexId[treeRootOrigin] * 2 + 1];
+      // float rootOriginY = retVec[treeSimplexId[treeRootOrigin] * 2 + 1];
+      float rootOriginY = retVec[treeSimplexId[lowestNode] * 2 + 1];
       float rootYmin = std::min(rootY, rootOriginY);
       float rootYmax = std::max(rootY, rootOriginY);
-      auto rootBirthDeath = tree->getBirthDeath<dataType>(treeRoot);
+
+      // TODO remove this code that should be useless
+      /*auto rootBirthDeath = tree->getBirthDeath<dataType>(treeRoot);
       const double rootBirth = std::get<0>(rootBirthDeath);
       const double rootDeath = std::get<1>(rootBirthDeath);
       for(size_t i = 0; i < tree->getNumberOfNodes(); ++i) {
@@ -426,27 +429,39 @@ namespace ttk {
           = (tree->getValue<dataType>(i) - rootBirth) / (rootDeath - rootBirth);
         retVec[treeSimplexId[i] * 2 + 1]
           = retVec[treeSimplexId[i] * 2 + 1] * (rootYmax - rootYmin) + rootYmin;
-      }
+      }*/
 
       std::stringstream ss4;
       ss4 << "MOVE SCALAR     = " << t_move.getElapsedTime();
       printMsg(ss4.str(), debug::Priority::VERBOSE);
 
       // ----------------------------------------------------
+      // Sort leaves by branch depth
+      // ----------------------------------------------------
+      std::vector<ftm::idNode> leaves;
+      tree->getLeavesFromTree(leaves);
+      /*auto compLowerPers = [&](const ftm::idNode a, const ftm::idNode b) {
+        return tree->getNodePersistence<dataType>(a)
+               < tree->getNodePersistence<dataType>(b);
+      };
+      std::sort(leaves.begin(), leaves.end(), compLowerPers);*/
+      std::vector<int> allNodeLevel;
+      tree->getAllNodeLevel(allNodeLevel);
+      auto compLevel = [&](const ftm::idNode a, const ftm::idNode b) {
+        return allNodeLevel[tree->getNode(a)->getOrigin()]
+               > allNodeLevel[tree->getNode(b)->getOrigin()];
+      };
+      std::sort(leaves.begin(), leaves.end(), compLevel);
+
+      // ----------------------------------------------------
       // Scale pairs given persistence
       // ----------------------------------------------------
-      Timer t_scale;
+      // TODO this code should also be useless
+      /*Timer t_scale;
       printMsg("Scale pairs given persistence", debug::Priority::VERBOSE);
 
       dataType rootPers = tree->getNodePersistence<dataType>(treeRoot);
 
-      std::vector<ftm::idNode> leaves;
-      tree->getLeavesFromTree(leaves);
-      auto compLowerPers = [&](const ftm::idNode a, const ftm::idNode b) {
-        return tree->getNodePersistence<dataType>(a)
-               < tree->getNodePersistence<dataType>(b);
-      };
-      std::sort(leaves.begin(), leaves.end(), compLowerPers);
       std::stack<ftm::idNode> stack;
       for(auto node : leaves)
         stack.emplace(node);
@@ -502,7 +517,7 @@ namespace ttk {
 
       std::stringstream ss5;
       ss5 << "SCALE PERS.     = " << t_scale.getElapsedTime();
-      printMsg(ss5.str(), debug::Priority::VERBOSE);
+      printMsg(ss5.str(), debug::Priority::VERBOSE);*/
 
       // ----------------------------------------------------
       // Branches positionning and avoid edges crossing
@@ -523,8 +538,8 @@ namespace ttk {
       std::vector<int> allBranchOriginsSize(tree->getNumberOfNodes());
       std::queue<ftm::idNode> queueCrossing;
 
-      // ----- Get important and non-important pairs gap and store saddle nodes
-      // of each branch
+      // ----- Get important and non-important pairs gap and store branch
+      // origins of each branch
       int maxSize = std::numeric_limits<int>::lowest();
       for(auto leaf : leaves)
         queueCrossing.emplace(leaf);

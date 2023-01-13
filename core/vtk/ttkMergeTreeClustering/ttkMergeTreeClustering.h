@@ -90,6 +90,7 @@ private:
   int pathMetric = 0;
   int branchMetric = 0;
   int baseModule = 0;
+  //int iterationLimit = 0;
 
   // Output Options
   bool OutputTrees = true;
@@ -339,6 +340,12 @@ public:
     Modified();
     resetDataVisualization();
   }
+
+  // void SetIterationLimit(int l) {
+  //   iterationLimit = l;
+  //   Modified();
+  //   resetDataVisualization();
+  // }
 
   // Output Options
   vtkSetMacro(BarycenterPositionAlpha, bool);

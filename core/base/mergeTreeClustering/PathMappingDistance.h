@@ -187,6 +187,7 @@ namespace ttk {
             traceMapping_path(tree1, tree2, child12, 1, child22, 1,
                               predecessors1, predecessors2, depth1, depth2,
                               memT, mapping);
+            return;
           }
           if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4]
              == memT[child11 + 1 * dim2 + child22 * dim3 + 1 * dim4]
@@ -689,6 +690,49 @@ namespace ttk {
 
         outputMatching->clear();
         traceMapping_path(tree1,tree2,children1[0],1,children2[0],1,predecessors1,predecessors2,depth1,depth2,memT,*outputMatching);
+
+        // dataType cost_mapping = 0;
+        // dataType cost_ins = 0;
+        // dataType cost_del = 0;
+        // std::vector<bool> matchedNodes1(tree1->getNumberOfNodes(),false);
+        // std::vector<bool> matchedNodes2(tree2->getNumberOfNodes(),false);
+        // for(auto m : *outputMatching){
+        //   matchedNodes1[m.first.first] = true;
+        //   matchedNodes1[m.first.second] = true;
+        //   matchedNodes2[m.second.first] = true;
+        //   matchedNodes2[m.second.second] = true;
+        //   ftm::idNode cn = tree1->getParentSafe(m.first.first);
+        //   while(cn!=m.first.second){
+        //     matchedNodes1[cn] = true;
+        //     cn = tree1->getParentSafe(cn);
+        //   }
+        //   cn = tree2->getParentSafe(m.second.first);
+        //   while(cn!=m.second.second){
+        //     matchedNodes2[cn] = true;
+        //     cn = tree2->getParentSafe(cn);
+        //   }
+        //   dataType cost = editCost_Persistence<dataType>(
+        //                     m.first.first, m.first.second, m.second.first, m.second.second, tree1, tree2);
+        //   cost_mapping += cost;
+        //   // std::cout << "   (" << m.first.first << " " << m.first.second << ") - (" << m.second.first << " " << m.second.second << ") : " << cost << "\n";
+        // }
+        // for(ftm::idNode i=0; i<tree1->getNumberOfNodes(); i++){
+        //   if(!matchedNodes1[i]){
+        //     dataType cost = editCost_Persistence<dataType>(i, tree1->getParentSafe(i), -1, -1, tree1, tree2);
+        //     // std::cout << "   (" << i << " " << tree1->getParentSafe(i) << ") - (" << -1 << " " << -1 << ") : " << cost << "\n";
+        //     cost_del += cost;
+        //   }
+        // }
+        // for(ftm::idNode i=0; i<tree2->getNumberOfNodes(); i++){
+        //   if(!matchedNodes2[i]){
+        //     dataType cost = editCost_Persistence<dataType>(-1, -1, i, tree2->getParentSafe(i), tree1, tree2);
+        //     // std::cout << "   (" << -1 << " " << -1 << ") - (" << i << " " << tree2->getParentSafe(i) << ") : " << cost << "\n";
+        //     cost_ins += cost;
+        //   }
+        // }
+        // // std::cout << res << " " << cost_mapping+cost_ins+cost_del << std::endl;
+        // // std::cout << res << " " << cost_mapping << std::endl;
+
       }
 
       return squared_ ? std::sqrt(res) : res;

@@ -302,7 +302,7 @@ namespace ttk {
 
       std::queue<ftm::idNode> queue;
       ftm::idNode treeRoot = tree->getRoot();
-      // ftm::idNode treeRootOrigin = tree->getNode(treeRoot)->getOrigin();
+      ftm::idNode treeRootOrigin = tree->getNode(treeRoot)->getOrigin();
       ftm::idNode lowestNode = tree->getLowestNode<dataType>(treeRoot);
       queue.emplace(treeRoot);
       while(!queue.empty()) {
@@ -410,11 +410,8 @@ namespace ttk {
       }
 
       // ----------------------------------------------------
-      // Branches positionning and avoid edges crossing
+      // Scale pairs given persistence
       // ----------------------------------------------------
-      Timer t_avoid;
-      printMsg("Avoid edges crossing", debug::Priority::VERBOSE);
-
       // Sort leaves by branch depth
       std::vector<ftm::idNode> leaves;
       tree->getLeavesFromTree(leaves);
@@ -431,6 +428,68 @@ namespace ttk {
       float rootOriginY = retVec[treeSimplexId[lowestNode] * 2 + 1];
       float rootYmin = std::min(rootY, rootOriginY);
       float rootYmax = std::max(rootY, rootOriginY);
+
+      Timer t_scale;
+      printMsg("Scale pairs given persistence", debug::Priority::VERBOSE);
+      dataType rootPers = tree->getNodePersistence<dataType>(treeRoot);
+      std::stack<ftm::idNode> stack;
+      for(auto node : leaves)
+        stack.emplace(node);
+      std::vector<bool> nodeDone(tree->getNumberOfNodes(), false);
+      while(!stack.empty()) {
+        ftm::idNode node = stack.top();
+        stack.pop();
+        nodeDone[node] = true;
+        if(node == treeRoot or node == treeRootOrigin
+           or tree->isNodeAlone(node))
+          continue;
+        dataType nodePers = tree->getNodePersistence<dataType>(node);
+        ftm::idNode nodeOrigin = tree->getNode(node)->getOrigin();
+        // Manage leaf
+        if(tree->isLeaf(node)) {
+          float nodeDiff = (retVec[treeSimplexId[node] * 2]
+                            - retVec[treeSimplexId[nodeOrigin] * 2]);
+          const auto sign = nodeDiff / std::abs(nodeDiff);
+          auto inc = sign * nodePers / rootPers * (rootYmax - rootYmin) / 2;
+          retVec[treeSimplexId[node] * 2]
+            = retVec[treeSimplexId[nodeOrigin] * 2] + inc;
+          // Push nodes in the branch to the stack
+          ftm::idNode nodeParent = tree->getParentSafe(node);
+          ftm::idNode oldNodeParent = -1;
+          while(nodeParent != nodeOrigin) {
+            if(not nodeDone[nodeParent])
+              stack.emplace(nodeParent);
+            else
+              break;
+            oldNodeParent = nodeParent;
+            nodeParent = tree->getParentSafe(nodeParent);
+            if(oldNodeParent == nodeParent) {
+              std::stringstream ss5;
+              ss5 << "treePlanarLayoutImpl oldNodeParent == nodeParent";
+              printMsg(ss5.str(), debug::Priority::VERBOSE);
+              break;
+            }
+          }
+        }
+        // Manage saddle
+        if(not tree->isLeaf(node) and not tree->isRoot(node)) {
+          float branchY
+            = retVec[treeSimplexId[tree->getNode(branching[node])->getOrigin()]
+                     * 2];
+          retVec[treeSimplexId[node] * 2] = branchY;
+        }
+      }
+      std::stringstream ss5;
+      ss5 << "SCALE PERS.     = " << t_scale.getElapsedTime();
+      printMsg(ss5.str(), debug::Priority::VERBOSE);
+
+      // ----------------------------------------------------
+      // Branches positionning and avoid edges crossing
+      // ----------------------------------------------------
+      Timer t_avoid;
+      printMsg("Avoid edges crossing", debug::Priority::VERBOSE);
+
+      // Init some variables
       bool isJT = tree->isJoinTree<dataType>();
       auto compValue = [&](const ftm::idNode a, const ftm::idNode b) {
         return (isJT

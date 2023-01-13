@@ -279,46 +279,84 @@ namespace ttk {
       std::queue<ftm::idNode> queue;
       for(auto &node : leaves)
         queue.emplace(node);
-      std::vector<bool> nodeDone(tree->getNumberOfNodes(), false);
       std::vector<std::array<float, 4>> bounds(tree->getNumberOfNodes());
+      std::vector<bool> nodeDone(tree->getNumberOfNodes(), false);
+      std::vector<bool> parentOfImportantPair(tree->getNumberOfNodes(), false);
+      std::vector<unsigned int> childSize(tree->getNumberOfNodes()),
+        noChildDone(tree->getNumberOfNodes(), 0);
+      for(unsigned int i = 0; i < tree->getNumberOfNodes(); ++i) {
+        std::vector<ftm::idNode> children;
+        tree->getChildren(i, children);
+        childSize[i] = children.size();
+      }
       while(!queue.empty()) {
         ftm::idNode node = queue.front();
         queue.pop();
         if(nodeDone[node])
           continue;
 
+        std::vector<ftm::idNode> children;
+        if(!tree->isLeaf(node) and !tree->isRoot(node))
+          tree->getChildren(node, children);
+
+        // Shift children
         bool isNodeImportant = tree->isImportantPair<dataType>(
           node, importantPairs_, excludeImportantPairsLowerValues_,
           excludeImportantPairsHigherValues_);
-        if(not isNodeImportant)
-          continue;
-
-        if(!tree->isLeaf(node) and !tree->isRoot(node)) {
-          float nodeX = retVec[treeSimplexId[node] * 2];
-          std::vector<ftm::idNode> children;
-          tree->getChildren(node, children);
-          ftm::idNode child1 = children[0];
-          ftm::idNode child2 = children[1];
-          if(not nodeDone[child1] or not nodeDone[child2])
-            printErr("not nodeDone[child1] or not nodeDone[child2]");
-          float child1XMax = bounds[child1][1];
-          double child1Shift = -child1XMax + nodeX - importantPairsGap / 2.0;
-          shiftSubtreeBounds(tree, child1, child1Shift, retVec, treeSimplexId);
-          float child2XMin = bounds[child2][0];
-          double child2Shift = -child2XMin + nodeX + importantPairsGap / 2.0;
-          shiftSubtreeBounds(tree, child2, child2Shift, retVec, treeSimplexId);
-          bounds[node] = {std::min(bounds[child1][0], bounds[child2][0]),
-                          std::max(bounds[child1][1], bounds[child2][1]),
-                          std::min(bounds[child1][2], bounds[child2][2]),
-                          std::max(bounds[child1][3], bounds[child2][3])};
-        } else
+        if(isNodeImportant) {
           bounds[node]
             = {retVec[treeSimplexId[node] * 2], retVec[treeSimplexId[node] * 2],
                retVec[treeSimplexId[node] * 2 + 1],
                retVec[treeSimplexId[node] * 2 + 1]};
+          parentOfImportantPair[node] = true;
+          if(!tree->isLeaf(node) and !tree->isRoot(node)) {
+            float nodeX = retVec[treeSimplexId[node] * 2];
+            ftm::idNode child1 = children[0];
+            ftm::idNode child2 = children[1];
+            if(not nodeDone[child1] or not nodeDone[child2])
+              printErr("not nodeDone[child1] or not nodeDone[child2]");
+            if(children.size() != 2)
+              printWrn("children.size() != 2");
+            float child1XMax = bounds[child1][1];
+            double child1Shift = -child1XMax + nodeX - importantPairsGap / 2.0;
+            shiftSubtreeBounds(
+              tree, child1, child1Shift, retVec, treeSimplexId);
+            bounds[child1][0] += child1Shift;
+            bounds[child1][1] += child1Shift;
+            float child2XMin = bounds[child2][0];
+            double child2Shift = -child2XMin + nodeX + importantPairsGap / 2.0;
+            shiftSubtreeBounds(
+              tree, child2, child2Shift, retVec, treeSimplexId);
+            bounds[child2][0] += child2Shift;
+            bounds[child2][1] += child2Shift;
+          }
+        }
 
+        // Update bounds
+        if(!tree->isLeaf(node) and !tree->isRoot(node)) {
+          for(auto &child : children) {
+            bool isChildImportant = tree->isImportantPair<dataType>(
+              child, importantPairs_, excludeImportantPairsLowerValues_,
+              excludeImportantPairsHigherValues_);
+            if((isChildImportant or parentOfImportantPair[child])
+               and not parentOfImportantPair[node])
+              bounds[node] = bounds[child];
+            if(isChildImportant or parentOfImportantPair[child]) {
+              bounds[node] = {std::min(bounds[node][0], bounds[child][0]),
+                              std::max(bounds[node][1], bounds[child][1]),
+                              std::min(bounds[node][2], bounds[child][2]),
+                              std::max(bounds[node][3], bounds[child][3])};
+              parentOfImportantPair[node] = true;
+            }
+          }
+        }
+
+        //
         nodeDone[node] = true;
-        queue.emplace(tree->getParentSafe(node));
+        ftm::idNode parent = tree->getParentSafe(node);
+        noChildDone[parent] += 1;
+        if(noChildDone[parent] == childSize[parent])
+          queue.emplace(parent);
       }
     }
 

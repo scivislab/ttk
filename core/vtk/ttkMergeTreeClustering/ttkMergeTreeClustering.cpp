@@ -1,13 +1,13 @@
+#include <BranchMappingDistance.h>
 #include <FTMStructures.h>
 #include <FTMTree.h>
 #include <FTMTreeUtils.h>
 #include <MergeTreeUtils.h>
 #include <MergeTreeVisualization.h>
+#include <PathMappingDistance.h>
 #include <ttkFTMTreeUtils.h>
 #include <ttkMergeTreeClustering.h>
 #include <ttkMergeTreeVisualization.h>
-#include <PathMappingDistance.h>
-#include <BranchMappingDistance.h>
 
 #include <vtkDataObject.h> // For port information
 #include <vtkObjectFactory.h> // for new macro
@@ -132,7 +132,8 @@ int ttkMergeTreeClustering::RequestData(vtkInformation *ttkNotUsed(request),
 
   // filter out new backends (not yet supported)
   if(baseModule == 1 && ComputeBarycenter) {
-    printErr("Invalid Backend chosen. Branch Mapping Distance not yet supported for Barycenter computation. Canceling computation.");
+    printErr("Invalid Backend chosen. Branch Mapping Distance not yet "
+             "supported for Barycenter computation. Canceling computation.");
     return 1;
   }
 
@@ -248,7 +249,7 @@ int ttkMergeTreeClustering::runCompute(
 
   // Call base
   if(not ComputeBarycenter) {
-    if(baseModule==0){
+    if(baseModule == 0) {
       MergeTreeDistance mergeTreeDistance;
       mergeTreeDistance.setAssignmentSolver(AssignmentSolver);
       mergeTreeDistance.setEpsilonTree1(EpsilonTree1);
@@ -274,8 +275,7 @@ int ttkMergeTreeClustering::runCompute(
         intermediateMTrees[0], intermediateMTrees[1], outputMatching);
       trees1NodeCorrMesh = mergeTreeDistance.getTreesNodeCorr();
       finalDistances = std::vector<double>{distance};
-    }
-    else if(baseModule==1){
+    } else if(baseModule == 1) {
       BranchMappingDistance branchDist;
       branchDist.setBaseMetric(branchMetric);
       branchDist.setAssignmentSolver(AssignmentSolver);
@@ -287,23 +287,28 @@ int ttkMergeTreeClustering::runCompute(
       branchDist.setEpsilonTree1(EpsilonTree1);
       branchDist.setEpsilonTree2(EpsilonTree2);
       branchDist.setPersistenceThreshold(PersistenceThreshold);
-      //branchDist.setUseMinMaxPair(UseMinMaxPair);
+      // branchDist.setUseMinMaxPair(UseMinMaxPair);
       branchDist.setDeleteMultiPersPairs(DeleteMultiPersPairs);
-      //branchDist.setEpsilon1UseFarthestSaddle(Epsilon1UseFarthestSaddle);
+      // branchDist.setEpsilon1UseFarthestSaddle(Epsilon1UseFarthestSaddle);
       branchDist.setPersistenceThreshold(PersistenceThreshold);
       branchDist.setThreadNumber(this->threadNumber_);
       branchDist.setDebugLevel(this->debugLevel_);
 
-      distance = branchDist.editDistance_branch<dataType>(intermediateTrees[0], intermediateTrees[1], &outputMatching);
-      
-      std::vector<ttk::SimplexId> nodeCorr1(intermediateTrees[0]->getNumberOfNodes());
-      std::vector<ttk::SimplexId> nodeCorr2(intermediateTrees[1]->getNumberOfNodes());
-      for(unsigned int i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
-      for(unsigned int i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
-      trees1NodeCorrMesh = std::vector<std::vector<ttk::SimplexId>>{nodeCorr1,nodeCorr2};
+      distance = branchDist.editDistance_branch<dataType>(
+        intermediateTrees[0], intermediateTrees[1], &outputMatching);
+
+      std::vector<ttk::SimplexId> nodeCorr1(
+        intermediateTrees[0]->getNumberOfNodes());
+      std::vector<ttk::SimplexId> nodeCorr2(
+        intermediateTrees[1]->getNumberOfNodes());
+      for(unsigned int i = 0; i < nodeCorr1.size(); i++)
+        nodeCorr1[i] = i;
+      for(unsigned int i = 0; i < nodeCorr2.size(); i++)
+        nodeCorr2[i] = i;
+      trees1NodeCorrMesh
+        = std::vector<std::vector<ttk::SimplexId>>{nodeCorr1, nodeCorr2};
       finalDistances = std::vector<double>{distance};
-    }
-    else{
+    } else {
       PathMappingDistance pathDist;
       pathDist.setBaseMetric(pathMetric);
       pathDist.setAssignmentSolver(AssignmentSolver);
@@ -314,21 +319,24 @@ int ttkMergeTreeClustering::runCompute(
       pathDist.setEpsilonTree1(EpsilonTree1);
       pathDist.setEpsilonTree2(EpsilonTree2);
       pathDist.setPersistenceThreshold(PersistenceThreshold);
-      //pathDist.setUseMinMaxPair(UseMinMaxPair);
+      // pathDist.setUseMinMaxPair(UseMinMaxPair);
       pathDist.setDeleteMultiPersPairs(DeleteMultiPersPairs);
-      //pathDist.setEpsilon1UseFarthestSaddle(Epsilon1UseFarthestSaddle);
+      // pathDist.setEpsilon1UseFarthestSaddle(Epsilon1UseFarthestSaddle);
       pathDist.setPersistenceThreshold(PersistenceThreshold);
       pathDist.setThreadNumber(this->threadNumber_);
       pathDist.setDebugLevel(this->debugLevel_);
 
-      distance = pathDist.editDistance_path<dataType>(intermediateTrees[0], intermediateTrees[1], &outputMatching);
+      distance = pathDist.editDistance_path<dataType>(
+        intermediateTrees[0], intermediateTrees[1], &outputMatching);
       trees1NodeCorrMesh = pathDist.getTreesNodeCorr();
 
-      // std::vector<ttk::SimplexId> nodeCorr1(intermediateTrees[0]->getNumberOfNodes());
-      // std::vector<ttk::SimplexId> nodeCorr2(intermediateTrees[1]->getNumberOfNodes());
-      // for(ttk::SimplexId i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
-      // for(ttk::SimplexId i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
-      // trees1NodeCorrMesh = std::vector<std::vector<ttk::SimplexId>>{nodeCorr1,nodeCorr2};
+      // std::vector<ttk::SimplexId>
+      // nodeCorr1(intermediateTrees[0]->getNumberOfNodes());
+      // std::vector<ttk::SimplexId>
+      // nodeCorr2(intermediateTrees[1]->getNumberOfNodes()); for(ttk::SimplexId
+      // i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i; for(ttk::SimplexId i=0;
+      // i<nodeCorr2.size(); i++) nodeCorr2[i] = i; trees1NodeCorrMesh =
+      // std::vector<std::vector<ttk::SimplexId>>{nodeCorr1,nodeCorr2};
       finalDistances = std::vector<double>{distance};
     }
   } else {
@@ -348,8 +356,8 @@ int ttkMergeTreeClustering::runCompute(
       mergeTreeBarycenter.setAlpha(Alpha);
       mergeTreeBarycenter.setDeterministic(Deterministic);
       mergeTreeBarycenter.setPersistenceThreshold(PersistenceThreshold);
-      //mergeTreeBarycenter.setIterationLimit(iterationLimit);
-      if(baseModule==2){
+      // mergeTreeBarycenter.setIterationLimit(iterationLimit);
+      if(baseModule == 2) {
         mergeTreeBarycenter.setPathMetric(this->pathMetric);
         mergeTreeBarycenter.setBranchDecomposition(false);
         mergeTreeBarycenter.setNormalizedWasserstein(false);
@@ -357,8 +365,7 @@ int ttkMergeTreeClustering::runCompute(
         mergeTreeBarycenter.setUseMinMaxPair(false);
         mergeTreeBarycenter.setAddNodes(false);
         mergeTreeBarycenter.setPostprocess(false);
-      }
-      else{
+      } else {
         mergeTreeBarycenter.setBranchDecomposition(BranchDecomposition);
         mergeTreeBarycenter.setNormalizedWasserstein(NormalizedWasserstein);
         mergeTreeBarycenter.setKeepSubtree(KeepSubtree);
@@ -590,7 +597,7 @@ int ttkMergeTreeClustering::runOutput(
       visuMaker.setExcludeImportantPairsHigher(ExcludeImportantPairsHigher);
       visuMaker.setExcludeImportantPairsLower(ExcludeImportantPairsLower);
       visuMaker.setIsPersistenceDiagram(IsPersistenceDiagram);
-      visuMaker.setPathMappingLayout(baseModule==2);
+      visuMaker.setPathPlanarLayout(baseModule == 2);
 
       nodeCorr.clear();
       // First tree
@@ -695,7 +702,7 @@ int ttkMergeTreeClustering::runOutput(
       visuMakerMatching.setVtkOutputNode1(vtkOutputNode2);
       visuMakerMatching.setNodeCorr1(nodeCorr);
       visuMakerMatching.setDebugLevel(this->debugLevel_);
-      visuMakerMatching.setPathMappingLayout(baseModule==2);
+      visuMakerMatching.setPathPlanarLayout(baseModule == 2);
 
       visuMakerMatching.makeMatchingOutput<dataType>(tree1, tree2);
 
@@ -799,7 +806,7 @@ int ttkMergeTreeClustering::runOutput(
           visuMaker.setDebugLevel(this->debugLevel_);
           visuMaker.setIsPersistenceDiagram(IsPersistenceDiagram);
           visuMaker.setIsPDSadMax(JoinSplitMixtureCoefficient == 0);
-          visuMaker.setPathMappingLayout(baseModule==2);
+          visuMaker.setPathPlanarLayout(baseModule == 2);
 
           visuMaker.makeTreesOutput<dataType>(
             intermediateTrees, barycentersTree);
@@ -917,7 +924,7 @@ int ttkMergeTreeClustering::runOutput(
         visuMakerBary.setDebugLevel(this->debugLevel_);
         visuMakerBary.setIsPersistenceDiagram(IsPersistenceDiagram);
         visuMakerBary.setIsPDSadMax(JoinSplitMixtureCoefficient == 0);
-        visuMakerBary.setPathMappingLayout(baseModule==2);
+        visuMakerBary.setPathPlanarLayout(baseModule == 2);
 
         visuMakerBary.makeTreesOutput<dataType>(
           intermediateTrees, barycentersTree);
@@ -993,7 +1000,7 @@ int ttkMergeTreeClustering::runOutput(
           visuMakerMatching.setPrintTreeId(i);
           visuMakerMatching.setPrintClusterId(c);
           visuMakerMatching.setDebugLevel(this->debugLevel_);
-          visuMakerMatching.setPathMappingLayout(baseModule==2);
+          visuMakerMatching.setPathPlanarLayout(baseModule == 2);
 
           visuMakerMatching.makeMatchingOutput<dataType>(
             intermediateTrees, barycentersTree);

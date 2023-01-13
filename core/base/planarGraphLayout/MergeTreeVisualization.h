@@ -33,12 +33,15 @@ namespace ttk {
     MergeTreeVisualization() = default;
     ~MergeTreeVisualization() override = default;
 
-    // ==========================================================================
+    // ========================================================================
     // Getter / Setter
-    // ==========================================================================
+    // ========================================================================
     // Visualization parameters
     void setBranchDecompositionPlanarLayout(bool b) {
       branchDecompositionPlanarLayout_ = b;
+    }
+    void setPathPlanarLayout(bool b) {
+      pathPlanarLayout_ = b;
     }
     void setBranchSpacing(double d) {
       branchSpacing_ = d;
@@ -67,9 +70,9 @@ namespace ttk {
       parseExcludeImportantPairsString(d, excludeImportantPairsLowerValues_);
     }
 
-    // ==========================================================================
-    // Planar Layout
-    // ==========================================================================
+    // ========================================================================
+    // Branch Decomposition Tree Planar Layout
+    // ========================================================================
     // TODO manage multi pers pairs
     template <class dataType>
     void treePlanarLayoutBDImpl(
@@ -263,6 +266,85 @@ namespace ttk {
       }
     }
 
+    // ========================================================================
+    // Path Planar Layout
+    // ========================================================================
+    // TODO manage multi pers pairs
+    template <class dataType>
+    void pathPlanarLayout(ftm::FTMTree_MT *tree,
+                          std::vector<float> &retVec,
+                          std::vector<LongSimplexId> &treeSimplexId,
+                          std::vector<ftm::idNode> &leaves,
+                          double importantPairsGap) {
+      std::queue<ftm::idNode> queue;
+      for(auto &node : leaves)
+        queue.emplace(node);
+      std::vector<bool> nodeDone(tree->getNumberOfNodes(), false);
+      std::vector<std::array<float, 4>> bounds(tree->getNumberOfNodes());
+      while(!queue.empty()) {
+        ftm::idNode node = queue.front();
+        queue.pop();
+        if(nodeDone[node])
+          continue;
+
+        bool isNodeImportant = tree->isImportantPair<dataType>(
+          node, importantPairs_, excludeImportantPairsLowerValues_,
+          excludeImportantPairsHigherValues_);
+        if(not isNodeImportant)
+          continue;
+
+        if(!tree->isLeaf(node) and !tree->isRoot(node)) {
+          float nodeX = retVec[treeSimplexId[node] * 2];
+          std::vector<ftm::idNode> children;
+          tree->getChildren(node, children);
+          ftm::idNode child1 = children[0];
+          ftm::idNode child2 = children[1];
+          if(not nodeDone[child1] or not nodeDone[child2])
+            printErr("not nodeDone[child1] or not nodeDone[child2]");
+          float child1XMax = bounds[child1][1];
+          double child1Shift = -child1XMax + nodeX - importantPairsGap / 2.0;
+          shiftSubtreeBounds(tree, child1, child1Shift, retVec, treeSimplexId);
+          float child2XMin = bounds[child2][0];
+          double child2Shift = -child2XMin + nodeX + importantPairsGap / 2.0;
+          shiftSubtreeBounds(tree, child2, child2Shift, retVec, treeSimplexId);
+          bounds[node] = {std::min(bounds[child1][0], bounds[child2][0]),
+                          std::max(bounds[child1][1], bounds[child2][1]),
+                          std::min(bounds[child1][2], bounds[child2][2]),
+                          std::max(bounds[child1][3], bounds[child2][3])};
+        } else
+          bounds[node]
+            = {retVec[treeSimplexId[node] * 2], retVec[treeSimplexId[node] * 2],
+               retVec[treeSimplexId[node] * 2 + 1],
+               retVec[treeSimplexId[node] * 2 + 1]};
+
+        nodeDone[node] = true;
+        queue.emplace(tree->getParentSafe(node));
+      }
+    }
+
+    void shiftSubtreeBounds(ftm::FTMTree_MT *tree,
+                            ftm::idNode subtreeRoot,
+                            double shift,
+                            std::vector<float> &retVec,
+                            std::vector<LongSimplexId> &treeSimplexId) {
+      std::queue<ftm::idNode> queue;
+      queue.emplace(subtreeRoot);
+      while(!queue.empty()) {
+        ftm::idNode node = queue.front();
+        queue.pop();
+
+        retVec[treeSimplexId[node] * 2] += shift;
+
+        std::vector<ftm::idNode> children;
+        tree->getChildren(node, children);
+        for(auto &child : children)
+          queue.emplace(child);
+      }
+    }
+
+    // ========================================================================
+    // Merge Tree Planar Layout
+    // ========================================================================
     // TODO manage multi pers pairs
     template <class dataType>
     void treePlanarLayoutImpl(
@@ -596,11 +678,12 @@ namespace ttk {
       // ----- Correction of important/non-important pairs gap
       // TODO the gap between important pairs can be higher than the minimum gap
       // needed to avoid conflict. The gap is computed using the maximum number
-      // of non-important pairs attached to an inmportant pairs Unfortunately
+      // of non-important pairs attached to an important pairs. Unfortunately
       // the real gap can only be computed here, after the conflicts has been
       // avoided. The maximum real gap must be calculated and propagated to all
       // important branches and we also need to manage to avoid conflict with
-      // this new gap. Get real gap
+      // this new gap.
+      // Get real gap
       double realImportantPairsGap = std::numeric_limits<double>::lowest();
       /*if(customimportantPairsSpacing_)
         realImportantPairsGap = importantPairsGap;
@@ -666,6 +749,15 @@ namespace ttk {
       ss6 << "AVOID CROSSING  = " << t_avoid.getElapsedTime();
       printMsg(ss6.str(), debug::Priority::VERBOSE);
       printMsg(debug::Separator::L2, debug::Priority::VERBOSE);
+
+      // ----------------------------------------------------
+      // Call Path Planar Layout if asked
+      // ----------------------------------------------------
+      if(pathPlanarLayout_) {
+        pathPlanarLayout<dataType>(
+          tree, retVec, treeSimplexId, leaves, importantPairsGap);
+        return;
+      }
     }
 
     template <class dataType>
@@ -677,6 +769,9 @@ namespace ttk {
       treePlanarLayoutImpl<dataType>(tree, oldBounds, refPersistence, res);
     }
 
+    // ========================================================================
+    // Persistence Diagram Planar Layout
+    // ========================================================================
     template <class dataType>
     void persistenceDiagramPlanarLayout(ftm::FTMTree_MT *tree,
                                         std::vector<float> &res) {
@@ -703,9 +798,9 @@ namespace ttk {
       }
     }
 
-    // ==========================================================================
+    // ========================================================================
     // Bounds Utils
-    // ==========================================================================
+    // ========================================================================
     void printTuple(std::tuple<float, float, float, float> tup) {
       printMsg(debug::Separator::L2, debug::Priority::VERBOSE);
       std::stringstream ss;
@@ -892,9 +987,9 @@ namespace ttk {
       return std::make_tuple(x_min, x_max, y_min, y_max, z_min, z_max);
     }
 
-    // ==========================================================================
+    // ========================================================================
     // Utils
-    // ==========================================================================
+    // ========================================================================
     void parseExcludeImportantPairsString(std::string &exludeString,
                                           std::vector<double> &excludeVector) {
       excludeVector.clear();

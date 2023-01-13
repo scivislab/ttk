@@ -76,9 +76,6 @@ namespace ttk {
         idNode node = queue.front();
         queue.pop();
 
-        if(this->isLeaf(node))
-          continue;
-
         if(isImportantPairOneNode(node))
           return true;
 
@@ -86,7 +83,8 @@ namespace ttk {
 
         idNode parent = this->getParentSafe(node);
         if(parent != saddleNode)
-          queue.emplace(parent);
+          if(not nodeDone[parent])
+            queue.emplace(parent);
 
         std::vector<idNode> children;
         this->getChildren(node, children);

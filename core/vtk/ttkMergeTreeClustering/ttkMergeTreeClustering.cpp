@@ -582,7 +582,6 @@ int ttkMergeTreeClustering::runOutput(
       visuMaker.setPlanarLayout(PlanarLayout);
       visuMaker.setBranchDecompositionPlanarLayout(
         BranchDecompositionPlanarLayout);
-      visuMaker.setPathPlanarLayout(PathPlanarLayout);
       visuMaker.setBranchSpacing(BranchSpacing);
       visuMaker.setRescaleTreesIndividually(RescaleTreesIndividually);
       visuMaker.setOutputSegmentation(OutputSegmentation);
@@ -598,7 +597,8 @@ int ttkMergeTreeClustering::runOutput(
       visuMaker.setExcludeImportantPairsHigher(ExcludeImportantPairsHigher);
       visuMaker.setExcludeImportantPairsLower(ExcludeImportantPairsLower);
       visuMaker.setIsPersistenceDiagram(IsPersistenceDiagram);
-      visuMaker.setPathPlanarLayout(baseModule == 2);
+      visuMaker.setPathPlanarLayout(PathPlanarLayout);
+      // visuMaker.setPathPlanarLayout(baseModule == 2);
 
       nodeCorr.clear();
       // First tree
@@ -703,7 +703,8 @@ int ttkMergeTreeClustering::runOutput(
       visuMakerMatching.setVtkOutputNode1(vtkOutputNode2);
       visuMakerMatching.setNodeCorr1(nodeCorr);
       visuMakerMatching.setDebugLevel(this->debugLevel_);
-      visuMakerMatching.setPathPlanarLayout(baseModule == 2);
+      visuMakerMatching.setPathPlanarLayout(PathPlanarLayout);
+      // visuMakerMatching.setPathPlanarLayout(baseModule == 2);
 
       visuMakerMatching.makeMatchingOutput<dataType>(tree1, tree2);
 
@@ -775,7 +776,6 @@ int ttkMergeTreeClustering::runOutput(
           visuMaker.setPlanarLayout(PlanarLayout);
           visuMaker.setBranchDecompositionPlanarLayout(
             BranchDecompositionPlanarLayout);
-          visuMaker.setPathPlanarLayout(PathPlanarLayout);
           visuMaker.setBranchSpacing(BranchSpacing);
           visuMaker.setRescaleTreesIndividually(RescaleTreesIndividually);
           visuMaker.setOutputSegmentation(OutputSegmentation);
@@ -808,7 +808,8 @@ int ttkMergeTreeClustering::runOutput(
           visuMaker.setDebugLevel(this->debugLevel_);
           visuMaker.setIsPersistenceDiagram(IsPersistenceDiagram);
           visuMaker.setIsPDSadMax(JoinSplitMixtureCoefficient == 0);
-          visuMaker.setPathPlanarLayout(baseModule == 2);
+          visuMaker.setPathPlanarLayout(PathPlanarLayout);
+          // visuMaker.setPathPlanarLayout(baseModule == 2);
 
           visuMaker.makeTreesOutput<dataType>(
             intermediateTrees, barycentersTree);
@@ -889,7 +890,6 @@ int ttkMergeTreeClustering::runOutput(
         visuMakerBary.setPlanarLayout(PlanarLayout);
         visuMakerBary.setBranchDecompositionPlanarLayout(
           BranchDecompositionPlanarLayout);
-        visuMakerBary.setPathPlanarLayout(PathPlanarLayout);
         visuMakerBary.setBranchSpacing(BranchSpacing);
         visuMakerBary.setRescaleTreesIndividually(RescaleTreesIndividually);
         visuMakerBary.setOutputSegmentation(false);
@@ -927,7 +927,8 @@ int ttkMergeTreeClustering::runOutput(
         visuMakerBary.setDebugLevel(this->debugLevel_);
         visuMakerBary.setIsPersistenceDiagram(IsPersistenceDiagram);
         visuMakerBary.setIsPDSadMax(JoinSplitMixtureCoefficient == 0);
-        visuMakerBary.setPathPlanarLayout(baseModule == 2);
+        visuMakerBary.setPathPlanarLayout(PathPlanarLayout);
+        // visuMakerBary.setPathPlanarLayout(baseModule == 2);
 
         visuMakerBary.makeTreesOutput<dataType>(
           intermediateTrees, barycentersTree);
@@ -1003,7 +1004,8 @@ int ttkMergeTreeClustering::runOutput(
           visuMakerMatching.setPrintTreeId(i);
           visuMakerMatching.setPrintClusterId(c);
           visuMakerMatching.setDebugLevel(this->debugLevel_);
-          visuMakerMatching.setPathPlanarLayout(baseModule == 2);
+          visuMakerMatching.setPathPlanarLayout(PathPlanarLayout);
+          // visuMakerMatching.setPathPlanarLayout(baseModule == 2);
 
           visuMakerMatching.makeMatchingOutput<dataType>(
             intermediateTrees, barycentersTree);

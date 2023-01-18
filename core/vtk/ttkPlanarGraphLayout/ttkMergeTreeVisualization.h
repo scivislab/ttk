@@ -968,7 +968,6 @@ public:
 
         // Internal arrays
         printMsg("// Internal arrays", ttk::debug::Priority::VERBOSE);
-        int cptNode = 0;
         nodeCorr[i].resize(trees[i]->getNumberOfNodes());
         std::vector<SimplexId> treeSimplexId(trees[i]->getNumberOfNodes());
         std::vector<SimplexId> treeDummySimplexId(trees[i]->getNumberOfNodes());
@@ -990,6 +989,24 @@ public:
         double minBirth = std::numeric_limits<double>::max(),
                maxBirth = std::numeric_limits<double>::lowest();
         SimplexId minBirthNode = 0, maxBirthNode = 0;
+
+        // Init layoutCorr
+        int cptNode = 0;
+        std::queue<idNode> queueLayoutCorr;
+        queueLayoutCorr.emplace(trees[i]->getRoot());
+        while(!queueLayoutCorr.empty()) {
+          idNode node = queueLayoutCorr.front();
+          queueLayoutCorr.pop();
+
+          // Push children to the queue
+          std::vector<idNode> children;
+          trees[i]->getChildren(node, children);
+          for(auto child : children)
+            queueLayoutCorr.emplace(child);
+
+          layoutCorr[node] = cptNode;
+          cptNode += 2;
+        }
 
         // ----------------------------
         // Tree traversal
@@ -1049,11 +1066,9 @@ public:
             getPoint(treesNodes[i], nodeMesh, point);
           }
           if(PlanarLayout) {
-            layoutCorr[node] = cptNode;
-            point[0] = layout[cptNode];
-            point[1] = layout[cptNode + 1];
+            point[0] = layout[layoutCorr[node]];
+            point[1] = layout[layoutCorr[node] + 1];
             point[2] = 0;
-            cptNode += 2;
           }
           point[0] += diff_x;
           point[1] += diff_y;
@@ -1119,6 +1134,9 @@ public:
                  ? node
                  : treeBranching[node]);
 
+          // Path Layout Dummy Node
+          bool pathDummyNode = false;
+
           // --------------
           // Insert cell connecting parent
           // --------------
@@ -1153,12 +1171,32 @@ public:
             } else
               pointIds[1] = treeSimplexId[nodeParent];
 
+            // Path Layout Dummy Cell
+            bool isNodeParentImportant = trees[i]->isImportantPair<dataType>(
+              nodeParent, importantPairs_, excludeImportantPairsLowerValues_,
+              excludeImportantPairsHigherValues_);
+            bool pathDummyCell
+              = not dummyCell and pathPlanarLayout_ and isNodeParentImportant;
+            if(pathDummyCell) {
+              std::cout << "pathDummyCell" << std::endl;
+              pathDummyNode = true;
+              double pathDummyPoint[3]
+                = {layout[layoutCorr[node]] + diff_x,
+                   layout[layoutCorr[nodeParent] + 1] + diff_y, 0. + diff_z};
+              SimplexId pathDummyPointId
+                = points->InsertNextPoint(pathDummyPoint);
+              vtkIdType pathDummyCellPointIds[2];
+              pathDummyCellPointIds[0] = pathDummyPointId;
+              pathDummyCellPointIds[1] = treeSimplexId[nodeParent];
+              vtkArcs->InsertNextCell(VTK_LINE, 2, pathDummyCellPointIds);
+              pointIds[1] = pathDummyPointId;
+            }
             vtkArcs->InsertNextCell(VTK_LINE, 2, pointIds);
 
             // --------------
             // Arc field
             // --------------
-            int toAdd = (dummyCell ? 2 : 1);
+            int toAdd = (dummyCell ? 2 : 1) + (pathDummyCell ? 1 : 0);
             for(int toAddT = 0; toAddT < toAdd; ++toAddT) {
               // Add arc matching percentage
               if(ShiftMode == 1) { // Star Barycenter
@@ -1277,7 +1315,7 @@ public:
           // --------------
           // Node field
           // --------------
-          int toAdd = (dummyNode ? 2 : 1);
+          int toAdd = (dummyNode ? 2 : 1) + (pathDummyNode ? 1 : 0);
           for(int toAddT = 0; toAddT < toAdd; ++toAddT) {
             // Add node id
             nodeID->InsertNextTuple1(treeSimplexId[node]);

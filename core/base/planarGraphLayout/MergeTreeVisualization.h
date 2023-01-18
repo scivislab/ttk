@@ -284,6 +284,8 @@ namespace ttk {
       std::vector<bool> parentOfImportantPair(tree->getNumberOfNodes(), false);
       std::vector<unsigned int> childSize(tree->getNumberOfNodes()),
         noChildDone(tree->getNumberOfNodes(), 0);
+      std::vector<double> lowestValue(tree->getNumberOfNodes());
+      bool isJT = tree->isJoinTree<dataType>();
       for(unsigned int i = 0; i < tree->getNumberOfNodes(); ++i) {
         std::vector<ftm::idNode> children;
         tree->getChildren(i, children);
@@ -317,14 +319,21 @@ namespace ttk {
               printErr("not nodeDone[child1] or not nodeDone[child2]");
             if(children.size() != 2)
               printWrn("children.size() != 2");
-            float child1XMax = bounds[child1][1];
-            double child1Shift = -child1XMax + nodeX - importantPairsGap / 2.0;
+
+            double sign = (lowestValue[child1] > lowestValue[child2] ? -1 : 1);
+            if(isJT)
+              sign *= -1;
+
+            float child1XBound = bounds[child1][(sign == -1 ? 1 : 0)];
+            double child1Shift
+              = -child1XBound + nodeX + sign * importantPairsGap / 2.0;
             shiftSubtreeBounds(
               tree, child1, child1Shift, retVec, treeSimplexId);
             bounds[child1][0] += child1Shift;
             bounds[child1][1] += child1Shift;
-            float child2XMin = bounds[child2][0];
-            double child2Shift = -child2XMin + nodeX + importantPairsGap / 2.0;
+            float child2XBound = bounds[child2][(sign == -1 ? 0 : 1)];
+            double child2Shift
+              = -child2XBound + nodeX + sign * -1 * importantPairsGap / 2.0;
             shiftSubtreeBounds(
               tree, child2, child2Shift, retVec, treeSimplexId);
             bounds[child2][0] += child2Shift;
@@ -349,6 +358,15 @@ namespace ttk {
               parentOfImportantPair[node] = true;
             }
           }
+        }
+
+        // Update lowest value
+        lowestValue[node] = tree->getValue<dataType>(node);
+        for(auto &child : children) {
+          if(isJT)
+            lowestValue[node] = std::min(lowestValue[node], lowestValue[child]);
+          else
+            lowestValue[node] = std::max(lowestValue[node], lowestValue[child]);
         }
 
         //

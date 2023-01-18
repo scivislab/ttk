@@ -1178,7 +1178,6 @@ public:
             bool pathDummyCell
               = not dummyCell and pathPlanarLayout_ and isNodeParentImportant;
             if(pathDummyCell) {
-              std::cout << "pathDummyCell" << std::endl;
               pathDummyNode = true;
               double pathDummyPoint[3]
                 = {layout[layoutCorr[node]] + diff_x,

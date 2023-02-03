@@ -967,6 +967,11 @@ public:
         std::vector<SimplexId> layoutCorr;
         getLayoutCorr(trees[i], layoutCorr);
         std::vector<float> layout;
+        // TODO remove baryMatchingVector if it is not used
+        std::vector<ttk::ftm::idNode> baryMatchingVector;
+        // TODO put this declaration just before it is used if the vector is
+        // not needed elsewhere
+        std::vector<bool> isImportantPairBaryVector;
         if(PlanarLayout) {
           double refPersistence;
           if(clusteringOutput)
@@ -978,23 +983,69 @@ public:
           if(not isPersistenceDiagram) {
             treePlanarLayout<dataType>(
               trees[i], allBaryBounds[c], refPersistence, layout);
+            // Planar Layout alignment given barycenter
             if(alignTrees and ShiftMode != 1) {
+              // Create barycenter layout
               std::vector<float> layoutBary;
               treePlanarLayout<dataType>(
                 barycenters[0], allBaryBounds[c], refPersistence, layoutBary);
               std::vector<SimplexId> layoutBaryCorr;
               getLayoutCorr(barycenters[0], layoutBaryCorr);
-              std::vector<bool> isImportantPairBaryVector;
+              // Get barycenter important pairs bool vector
               double isImportantPairBary
                 = fixImportantPairsThreshold(barycenters[0]);
               getIsImportantPairVector(
                 barycenters[0], isImportantPairBaryVector, isImportantPairBary);
+              baryMatchingVector.resize(barycenters[0]->getNumberOfNodes(), -1);
+              for(auto match : outputMatchingBarycenter[0][i])
+                baryMatchingVector[std::get<0>(match)] = std::get<1>(match);
+              std::vector<float> shifts(trees[i]->getNumberOfNodes(), 0);
               for(auto match : outputMatchingBarycenter[0][i]) {
-                layout[layoutCorr[std::get<1>(match)]]
-                  = layoutBary[layoutBaryCorr[std::get<0>(match)]];
+                // Update tree important pair according barycenter
                 isImportantPairVector[std::get<1>(match)]
                   = isImportantPairBaryVector[std::get<0>(match)];
+                // Update tree layout according barycenter layout
+                layout[layoutCorr[std::get<1>(match)]]
+                  = layoutBary[layoutBaryCorr[std::get<0>(match)]];
+                if(not isImportantPairVector[std::get<1>(match)]) {
+                  // Search for birth swap with an important pair
+                  ttk::ftm::idNode node = std::get<0>(match);
+                  while(not isImportantPairBaryVector[node])
+                    node = barycenters[0]->getParentSafe(node);
+                  bool baryNodeSup
+                    = barycenters[0]->getValue<dataType>(node)
+                      > barycenters[0]->getValue<dataType>(std::get<0>(match));
+                  bool treeNodeSup
+                    = trees[i]->getValue<dataType>(baryMatchingVector[node])
+                      > trees[i]->getValue<dataType>(std::get<1>(match));
+                  if((not baryNodeSup and treeNodeSup)
+                     or (baryNodeSup and not treeNodeSup)) {
+                    float shift
+                      = std::abs(layout[layoutCorr[std::get<1>(match)]]
+                                 - layoutBary[layoutBaryCorr[node]]);
+                    layout[layoutCorr[std::get<1>(match)]]
+                      = layoutBary[layoutBaryCorr[node]];
+                    std::queue<ttk::ftm::idNode> queueShift;
+                    queueShift.emplace(
+                      trees[i]->getNode(std::get<1>(match))->getOrigin());
+                    while(!queueShift.empty()) {
+                      ttk::ftm::idNode nodeToShift = queueShift.front();
+                      queueShift.pop();
+                      shifts[nodeToShift] += shift;
+                      ttk::ftm::idNode nodeToShiftParent
+                        = trees[i]->getParentSafe(nodeToShift);
+                      if(nodeToShiftParent != std::get<1>(match))
+                        queueShift.emplace(nodeToShiftParent);
+                      std::vector<ttk::ftm::idNode> children;
+                      trees[i]->getChildren(nodeToShift, children);
+                      for(auto &child : children)
+                        queueShift.emplace(child);
+                    }
+                  }
+                }
               }
+              for(unsigned int s = 0; s < shifts.size(); ++s)
+                layout[layoutCorr[s]] += shifts[s];
             }
           } else {
             persistenceDiagramPlanarLayout<dataType>(trees[i], layout);
@@ -1224,6 +1275,11 @@ public:
             bool isNodeParentImportant = isImportantPairVector[nodeParent];
             bool pathDummyCell
               = not dummyCell and pathPlanarLayout_ and isNodeParentImportant;
+            if(not pathDummyCell and alignTrees and ShiftMode != 1) {
+              pathDummyCell = pathPlanarLayout_
+                              and layout[layoutCorr[node]]
+                                    != layout[layoutCorr[nodeParent]];
+            }
             if(pathDummyCell) {
               pathDummyNode = true;
               double pathDummyPoint[3]

@@ -952,14 +952,20 @@ public:
             }
           }
           double new_diff_x = PlanarLayout ? -minX : -std::get<0>(allBounds[i]);
-          if(DimensionToShift == 2) { // is Z
+          bool diffYAllowed
+            = (not clusteringOutput
+               or (trees.size() == 2 and barycenters.size() == 1));
+          if(DimensionToShift == 2) {
+            // is Z
             diff_z = -diff_x;
             diff_x = new_diff_x;
-          } else if(not clusteringOutput and DimensionToShift == 1) { // is Y
+          } else if(diffYAllowed and DimensionToShift == 1) {
+            // is Y
             diff_y = diff_x;
             diff_x = new_diff_x;
-          } else if(DimensionToShift == 3) { // Custom
-            if(not clusteringOutput)
+          } else if(DimensionToShift == 3) {
+            // Custom
+            if(diffYAllowed)
               diff_y = YShift * diff_x + (1 - YShift) * diff_y;
             diff_z = ZShift * -diff_x + (1 - ZShift) * diff_z;
             diff_x = XShift * diff_x + (1 - XShift) * new_diff_x;

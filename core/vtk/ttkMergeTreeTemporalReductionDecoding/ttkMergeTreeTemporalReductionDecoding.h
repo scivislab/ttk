@@ -145,6 +145,15 @@ public:
     return assignmentSolverID_;
   }
 
+  void SetUsePathMappings(double usePM) {
+    usePathMappings_ = usePM;
+    Modified();
+    resetDataVisualization();
+  }
+  double GetPathMappings() {
+    return usePathMappings_;
+  }
+
   // Output Options
   vtkSetMacro(OutputTrees, bool);
   vtkGetMacro(OutputTrees, bool);

@@ -25,6 +25,7 @@
 #include <MergeTreeBarycenter.h>
 #include <MergeTreeBase.h>
 #include <MergeTreeDistance.h>
+#include <PathMappingDistance.h>
 
 namespace ttk {
 
@@ -36,43 +37,70 @@ namespace ttk {
                                              public MergeTreeBase {
   protected:
     std::vector<double> finalDistances_, distancesToKeyFrames_;
+    bool usePathMappings_ = false;
 
   public:
     MergeTreeTemporalReductionDecoding();
+
+    void setPathMappings(bool usePM) {
+      usePathMappings_ = usePM;
+    }
 
     template <class dataType>
     dataType computeDistance(
       ftm::MergeTree<dataType> &mTree1,
       ftm::MergeTree<dataType> &mTree2,
       std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> &matching) {
-      MergeTreeDistance mergeTreeDistance;
-      mergeTreeDistance.setAssignmentSolver(assignmentSolverID_);
-      mergeTreeDistance.setEpsilonTree1(epsilonTree1_);
-      mergeTreeDistance.setEpsilonTree2(epsilonTree2_);
-      mergeTreeDistance.setEpsilon2Tree1(epsilon2Tree1_);
-      mergeTreeDistance.setEpsilon2Tree2(epsilon2Tree2_);
-      mergeTreeDistance.setEpsilon3Tree1(epsilon3Tree1_);
-      mergeTreeDistance.setEpsilon3Tree2(epsilon3Tree2_);
-      mergeTreeDistance.setProgressiveComputation(progressiveComputation_);
-      mergeTreeDistance.setBranchDecomposition(branchDecomposition_);
-      mergeTreeDistance.setParallelize(parallelize_);
-      mergeTreeDistance.setPersistenceThreshold(persistenceThreshold_);
-      mergeTreeDistance.setNormalizedWasserstein(normalizedWasserstein_);
-      mergeTreeDistance.setNormalizedWassersteinReg(normalizedWassersteinReg_);
-      mergeTreeDistance.setRescaledWasserstein(rescaledWasserstein_);
-      mergeTreeDistance.setKeepSubtree(keepSubtree_);
-      mergeTreeDistance.setUseMinMaxPair(useMinMaxPair_);
-      mergeTreeDistance.setThreadNumber(this->threadNumber_);
-      mergeTreeDistance.setDistanceSquared(true); // squared root
-      mergeTreeDistance.setDebugLevel(2);
-      mergeTreeDistance.setPreprocess(false);
-      mergeTreeDistance.setPostprocess(false);
-      // mergeTreeDistance.setIsCalled(true);
+      
+      if(usePathMappings_){
+        PathMappingDistance mergeTreeDistance;
+        mergeTreeDistance.setAssignmentSolver(assignmentSolverID_);
+        mergeTreeDistance.setEpsilonTree1(epsilonTree1_);
+        mergeTreeDistance.setEpsilonTree2(epsilonTree2_);
+        mergeTreeDistance.setPersistenceThreshold(persistenceThreshold_);
+        mergeTreeDistance.setThreadNumber(this->threadNumber_);
+        mergeTreeDistance.setDistanceSquared(false); // squared root
+        mergeTreeDistance.setDebugLevel(2);
+        mergeTreeDistance.setPreprocess(false);
+        mergeTreeDistance.setComputeMapping(true);
 
-      dataType distance
-        = mergeTreeDistance.execute<dataType>(mTree1, mTree2, matching);
+        ftm::FTMTree_MT* mt1 = &(mTree1.tree);
+        ftm::FTMTree_MT* mt2 = &(mTree2.tree);
+        dataType distance
+          = mergeTreeDistance.editDistance_path<dataType>(mt1, mt2, &matching);
 
-      return distance;
+        return distance;
+      }
+      else{
+        MergeTreeDistance mergeTreeDistance;
+        mergeTreeDistance.setAssignmentSolver(assignmentSolverID_);
+        mergeTreeDistance.setEpsilonTree1(epsilonTree1_);
+        mergeTreeDistance.setEpsilonTree2(epsilonTree2_);
+        mergeTreeDistance.setEpsilon2Tree1(epsilon2Tree1_);
+        mergeTreeDistance.setEpsilon2Tree2(epsilon2Tree2_);
+        mergeTreeDistance.setEpsilon3Tree1(epsilon3Tree1_);
+        mergeTreeDistance.setEpsilon3Tree2(epsilon3Tree2_);
+        mergeTreeDistance.setProgressiveComputation(progressiveComputation_);
+        mergeTreeDistance.setBranchDecomposition(branchDecomposition_);
+        mergeTreeDistance.setParallelize(parallelize_);
+        mergeTreeDistance.setPersistenceThreshold(persistenceThreshold_);
+        mergeTreeDistance.setNormalizedWasserstein(normalizedWasserstein_);
+        mergeTreeDistance.setNormalizedWassersteinReg(normalizedWassersteinReg_);
+        mergeTreeDistance.setRescaledWasserstein(rescaledWasserstein_);
+        mergeTreeDistance.setKeepSubtree(keepSubtree_);
+        mergeTreeDistance.setUseMinMaxPair(useMinMaxPair_);
+        mergeTreeDistance.setThreadNumber(this->threadNumber_);
+        mergeTreeDistance.setDistanceSquared(true); // squared root
+        mergeTreeDistance.setDebugLevel(2);
+        mergeTreeDistance.setPreprocess(false);
+        mergeTreeDistance.setPostprocess(false);
+        // mergeTreeDistance.setIsCalled(true);
+
+        dataType distance
+          = mergeTreeDistance.execute<dataType>(mTree1, mTree2, matching);
+
+        return distance;
+      }
     }
 
     template <class dataType>
@@ -98,10 +126,6 @@ namespace ttk {
       mergeTreeBarycenter.setBranchDecomposition(branchDecomposition_);
       mergeTreeBarycenter.setParallelize(parallelize_);
       mergeTreeBarycenter.setPersistenceThreshold(persistenceThreshold_);
-      mergeTreeBarycenter.setNormalizedWasserstein(normalizedWasserstein_);
-      mergeTreeBarycenter.setNormalizedWassersteinReg(
-        normalizedWassersteinReg_);
-      mergeTreeBarycenter.setRescaledWasserstein(rescaledWasserstein_);
       mergeTreeBarycenter.setKeepSubtree(keepSubtree_);
       mergeTreeBarycenter.setUseMinMaxPair(useMinMaxPair_);
       mergeTreeBarycenter.setThreadNumber(this->threadNumber_);
@@ -110,6 +134,22 @@ namespace ttk {
       mergeTreeBarycenter.setPreprocess(false);
       mergeTreeBarycenter.setPostprocess(false);
       // mergeTreeBarycenter.setIsCalled(true);
+
+      if(usePathMappings_){
+        mergeTreeBarycenter.setBaseModule(2);
+        mergeTreeBarycenter.setBranchDecomposition(false);
+        mergeTreeBarycenter.setNormalizedWasserstein(false);
+        mergeTreeBarycenter.setKeepSubtree(false);
+        mergeTreeBarycenter.setUseMinMaxPair(false);
+        mergeTreeBarycenter.setAddNodes(false);
+        mergeTreeBarycenter.setPostprocess(false);
+      }
+      else{
+        mergeTreeBarycenter.setBranchDecomposition(true);
+        mergeTreeBarycenter.setNormalizedWasserstein(normalizedWasserstein_);
+        mergeTreeBarycenter.setNormalizedWassersteinReg(normalizedWassersteinReg_);
+        mergeTreeBarycenter.setRescaledWasserstein(rescaledWasserstein_);
+      }
 
       std::vector<ftm::MergeTree<dataType>> intermediateTrees;
       intermediateTrees.push_back(mTree1);
@@ -132,13 +172,50 @@ namespace ttk {
       Timer t_tempSub;
 
       // --- Preprocessing
-      treesNodeCorr_ = std::vector<std::vector<int>>(mTrees.size());
-      for(unsigned int i = 0; i < mTrees.size(); ++i) {
-        preprocessingPipeline<dataType>(
-          mTrees[i], epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
-          branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[i]);
+      if(!usePathMappings_){
+        treesNodeCorr_ = std::vector<std::vector<int>>(mTrees.size());
+        for(unsigned int i = 0; i < mTrees.size(); ++i) {
+          preprocessingPipeline<dataType>(
+            mTrees[i], epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
+            branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[i]);
+        }
+        printTreesStats<dataType>(mTrees);
       }
-      printTreesStats<dataType>(mTrees);
+
+      if(usePathMappings_){
+        treesNodeCorr_ = std::vector<std::vector<int>>(mTrees.size());
+        printMsg("uses path mapping distance");
+        for(unsigned int i = 0; i < mTrees.size(); ++i) {
+          ftm::FTMTree_MT *tree = &(mTrees[i].tree);
+          preprocessTree<dataType>(tree, true);
+
+          // - Delete null persistence pairs and persistence thresholding
+          persistenceThresholding<dataType>(tree, persistenceThreshold_);
+
+          // - Merge saddle points according epsilon
+          if(not isPersistenceDiagram_) {
+            if(epsilonTree2_ != 0){
+              std::vector<std::vector<ftm::idNode>> treeNodeMerged( tree->getNumberOfNodes() );
+              mergeSaddle<dataType>(tree, epsilonTree2_, treeNodeMerged);
+              for(unsigned int j=0; j<treeNodeMerged.size(); j++){
+                for(auto k : treeNodeMerged[j]){
+                  auto nodeToDelete = tree->getNode(j)->getOrigin();
+                  tree->getNode(k)->setOrigin(j);
+                  tree->getNode(nodeToDelete)->setOrigin(-1);
+                }
+              }
+              ftm::cleanMergeTree<dataType>(mTrees[i], treesNodeCorr_[i], true);
+            }
+            else{
+              std::vector<ttk::SimplexId> nodeCorri(tree->getNumberOfNodes());
+              for(unsigned int j=0; j<nodeCorri.size(); j++) nodeCorri[j] = j;
+              treesNodeCorr_[i] = nodeCorri;
+            }
+          }
+          if(deleteMultiPersPairs_)
+            deleteMultiPersPairs<dataType>(tree, false);
+        }
+      }
 
       // --- Execute
       distancesToKeyFrames_ = std::vector<double>(coefs.size() * 2);
@@ -171,10 +248,12 @@ namespace ttk {
           = computeDistance<dataType>(allMT[i], allMT[i + 1], allMatching[i]);
 
       // --- Postprocessing
-      for(unsigned int i = 0; i < allMT.size(); ++i)
-        postprocessingPipeline<dataType>(&(allMT[i].tree));
-      for(unsigned int i = 0; i < mTrees.size(); ++i)
-        postprocessingPipeline<dataType>(&(mTrees[i].tree));
+      if(!usePathMappings_){
+        for(unsigned int i = 0; i < allMT.size(); ++i)
+          postprocessingPipeline<dataType>(&(allMT[i].tree));
+        for(unsigned int i = 0; i < mTrees.size(); ++i)
+          postprocessingPipeline<dataType>(&(mTrees[i].tree));
+      }
 
       // --- Print results
       std::stringstream ss, ss2, ss3;

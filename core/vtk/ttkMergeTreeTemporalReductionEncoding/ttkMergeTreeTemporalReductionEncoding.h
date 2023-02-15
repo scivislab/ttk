@@ -191,6 +191,15 @@ public:
     return useL2Distance_;
   }
 
+  void SetUsePathMappings(double usePM) {
+    usePathMappings_ = usePM;
+    Modified();
+    resetDataVisualization();
+  }
+  double GetPathMappings() {
+    return usePathMappings_;
+  }
+
   void SetUseCustomTimeVariable(bool useCustomTime) {
     useCustomTimeVariable_ = useCustomTime;
     Modified();

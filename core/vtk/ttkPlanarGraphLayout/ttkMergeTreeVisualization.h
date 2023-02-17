@@ -44,7 +44,6 @@ private:
   bool outputTreeNodeIndex = false;
   bool isPersistenceDiagram = false;
   bool isPDSadMax = true;
-  bool pathMappingLayout = false;
 
   // Shift mode
   // -1: None ; 0: Star ; 1: Star Barycenter ; 2: Line ; 3: Double Line
@@ -158,10 +157,6 @@ public:
   }
   void setIsPDSadMax(bool isSadMax) {
     isPDSadMax = isSadMax;
-  }
-
-  void setPathMappingLayout(bool pathLayout) {
-    pathMappingLayout = pathLayout;
   }
 
   // Offset
@@ -599,6 +594,7 @@ public:
     NumberOfBarycenters
       = std::max(NumberOfBarycenters, 1); // to always enter the outer loop
     PlanarLayout |= isPersistenceDiagram;
+    bool alignTrees = trees.size() == 2 and barycenters.size() == 1;
 
     // TreeNodeIdRev
     for(int i = 0; i < numInputs; ++i) {
@@ -852,29 +848,34 @@ public:
           continue;
 
         // Manage important pairs threshold
-        importantPairs_ = importantPairsOriginal;
-        if(MaximumImportantPairs > 0 or MinimumImportantPairs > 0) {
-          std::vector<std::tuple<idNode, idNode, dataType>> pairs;
-          trees[i]->getPersistencePairsFromTree(pairs, false);
-          if(MaximumImportantPairs > 0) {
-            int firstIndex = pairs.size() - MaximumImportantPairs;
-            firstIndex
-              = std::max(std::min(firstIndex, int(pairs.size()) - 1), 0);
-            double tempThreshold = 0.999 * std::get<2>(pairs[firstIndex])
-                                   / std::get<2>(pairs[pairs.size() - 1]);
-            tempThreshold *= 100;
-            importantPairs_ = std::max(importantPairs_, tempThreshold);
-          }
-          if(MinimumImportantPairs > 0) {
-            int firstIndex = pairs.size() - MinimumImportantPairs;
-            firstIndex
-              = std::max(std::min(firstIndex, int(pairs.size()) - 1), 0);
-            double tempThreshold = 0.999 * std::get<2>(pairs[firstIndex])
-                                   / std::get<2>(pairs[pairs.size() - 1]);
-            tempThreshold *= 100;
-            importantPairs_ = std::min(importantPairs_, tempThreshold);
-          }
-        }
+        auto fixImportantPairsThreshold
+          = [&importantPairsOriginal, this](FTMTree_MT *tree) {
+              double importantPairs = importantPairsOriginal;
+              if(MaximumImportantPairs > 0 or MinimumImportantPairs > 0) {
+                std::vector<std::tuple<idNode, idNode, dataType>> pairs;
+                tree->getPersistencePairsFromTree(pairs, false);
+                if(MaximumImportantPairs > 0) {
+                  int firstIndex = pairs.size() - MaximumImportantPairs;
+                  firstIndex
+                    = std::max(std::min(firstIndex, int(pairs.size()) - 1), 0);
+                  double tempThreshold = 0.999 * std::get<2>(pairs[firstIndex])
+                                         / std::get<2>(pairs[pairs.size() - 1]);
+                  tempThreshold *= 100;
+                  importantPairs = std::max(importantPairs, tempThreshold);
+                }
+                if(MinimumImportantPairs > 0) {
+                  int firstIndex = pairs.size() - MinimumImportantPairs;
+                  firstIndex
+                    = std::max(std::min(firstIndex, int(pairs.size()) - 1), 0);
+                  double tempThreshold = 0.999 * std::get<2>(pairs[firstIndex])
+                                         / std::get<2>(pairs[pairs.size() - 1]);
+                  tempThreshold *= 100;
+                  importantPairs = std::min(importantPairs, tempThreshold);
+                }
+              }
+              return importantPairs;
+            };
+        importantPairs_ = fixImportantPairsThreshold(trees[i]);
 
         // Get is interpolated tree (temporal subsampling)
         bool isInterpolatedTree = false;
@@ -925,9 +926,52 @@ public:
             break;
         }
 
+        // isImportantPairVector
+        auto getIsImportantPairVector
+          = [this](FTMTree_MT *tree, std::vector<bool> &isImportantPairVector,
+                   double importantPairs) {
+              isImportantPairVector.resize(tree->getNumberOfNodes());
+              for(unsigned int n = 0; n < isImportantPairVector.size(); ++n)
+                isImportantPairVector[n] = tree->isImportantPair<dataType>(
+                  n, importantPairs, excludeImportantPairsLowerValues_,
+                  excludeImportantPairsHigherValues_);
+            };
+        std::vector<bool> isImportantPairVector;
+        getIsImportantPairVector(
+          trees[i], isImportantPairVector, importantPairs_);
+
+        // Layout correspondence function
+        auto getLayoutCorr
+          = [](FTMTree_MT *tree, std::vector<SimplexId> &layoutCorr) {
+              layoutCorr.resize(tree->getNumberOfNodes());
+              int cptNode = 0;
+              std::queue<idNode> queueLayoutCorr;
+              queueLayoutCorr.emplace(tree->getRoot());
+              while(!queueLayoutCorr.empty()) {
+                idNode node = queueLayoutCorr.front();
+                queueLayoutCorr.pop();
+
+                // Push children to the queue
+                std::vector<idNode> children;
+                tree->getChildren(node, children);
+                for(auto child : children)
+                  queueLayoutCorr.emplace(child);
+
+                layoutCorr[node] = cptNode;
+                cptNode += 2;
+              }
+            };
+
         // Planar layout
         printMsg("// Planar Layout", ttk::debug::Priority::VERBOSE);
+        std::vector<SimplexId> layoutCorr;
+        getLayoutCorr(trees[i], layoutCorr);
         std::vector<float> layout;
+        // TODO remove baryMatchingVector if it is not used
+        std::vector<ttk::ftm::idNode> baryMatchingVector;
+        // TODO put this declaration just before it is used if the vector is
+        // not needed elsewhere
+        std::vector<bool> isImportantPairBaryVector;
         if(PlanarLayout) {
           double refPersistence;
           if(clusteringOutput)
@@ -936,10 +980,74 @@ public:
           else
             refPersistence
               = trees[0]->getNodePersistence<dataType>(trees[0]->getRoot());
-          if(not isPersistenceDiagram)
+          if(not isPersistenceDiagram) {
             treePlanarLayout<dataType>(
               trees[i], allBaryBounds[c], refPersistence, layout);
-          else {
+            // Planar Layout alignment given barycenter
+            if(alignTrees and ShiftMode != 1) {
+              // Create barycenter layout
+              std::vector<float> layoutBary;
+              treePlanarLayout<dataType>(
+                barycenters[0], allBaryBounds[c], refPersistence, layoutBary);
+              std::vector<SimplexId> layoutBaryCorr;
+              getLayoutCorr(barycenters[0], layoutBaryCorr);
+              // Get barycenter important pairs bool vector
+              double isImportantPairBary
+                = fixImportantPairsThreshold(barycenters[0]);
+              getIsImportantPairVector(
+                barycenters[0], isImportantPairBaryVector, isImportantPairBary);
+              baryMatchingVector.resize(barycenters[0]->getNumberOfNodes(), -1);
+              for(auto match : outputMatchingBarycenter[0][i])
+                baryMatchingVector[std::get<0>(match)] = std::get<1>(match);
+              std::vector<float> shifts(trees[i]->getNumberOfNodes(), 0);
+              for(auto match : outputMatchingBarycenter[0][i]) {
+                // Update tree important pair according barycenter
+                isImportantPairVector[std::get<1>(match)]
+                  = isImportantPairBaryVector[std::get<0>(match)];
+                // Update tree layout according barycenter layout
+                layout[layoutCorr[std::get<1>(match)]]
+                  = layoutBary[layoutBaryCorr[std::get<0>(match)]];
+                if(not isImportantPairVector[std::get<1>(match)]) {
+                  // Search for birth swap with an important pair
+                  ttk::ftm::idNode node = std::get<0>(match);
+                  while(not isImportantPairBaryVector[node])
+                    node = barycenters[0]->getParentSafe(node);
+                  bool baryNodeSup
+                    = barycenters[0]->getValue<dataType>(node)
+                      > barycenters[0]->getValue<dataType>(std::get<0>(match));
+                  bool treeNodeSup
+                    = trees[i]->getValue<dataType>(baryMatchingVector[node])
+                      > trees[i]->getValue<dataType>(std::get<1>(match));
+                  if((not baryNodeSup and treeNodeSup)
+                     or (baryNodeSup and not treeNodeSup)) {
+                    float shift
+                      = std::abs(layout[layoutCorr[std::get<1>(match)]]
+                                 - layoutBary[layoutBaryCorr[node]]);
+                    layout[layoutCorr[std::get<1>(match)]]
+                      = layoutBary[layoutBaryCorr[node]];
+                    std::queue<ttk::ftm::idNode> queueShift;
+                    queueShift.emplace(
+                      trees[i]->getNode(std::get<1>(match))->getOrigin());
+                    while(!queueShift.empty()) {
+                      ttk::ftm::idNode nodeToShift = queueShift.front();
+                      queueShift.pop();
+                      shifts[nodeToShift] += shift;
+                      ttk::ftm::idNode nodeToShiftParent
+                        = trees[i]->getParentSafe(nodeToShift);
+                      if(nodeToShiftParent != std::get<1>(match))
+                        queueShift.emplace(nodeToShiftParent);
+                      std::vector<ttk::ftm::idNode> children;
+                      trees[i]->getChildren(nodeToShift, children);
+                      for(auto &child : children)
+                        queueShift.emplace(child);
+                    }
+                  }
+                }
+              }
+              for(unsigned int s = 0; s < shifts.size(); ++s)
+                layout[layoutCorr[s]] += shifts[s];
+            }
+          } else {
             persistenceDiagramPlanarLayout<dataType>(trees[i], layout);
           }
         }
@@ -957,14 +1065,20 @@ public:
             }
           }
           double new_diff_x = PlanarLayout ? -minX : -std::get<0>(allBounds[i]);
-          if(DimensionToShift == 2) { // is Z
+          bool diffYAllowed
+            = (not clusteringOutput
+               or (trees.size() == 2 and barycenters.size() == 1));
+          if(DimensionToShift == 2) {
+            // is Z
             diff_z = -diff_x;
             diff_x = new_diff_x;
-          } else if(not clusteringOutput and DimensionToShift == 1) { // is Y
+          } else if(diffYAllowed and DimensionToShift == 1) {
+            // is Y
             diff_y = diff_x;
             diff_x = new_diff_x;
-          } else if(DimensionToShift == 3) { // Custom
-            if(not clusteringOutput)
+          } else if(DimensionToShift == 3) {
+            // Custom
+            if(diffYAllowed)
               diff_y = YShift * diff_x + (1 - YShift) * diff_y;
             diff_z = ZShift * -diff_x + (1 - ZShift) * diff_z;
             diff_x = XShift * diff_x + (1 - XShift) * new_diff_x;
@@ -973,11 +1087,9 @@ public:
 
         // Internal arrays
         printMsg("// Internal arrays", ttk::debug::Priority::VERBOSE);
-        int cptNode = 0;
         nodeCorr[i].resize(trees[i]->getNumberOfNodes());
         std::vector<SimplexId> treeSimplexId(trees[i]->getNumberOfNodes());
         std::vector<SimplexId> treeDummySimplexId(trees[i]->getNumberOfNodes());
-        std::vector<SimplexId> layoutCorr(trees[i]->getNumberOfNodes());
         std::vector<idNode> treeMatching(trees[i]->getNumberOfNodes(), -1);
         if(clusteringOutput and ShiftMode != 1)
           for(auto match : outputMatchingBarycenter[c][i])
@@ -1054,11 +1166,9 @@ public:
             getPoint(treesNodes[i], nodeMesh, point);
           }
           if(PlanarLayout) {
-            layoutCorr[node] = cptNode;
-            point[0] = layout[cptNode];
-            point[1] = layout[cptNode + 1];
+            point[0] = layout[layoutCorr[node]];
+            point[1] = layout[layoutCorr[node] + 1];
             point[2] = 0;
-            cptNode += 2;
           }
           point[0] += diff_x;
           point[1] += diff_y;
@@ -1113,7 +1223,7 @@ public:
           SimplexId nextPointId = points->InsertNextPoint(point);
           treeSimplexId[node] = nextPointId;
           nodeCorr[i][node] = nextPointId;
-          if(dummyNode and not pathMappingLayout)
+          if(dummyNode and not pathPlanarLayout_)
             nodeCorr[i][node] = treeDummySimplexId[node];
           if(isPersistenceDiagram)
             nodeCorr[i][node] = nextPointId;
@@ -1123,6 +1233,9 @@ public:
                    or isPersistenceDiagram
                  ? node
                  : treeBranching[node]);
+
+          // Path Layout Dummy Node
+          bool pathDummyNode = false;
 
           // --------------
           // Insert cell connecting parent
@@ -1158,12 +1271,34 @@ public:
             } else
               pointIds[1] = treeSimplexId[nodeParent];
 
+            // Path Layout Dummy Cell
+            bool isNodeParentImportant = isImportantPairVector[nodeParent];
+            bool pathDummyCell
+              = not dummyCell and pathPlanarLayout_ and isNodeParentImportant;
+            if(not pathDummyCell and alignTrees and ShiftMode != 1) {
+              pathDummyCell = pathPlanarLayout_
+                              and layout[layoutCorr[node]]
+                                    != layout[layoutCorr[nodeParent]];
+            }
+            if(pathDummyCell) {
+              pathDummyNode = true;
+              double pathDummyPoint[3]
+                = {layout[layoutCorr[node]] + diff_x,
+                   layout[layoutCorr[nodeParent] + 1] + diff_y, 0. + diff_z};
+              SimplexId pathDummyPointId
+                = points->InsertNextPoint(pathDummyPoint);
+              vtkIdType pathDummyCellPointIds[2];
+              pathDummyCellPointIds[0] = pathDummyPointId;
+              pathDummyCellPointIds[1] = treeSimplexId[nodeParent];
+              vtkArcs->InsertNextCell(VTK_LINE, 2, pathDummyCellPointIds);
+              pointIds[1] = pathDummyPointId;
+            }
             vtkArcs->InsertNextCell(VTK_LINE, 2, pointIds);
 
             // --------------
             // Arc field
             // --------------
-            int toAdd = (dummyCell ? 2 : 1);
+            int toAdd = (dummyCell ? 2 : 1) + (pathDummyCell ? 1 : 0);
             for(int toAddT = 0; toAddT < toAdd; ++toAddT) {
               // Add arc matching percentage
               if(ShiftMode == 1) { // Star Barycenter
@@ -1223,12 +1358,7 @@ public:
               treeIDArc->InsertNextTuple1(i);
 
               // Add isImportantPair
-              bool isImportant = false;
-              idNode nodeToGetImportance = nodeBranching;
-              isImportant = trees[i]->isImportantPair<dataType>(
-                nodeToGetImportance, importantPairs_,
-                excludeImportantPairsLowerValues_,
-                excludeImportantPairsHigherValues_);
+              bool isImportant = isImportantPairVector[nodeBranching];
               isImportantPairsArc->InsertNextTuple1(isImportant);
 
               // Add isDummyArc
@@ -1282,7 +1412,7 @@ public:
           // --------------
           // Node field
           // --------------
-          int toAdd = (dummyNode ? 2 : 1);
+          int toAdd = (dummyNode ? 2 : 1) + (pathDummyNode ? 1 : 0);
           for(int toAddT = 0; toAddT < toAdd; ++toAddT) {
             // Add node id
             nodeID->InsertNextTuple1(treeSimplexId[node]);
@@ -1395,10 +1525,7 @@ public:
             isInterpolatedTreeNode->InsertNextTuple1(isInterpolatedTree);
 
             // Add isImportantPair
-            bool isImportant = false;
-            isImportant = trees[i]->isImportantPair<dataType>(
-              node, importantPairs_, excludeImportantPairsLowerValues_,
-              excludeImportantPairsHigherValues_);
+            bool isImportant = isImportantPairVector[node];
             isImportantPairsNode->InsertNextTuple1(isImportant);
 
             // Add treeNodeId

@@ -294,7 +294,7 @@ namespace ttk {
       // bestIndex = trees.size()-1;
       //baryTree = ftm::copyMergeTree<dataType>(trees[bestIndex], true);
       baryTree = ftm::copyMergeTree<dataType>(trees[bestIndex], baseModule_!=2);
-      ftm::FTMTree_MT* bt = &(baryTree.tree);
+      // ftm::FTMTree_MT* bt = &(baryTree.tree);
       limitSizeBarycenter(baryTree, trees);
     }
 

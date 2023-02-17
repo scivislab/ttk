@@ -65,27 +65,35 @@ namespace ttk {
 
       // Test if it is a parent of an important pair (for not persistence based
       // branch decomposition)
-      bool parentOfImportantPair = false;
+      idNode saddleNode
+        = (this->isLeaf(nodeId) ? this->getNode(nodeId)->getOrigin() : nodeId);
+      idNode leafNode
+        = (this->isLeaf(nodeId) ? nodeId : this->getNode(nodeId)->getOrigin());
       std::queue<idNode> queue;
-      queue.emplace(nodeId);
+      std::vector<bool> nodeDone(this->getNumberOfNodes(), false);
+      queue.emplace(leafNode);
       while(!queue.empty()) {
         idNode node = queue.front();
         queue.pop();
 
-        if(this->isLeaf(node))
-          continue;
+        if(isImportantPairOneNode(node))
+          return true;
 
-        parentOfImportantPair |= isImportantPairOneNode(node);
+        nodeDone[node] = true;
 
-        if(parentOfImportantPair)
-          break;
+        idNode parent = this->getParentSafe(node);
+        if(parent != saddleNode)
+          if(not nodeDone[parent])
+            queue.emplace(parent);
+
         std::vector<idNode> children;
         this->getChildren(node, children);
         for(auto child : children)
-          queue.emplace(child);
+          if(not nodeDone[child])
+            queue.emplace(child);
       }
 
-      return parentOfImportantPair;
+      return false;
     }
 
     template <class dataType>

@@ -85,6 +85,7 @@ private:
   bool OutputTrees = true;
   bool PlanarLayout = false;
   bool BranchDecompositionPlanarLayout = false;
+  bool PathPlanarLayout = false;
   double BranchSpacing = 1.;
   bool RescaleTreesIndividually = false;
   double DimensionSpacing = 1.;
@@ -163,6 +164,9 @@ public:
 
   vtkSetMacro(BranchDecompositionPlanarLayout, bool);
   vtkGetMacro(BranchDecompositionPlanarLayout, bool);
+
+  vtkSetMacro(PathPlanarLayout, bool);
+  vtkGetMacro(PathPlanarLayout, bool);
 
   vtkSetMacro(BranchSpacing, double);
   vtkGetMacro(BranchSpacing, double);

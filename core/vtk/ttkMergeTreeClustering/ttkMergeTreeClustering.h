@@ -90,13 +90,14 @@ private:
   int pathMetric = 0;
   int branchMetric = 0;
   int baseModule = 0;
-  //int iterationLimit = 0;
+  // int iterationLimit = 0;
 
   // Output Options
   bool OutputTrees = true;
   bool OutputSegmentation = false;
   bool PlanarLayout = false;
   bool BranchDecompositionPlanarLayout = false;
+  bool PathPlanarLayout = false;
   double BranchSpacing = 1.;
   bool RescaleTreesIndividually = false;
   double DimensionSpacing = 1.;
@@ -362,6 +363,9 @@ public:
 
   vtkSetMacro(BranchDecompositionPlanarLayout, bool);
   vtkGetMacro(BranchDecompositionPlanarLayout, bool);
+
+  vtkSetMacro(PathPlanarLayout, bool);
+  vtkGetMacro(PathPlanarLayout, bool);
 
   vtkSetMacro(BranchSpacing, double);
   vtkGetMacro(BranchSpacing, double);

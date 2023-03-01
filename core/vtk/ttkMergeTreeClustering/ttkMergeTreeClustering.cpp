@@ -356,6 +356,9 @@ int ttkMergeTreeClustering::runCompute(
       mergeTreeBarycenter.setAlpha(Alpha);
       mergeTreeBarycenter.setDeterministic(Deterministic);
       mergeTreeBarycenter.setPersistenceThreshold(PersistenceThreshold);
+      mergeTreeBarycenter.setUseFixedInit(useFixedInit);
+      mergeTreeBarycenter.setFixedInitNumber(fixedInitNumber);
+      mergeTreeBarycenter.setUseEarlyOut(useEarlyOut);
       // mergeTreeBarycenter.setIterationLimit(iterationLimit);
       if(baseModule == 2) {
         mergeTreeBarycenter.setPathMetric(this->pathMetric);
@@ -365,6 +368,7 @@ int ttkMergeTreeClustering::runCompute(
         mergeTreeBarycenter.setUseMinMaxPair(false);
         mergeTreeBarycenter.setAddNodes(false);
         mergeTreeBarycenter.setPostprocess(false);
+        mergeTreeBarycenter.setUseMedianBarycenter(useMedianBarycenter);
       } else {
         mergeTreeBarycenter.setBranchDecomposition(BranchDecomposition);
         mergeTreeBarycenter.setNormalizedWasserstein(NormalizedWasserstein);

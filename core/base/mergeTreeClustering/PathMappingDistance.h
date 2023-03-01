@@ -457,6 +457,7 @@ namespace ttk {
       size_t dim3 = (depth1 + 1) * dim2;
       size_t dim4 = (nn2 + 1) * dim3;
 
+      //std::cout << (nn1 + 1) * (depth1 + 1) * (nn2 + 1) * (depth2 + 1) * sizeof(dataType) << std::endl;
       std::vector<dataType> memT((nn1 + 1) * (depth1 + 1) * (nn2 + 1)
                                  * (depth2 + 1));
 

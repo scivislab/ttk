@@ -90,6 +90,10 @@ private:
   int pathMetric = 0;
   int branchMetric = 0;
   int baseModule = 0;
+  bool useMedianBarycenter = false;
+  bool useFixedInit = false;
+  int fixedInitNumber = 0;
+  bool useEarlyOut = true;
   // int iterationLimit = 0;
 
   // Output Options
@@ -338,6 +342,30 @@ public:
 
   void SetPathMetric(int m) {
     pathMetric = m;
+    Modified();
+    resetDataVisualization();
+  }
+
+  void SetUseMedianBarycenter(bool useMedian) {
+    useMedianBarycenter = useMedian;
+    Modified();
+    resetDataVisualization();
+  }
+
+  void SetUseFixedInit(bool ufi) {
+    useFixedInit = ufi;
+    Modified();
+    resetDataVisualization();
+  }
+
+  void SetFixedInitNumber(int fi) {
+    fixedInitNumber = fi;
+    Modified();
+    resetDataVisualization();
+  }
+
+  void SetUseEarlyOut(bool eo) {
+    useEarlyOut = eo;
     Modified();
     resetDataVisualization();
   }

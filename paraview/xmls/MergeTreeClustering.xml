@@ -186,6 +186,85 @@ Online examples:
                   </Documentation>
                 </IntVectorProperty>
 
+                <IntVectorProperty
+                name="UseMedianBarycenter"
+                command="SetUseMedianBarycenter"
+                label="Use median barycenter method"
+                number_of_elements="1"
+                default_values="0">
+                  <Hints>
+                  <PropertyWidgetDecorator type="CompositeDecorator">
+                    <Expression type="and">
+                      <PropertyWidgetDecorator type="GenericDecorator"
+                                                mode="visibility"
+                                                property="Backend"
+                                                value="4" />
+                      <PropertyWidgetDecorator type="GenericDecorator"
+                                                mode="visibility"
+                                                property="ComputeBarycenter"
+                                                value="1" />
+                    </Expression>
+                  </PropertyWidgetDecorator>
+                  </Hints>
+                  <Documentation>
+                    Use median update procedure instead of average.
+                  </Documentation>
+                  <BooleanDomain name="bool"/>
+                </IntVectorProperty>
+
+                <IntVectorProperty
+                name="UseFixedInit"
+                command="SetUseFixedInit"
+                label="Use fixed initial candidate"
+                number_of_elements="1"
+                default_values="0">
+                  <Hints>
+                    <PropertyWidgetDecorator type="GenericDecorator"
+                                              mode="visibility"
+                                              property="ComputeBarycenter"
+                                              value="1" />
+                  </Hints>
+                  <Documentation>
+                    Use fixed member for initial barycenter candidate.
+                  </Documentation>
+                  <BooleanDomain name="bool"/>
+                </IntVectorProperty>
+
+                <IntVectorProperty
+                name="FixedInitNumber"
+                command="SetFixedInitNumber"
+                label="Member for initial candidate"
+                number_of_elements="1"
+                default_values="0">
+                  <Hints>
+                    <PropertyWidgetDecorator type="GenericDecorator"
+                                            mode="visibility"
+                                            property="UseFixedInit"
+                                            value="1" />
+                  </Hints>
+                  <Documentation>
+                    Member index for initial barycenter candidate.
+                  </Documentation>
+                </IntVectorProperty>
+
+                <IntVectorProperty
+                name="UseEarlyOut"
+                command="SetUseEarlyOut"
+                label="Stop when converged"
+                number_of_elements="1"
+                default_values="1">
+                  <Hints>
+                    <PropertyWidgetDecorator type="GenericDecorator"
+                                              mode="visibility"
+                                              property="ComputeBarycenter"
+                                              value="1" />
+                  </Hints>
+                  <Documentation>
+                    Stop barycenter iteration when convergence good enough.
+                  </Documentation>
+                  <BooleanDomain name="bool"/>
+                </IntVectorProperty>
+
                 <!-- <IntVectorProperty
                 name="IterationLimit"
                 command="SetIterationLimit"
@@ -576,6 +655,10 @@ Online examples:
               <Property name="Deterministic"/>
               <Property name="Alpha"/>
               <Property name="JoinSplitMixtureCoefficient"/>
+              <Property name="UseMedianBarycenter"/>
+              <Property name="UseFixedInit"/>
+              <Property name="FixedInitNumber"/>
+              <Property name="UseEarlyOut"/>
               <!-- <Property name="UseMinMaxPair"/> -->
             </PropertyGroup>
             ${MERGE_TREE_PREPROCESS_WIDGETS}

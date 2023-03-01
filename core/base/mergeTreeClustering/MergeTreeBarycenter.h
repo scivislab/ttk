@@ -24,6 +24,9 @@
 #include "MergeTreeDistance.h"
 #include "PathMappingDistance.h"
 
+#include <fstream>
+#include <iostream>
+
 namespace ttk {
 
   /**
@@ -52,6 +55,10 @@ namespace ttk {
     
     int pathMetric_ = 0;
     int baseModule_ = 0;
+    bool useMedianBarycenter_ = false;
+    bool useFixedInit_ = false;
+    bool useEarlyOut_ = false;
+    int fixedInitNumber_ = 0;
     //int iterationLimit_ = 0;
 
     // Output
@@ -130,6 +137,22 @@ namespace ttk {
 
     void setPathMetric(int m) {
       pathMetric_ = m;
+    }
+
+    void setUseMedianBarycenter(bool useMedian) {
+      useMedianBarycenter_ = useMedian;
+    }
+
+    void setUseFixedInit(bool useFixedInit) {
+      useFixedInit_ = useFixedInit;
+    }
+
+    void setUseEarlyOut(bool useEarlyOut) {
+      useEarlyOut_ = useEarlyOut;
+    }
+
+    void setFixedInitNumber(int fixedInitNumber) {
+      fixedInitNumber_ = fixedInitNumber;
     }
 
     // void setIterationLimit(int l) {
@@ -290,8 +313,13 @@ namespace ttk {
     void initBarycenterTree(std::vector<ftm::FTMTree_MT *> &trees,
                             ftm::MergeTree<dataType> &baryTree,
                             bool distMinimizer = true) {
-      int bestIndex = getBestInitTreeIndex<dataType>(trees, distMinimizer);
-      // bestIndex = trees.size()-1;
+      int bestIndex;
+      if(useFixedInit_){
+        if(fixedInitNumber_ >= 0 && fixedInitNumber_ < trees.size()) bestIndex = fixedInitNumber_;
+        else bestIndex = 0;
+      }
+      else bestIndex = getBestInitTreeIndex<dataType>(trees, distMinimizer);
+      // bestIndex = 10;
       //baryTree = ftm::copyMergeTree<dataType>(trees[bestIndex], true);
       baryTree = ftm::copyMergeTree<dataType>(trees[bestIndex], baseModule_!=2);
       // ftm::FTMTree_MT* bt = &(baryTree.tree);
@@ -850,7 +878,7 @@ namespace ttk {
       // compute size of new barycenter tree
       int newSize = oldSize;
       for(unsigned int i=0; i<treeNodesMatched.size(); i++){
-        if(alphas[i]==0) continue;
+        if(alphas[i]==0 || useMedianBarycenter_) continue;
         for(unsigned int j=0; j<treeNodesMatched[i].size(); j++){
           if(!treeNodesMatched[i][j]) newSize++;
         }
@@ -893,7 +921,8 @@ namespace ttk {
             dataType lastValueB = baryTree->getValue<dataType>(lastB);
             dataType relativeValueB = lastValueB > currValueB ? lastValueB - currValueB : currValueB - lastValueB;
             relativeValueB = relativeValueB/pathRangeB;
-            parentEdgeLengths[lastB].emplace_back(relativeValueB * pathRangeT * alphas[i]);
+            if(useMedianBarycenter_) parentEdgeLengths[lastB].emplace_back(relativeValueB * pathRangeT);
+            else parentEdgeLengths[lastB].emplace_back(relativeValueB * pathRangeT * alphas[i]);
             // continue iteration
             lastB = currB;
             currB = baryTreeNew->getParentSafe(currB);
@@ -912,13 +941,21 @@ namespace ttk {
         baryTreeNew->getChildren(curr,children);
         for(auto child : children){
           q.emplace(child);
-          dataType avgEdgeLength = 0;
-          for(auto l : parentEdgeLengths[child]){
-            avgEdgeLength += l;
+          if(useMedianBarycenter_){
+            auto m = parentEdgeLengths[child].begin() + parentEdgeLengths[child].size()/2;
+            std::nth_element(parentEdgeLengths[child].begin(), m, parentEdgeLengths[child].end());
+            auto medianEdgeLength = parentEdgeLengths[child][parentEdgeLengths[child].size()/2];
+            newScalars[child] = newScalars[curr] + (joinTrees ? - medianEdgeLength : medianEdgeLength);
           }
-          //avgEdgeLength = avgEdgeLength/static_cast<dataType>(trees.size());
-          avgEdgeLength = avgEdgeLength/alphaSum;
-          newScalars[child] = newScalars[curr] + (joinTrees ? - avgEdgeLength : avgEdgeLength);
+          else{
+            dataType avgEdgeLength = 0;
+            for(auto l : parentEdgeLengths[child]){
+              avgEdgeLength += l;
+            }
+            //avgEdgeLength = avgEdgeLength/static_cast<dataType>(trees.size());
+            avgEdgeLength = avgEdgeLength/alphaSum;
+            newScalars[child] = newScalars[curr] + (joinTrees ? - avgEdgeLength : avgEdgeLength);
+          }
         }
       }
       setTreeScalars(baryMergeTreeNew, newScalars);
@@ -926,7 +963,7 @@ namespace ttk {
       // insert new nodes
       int currSize = oldSize;
       for(unsigned int i=0; i<trees.size(); i++){
-        if(alphas[i]==0) continue;
+        if(alphas[i]==0 || useMedianBarycenter_) continue;
         auto tree = trees[i];
         std::vector<int> newIndices(tree->getNumberOfNodes(),-1);
         for(auto match : matchings[i]){
@@ -1349,7 +1386,8 @@ namespace ttk {
       dataType minFrechet = std::numeric_limits<dataType>::max();
       int cptBlocked = 0;
       int NoIteration = 0;
-      while(not converged){// && NoIteration<iterationLimit_) {
+      std::stringstream energySequence;
+      while(not converged && NoIteration<100){// && NoIteration<iterationLimit_) {
         ++NoIteration;
 
         printMsg(debug::Separator::L2);
@@ -1395,28 +1433,35 @@ namespace ttk {
 
         // --- Check convergence
         dataType currentFrechetEnergy = 0;
-        for(unsigned int i = 0; i < trees.size(); ++i)
+        dataType currentFrechetEnergy2 = 0;
+        for(unsigned int i = 0; i < trees.size(); ++i){
+          currentFrechetEnergy2 += alphas[i] * distances[i];
           currentFrechetEnergy += alphas[i] * distances[i] * distances[i];
+        }
         auto frechetDiff
           = std::abs((double)(frechetEnergy - currentFrechetEnergy));
         converged = (frechetDiff <= tol_);
         converged = converged and (not progressiveBarycenter_ or treesUnscaled);
         frechetEnergy = currentFrechetEnergy;
         tol_ = frechetEnergy / 125.0;
+        energySequence << currentFrechetEnergy << std::endl;
 
-        std::stringstream ss4;
+        std::stringstream ss4, ss5;
         auto barycenterTime = t_bary.getElapsedTime() - addDeletedNodesTime_;
         printMsg("Total", 1, barycenterTime, this->threadNumber_,
                  debug::LineMode::NEW, debug::Priority::INFO);
         printBaryStats(baryTree);
         ss4 << "Frechet energy : " << frechetEnergy;
+        ss5 << "Frechet energy non-squared: " << currentFrechetEnergy2;
         printMsg(ss4.str());
+        printMsg(ss5.str());
 
         minFrechet = std::min(minFrechet, frechetEnergy);
         if(not converged and (not progressiveBarycenter_ or treesUnscaled)) {
           cptBlocked = (minFrechet < frechetEnergy) ? cptBlocked + 1 : 0;
           converged = (cptBlocked >= 10);
         }
+        if(!useEarlyOut_) converged = false;
 
         // --- Persistence scaling
         if(progressiveBarycenter_) {
@@ -1425,6 +1470,11 @@ namespace ttk {
           treesUnscaled = (noTreesUnscaled == oriTrees.size());
         }
       }
+
+      // std::ofstream energyFile;
+      // energyFile.open("/home/wetzels/ttk/energy.txt");
+      // energyFile << energySequence.str();
+      // energyFile.close();
 
       // Final processing
       printMsg(debug::Separator::L2);
@@ -1454,12 +1504,17 @@ namespace ttk {
       for(auto dist : distances)
         finalDistances_.push_back(dist);
       dataType currentFrechetEnergy = 0;
-      for(unsigned int i = 0; i < trees.size(); ++i)
-        currentFrechetEnergy += alphas[i] * distances[i] * distances[i];
+      dataType currentFrechetEnergy2 = 0;
+      for(unsigned int i = 0; i < trees.size(); ++i){
+          currentFrechetEnergy2 += alphas[i] * distances[i];
+          currentFrechetEnergy += alphas[i] * distances[i] * distances[i];
+      }
 
       std::stringstream ss, ss2;
       ss << "Frechet energy : " << currentFrechetEnergy;
+      ss2 << "Frechet energy non-squared: " << currentFrechetEnergy2;
       printMsg(ss.str());
+      printMsg(ss2.str());
       auto barycenterTime = t_bary.getElapsedTime() - addDeletedNodesTime_;
       printMsg("Total", 1, barycenterTime, this->threadNumber_,
                debug::LineMode::NEW, debug::Priority::INFO);

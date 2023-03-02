@@ -1118,6 +1118,7 @@ public:
           idNode node = queue.front();
           queue.pop();
           idNode nodeOrigin = trees[i]->getNode(node)->getOrigin();
+          idNode nodeParent = trees[i]->getParentSafe(node);
 
           // Push children to the queue
           printMsg(
@@ -1246,7 +1247,6 @@ public:
             vtkIdType pointIds[2];
             pointIds[0] = treeSimplexId[node];
 
-            idNode nodeParent = trees[i]->getParentSafe(node);
             // TODO too many dummy cells are created
             bool dummyCell
               = PlanarLayout and not branchDecompositionPlanarLayout_
@@ -1416,11 +1416,15 @@ public:
           // --------------
           int toAdd = 1 + (dummyNode ? 1 : 0) + (pathDummyNode ? 1 : 0);
           for(int toAddT = 0; toAddT < toAdd; ++toAddT) {
+            bool isPathDummyNode = pathDummyNode and toAdd >= 2
+                                   and toAddT == (toAdd - 1)
+                                   and !trees[i]->isRoot(node);
+            auto nodeToGet = (isPathDummyNode ? nodeParent : node);
             // Add node id
-            nodeID->InsertNextTuple1(treeSimplexId[node]);
+            nodeID->InsertNextTuple1(treeSimplexId[nodeToGet]);
 
             // Add trueNodeId
-            trueNodeID->InsertNextTuple1(node);
+            trueNodeID->InsertNextTuple1(nodeToGet);
 
             // Add VertexId
             int nodeVertexId = -1;
@@ -1434,8 +1438,7 @@ public:
             vertexID->InsertNextTuple1(nodeVertexId);
 
             // Add node scalar
-            auto scalarValue = trees[i]->getValue<dataType>(node);
-
+            auto scalarValue = trees[i]->getValue<dataType>(nodeToGet);
             scalar->InsertNextTuple1(scalarValue);
 
             // Add criticalType
@@ -1472,29 +1475,31 @@ public:
             criticalType->InsertNextTuple1(criticalTypeT);
 
             // Add node matching percentage
-            if(ShiftMode == 1) { // Star Barycenter
+            if(ShiftMode == 1) // Star Barycenter
               percentMatch->InsertNextTuple1(allBaryPercentMatch[c][node]);
-            }
 
             // Add node branch bary id
             printMsg(
               "// Add node bary branch id", ttk::debug::Priority::VERBOSE);
             if(clusteringOutput and ShiftMode != 1) {
               int tBranchID = -1;
-              if(treeMatching[node] < allBaryBranchingID[c].size()) {
-                tBranchID = allBaryBranchingID[c][treeMatching[node]];
-                if(!trees[i]->isLeaf(node)
-                   && treeMatching[nodeOrigin] < allBaryBranchingID[c].size())
-                  tBranchID = allBaryBranchingID[c][treeMatching[nodeOrigin]];
+              auto nodeT
+                = (isPathDummyNode
+                     ? trees[i]->getNode(treeBranching[node])->getOrigin()
+                     : (trees[i]->isLeaf(node) ? node : nodeOrigin));
+              if(treeMatching[nodeT] < allBaryBranchingID[c].size()) {
+                tBranchID = allBaryBranchingID[c][treeMatching[nodeT]];
               }
               branchBaryNodeID->InsertNextTuple1(tBranchID);
             }
 
             // Add node branch id
             if(not isPersistenceDiagram) {
-              int tBranchID = treeBranchingID[node];
-              if(not trees[i]->isLeaf(node))
-                tBranchID = treeBranchingID[nodeOrigin];
+              auto nodeT
+                = (isPathDummyNode
+                     ? trees[i]->getNode(treeBranching[node])->getOrigin()
+                     : (trees[i]->isLeaf(node) ? node : nodeOrigin));
+              int tBranchID = treeBranchingID[nodeT];
               branchNodeID->InsertNextTuple1(tBranchID);
             }
 
@@ -1524,12 +1529,9 @@ public:
             bool isDummy
               = toAdd == 2 and toAddT == 1 and !trees[i]->isRoot(node);
             if(pathPlanarLayout_) {
-              isDummy = (toAdd >= 2 and dummyNode and toAddT == 0);
-              isDummy = isDummy
-                        or (pathDummyNode
-                            and ((toAdd == 2 and toAddT == 1)
-                                 or (toAdd == 3 and toAddT == 2)));
-              isDummy = isDummy and !trees[i]->isRoot(node);
+              isDummy = (toAdd >= 2 and dummyNode and toAddT == 0
+                         and !trees[i]->isRoot(node));
+              isDummy = isDummy or isPathDummyNode;
             }
             isDummyNode->InsertNextTuple1(isDummy);
 
@@ -1537,11 +1539,11 @@ public:
             isInterpolatedTreeNode->InsertNextTuple1(isInterpolatedTree);
 
             // Add isImportantPair
-            bool isImportant = isImportantPairVector[node];
+            bool isImportant = isImportantPairVector[nodeToGet];
             isImportantPairsNode->InsertNextTuple1(isImportant);
 
             // Add treeNodeId
-            treeNodeId->InsertNextTuple1(node);
+            treeNodeId->InsertNextTuple1(nodeToGet);
 
             // Add treeNodeIdOrigin
             treeNodeIdOrigin->InsertNextTuple1(nodeOrigin);
@@ -1563,13 +1565,13 @@ public:
             // Add custom arrays
             for(unsigned int ca = 0; ca < customArrays.size(); ++ca)
               customArraysValues[ca].emplace_back(
-                std::get<1>(customArrays[ca])[node]);
+                std::get<1>(customArrays[ca])[nodeToGet]);
             for(unsigned int ca = 0; ca < customIntArrays.size(); ++ca)
               customIntArraysValues[ca].emplace_back(
-                std::get<1>(customIntArrays[ca])[node]);
+                std::get<1>(customIntArrays[ca])[nodeToGet]);
             for(unsigned int ca = 0; ca < customStringArrays.size(); ++ca)
               customStringArraysValues[ca].emplace_back(
-                std::get<1>(customStringArrays[ca])[node]);
+                std::get<1>(customStringArrays[ca])[nodeToGet]);
 
             pointCount++;
           }

@@ -383,10 +383,22 @@ int ttkMergeTreeClustering::runCompute(
           Epsilon1UseFarthestSaddle);
       }
 
+      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
+        outputMatchings_path;
       mergeTreeBarycenter.execute<dataType>(
-        intermediateMTrees, outputMatchingBarycenter[0], barycenters[0]);
+        intermediateMTrees, outputMatchingBarycenter[0], outputMatchings_path, barycenters[0]);
       trees1NodeCorrMesh = mergeTreeBarycenter.getTreesNodeCorr();
       finalDistances = mergeTreeBarycenter.getFinalDistances();
+
+      std::cout << "Path Mappings:\n";
+      for(auto matching : outputMatchings_path){
+        std::cout << "---------------------------\n";
+        for(auto m : matching){
+          std::cout << "(" << m.first.first << "," << m.first.second << ") - ";
+          std::cout << "(" << m.second.first << "," << m.second.second << ")" << std::endl;
+        }
+        std::cout << "---------------------------\n";
+      }
     } else {
       MergeTreeClustering<dataType> mergeTreeClustering;
       mergeTreeClustering.setAssignmentSolver(AssignmentSolver);

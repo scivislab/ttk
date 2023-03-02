@@ -1358,6 +1358,8 @@ namespace ttk {
       std::vector<double> &alphas,
       std::vector<std::vector<std::tuple<ftm::idNode, ftm::idNode, double>>>
         &finalMatchings,
+      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
+        &finalMatchings_path,
       bool finalAsgnDoubleInput = false,
       bool finalAsgnFirstInput = true) {
       Timer t_bary;
@@ -1485,6 +1487,7 @@ namespace ttk {
         std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
           matchings_path(trees.size());
         assignment_path<dataType>(trees, baryMergeTree, matchings_path, distances);
+        finalMatchings_path = matchings_path;
         for(unsigned int i=0; i<matchings_path.size(); i++){
           finalMatchings[i].clear();
           std::vector<int> matchedNodes(trees[i]->getNumberOfNodes(),-1);
@@ -1538,6 +1541,8 @@ namespace ttk {
       std::vector<double> &alphas,
       std::vector<std::vector<std::tuple<ftm::idNode, ftm::idNode, double>>>
         &finalMatchings,
+      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
+        &finalMatchings_path,
       ftm::MergeTree<dataType> &baryMergeTree,
       bool finalAsgnDoubleInput = false,
       bool finalAsgnFirstInput = true) {
@@ -1591,7 +1596,7 @@ namespace ttk {
       initBarycenterTree<dataType>(treesT, baryMergeTree);
 
       // --- Execute
-      computeBarycenter<dataType>(treesT, baryMergeTree, alphas, finalMatchings,
+      computeBarycenter<dataType>(treesT, baryMergeTree, alphas, finalMatchings, finalMatchings_path,
                                   finalAsgnDoubleInput, finalAsgnFirstInput);
     
       if(baseModule_==2){
@@ -1621,6 +1626,51 @@ namespace ttk {
     template <class dataType>
     void execute(
       std::vector<ftm::MergeTree<dataType>> &trees,
+      std::vector<double> &alphas,
+      std::vector<std::vector<std::tuple<ftm::idNode, ftm::idNode, double>>>
+        &finalMatchings,
+      ftm::MergeTree<dataType> &baryMergeTree,
+      bool finalAsgnDoubleInput = false,
+      bool finalAsgnFirstInput = true) {
+      
+      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
+        finalMatchings_path;
+      execute<dataType>(trees,
+        alphas,
+        finalMatchings,
+        finalMatchings_path,
+        baryMergeTree,
+        finalAsgnDoubleInput,
+        finalAsgnFirstInput);
+
+    }
+
+    template <class dataType>
+    void execute(
+      std::vector<ftm::MergeTree<dataType>> &trees,
+      std::vector<std::vector<std::tuple<ftm::idNode, ftm::idNode, double>>>
+        &finalMatchings,
+      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
+        &finalMatchings_path,
+      ftm::MergeTree<dataType> &baryMergeTree,
+      bool finalAsgnDoubleInput = false,
+      bool finalAsgnFirstInput = true) {
+      std::vector<double> alphas;
+      if(trees.size() != 2) {
+        for(unsigned int i = 0; i < trees.size(); ++i)
+          alphas.push_back(1.0 / trees.size());
+      } else {
+        alphas.push_back(alpha_);
+        alphas.push_back(1 - alpha_);
+      }
+
+      execute<dataType>(trees, alphas, finalMatchings, finalMatchings_path, baryMergeTree,
+                        finalAsgnDoubleInput, finalAsgnFirstInput);
+    }
+
+    template <class dataType>
+    void execute(
+      std::vector<ftm::MergeTree<dataType>> &trees,
       std::vector<std::vector<std::tuple<ftm::idNode, ftm::idNode, double>>>
         &finalMatchings,
       ftm::MergeTree<dataType> &baryMergeTree,
@@ -1635,7 +1685,10 @@ namespace ttk {
         alphas.push_back(1 - alpha_);
       }
 
-      execute<dataType>(trees, alphas, finalMatchings, baryMergeTree,
+      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
+        finalMatchings_path;
+
+      execute<dataType>(trees, alphas, finalMatchings, finalMatchings_path, baryMergeTree,
                         finalAsgnDoubleInput, finalAsgnFirstInput);
     }
 

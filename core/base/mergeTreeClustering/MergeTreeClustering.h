@@ -666,8 +666,10 @@ namespace ttk {
         mergeTreeBary.setProgressiveBarycenter(progressiveBarycenter_);
       }
 
+      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
+        finalMatchings_path;
       mergeTreeBary.computeBarycenter<dataType>(
-        trees, baryMergeTree, alphas, finalMatchings);
+        trees, baryMergeTree, alphas, finalMatchings, finalMatchings_path);
 
       addDeletedNodesTime_ += mergeTreeBary.getAddDeletedNodesTime();
     

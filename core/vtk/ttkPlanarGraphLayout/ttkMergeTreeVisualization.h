@@ -1189,10 +1189,10 @@ public:
               prevXMax = 0;
           }
 
-          // TODO too many dummy nodes are created
           bool dummyNode
             = PlanarLayout and not branchDecompositionPlanarLayout_
-              and (!trees[i]->isRoot(node) or isPersistenceDiagram);
+              and ((!trees[i]->isRoot(node) and !trees[i]->isLeaf(node))
+                   or isPersistenceDiagram);
           if(dummyNode) {
             double pointToAdd[3];
             if(not isPersistenceDiagram)
@@ -1273,12 +1273,14 @@ public:
 
             // Path Layout Dummy Cell
             bool isNodeParentImportant = isImportantPairVector[nodeParent];
-            bool pathDummyCell
-              = not dummyCell and pathPlanarLayout_ and isNodeParentImportant;
+            bool pathDummyCell = not dummyCell and pathPlanarLayout_
+                                 and isNodeParentImportant
+                                 and !trees[i]->isRoot(nodeParent);
             if(not pathDummyCell and alignTrees and ShiftMode != 1) {
-              pathDummyCell = pathPlanarLayout_
-                              and layout[layoutCorr[node]]
-                                    != layout[layoutCorr[nodeParent]];
+              pathDummyCell
+                = not dummyCell and pathPlanarLayout_
+                  and layout[layoutCorr[node]] != layout[layoutCorr[nodeParent]]
+                  and !trees[i]->isRoot(nodeParent);
             }
             if(pathDummyCell) {
               pathDummyNode = true;
@@ -1298,7 +1300,7 @@ public:
             // --------------
             // Arc field
             // --------------
-            int toAdd = (dummyCell ? 2 : 1) + (pathDummyCell ? 1 : 0);
+            int toAdd = 1 + (dummyCell ? 1 : 0) + (pathDummyCell ? 1 : 0);
             for(int toAddT = 0; toAddT < toAdd; ++toAddT) {
               // Add arc matching percentage
               if(ShiftMode == 1) { // Star Barycenter
@@ -1362,7 +1364,7 @@ public:
               isImportantPairsArc->InsertNextTuple1(isImportant);
 
               // Add isDummyArc
-              bool isDummy = toAdd == 2 and toAddT == 0;
+              bool isDummy = toAdd >= 2 and toAddT == (toAdd - 2);
               isDummyArc->InsertNextTuple1(isDummy);
 
               // Add isInterpolatedTree
@@ -1412,7 +1414,7 @@ public:
           // --------------
           // Node field
           // --------------
-          int toAdd = (dummyNode ? 2 : 1) + (pathDummyNode ? 1 : 0);
+          int toAdd = 1 + (dummyNode ? 1 : 0) + (pathDummyNode ? 1 : 0);
           for(int toAddT = 0; toAddT < toAdd; ++toAddT) {
             // Add node id
             nodeID->InsertNextTuple1(treeSimplexId[node]);
@@ -1432,7 +1434,9 @@ public:
             vertexID->InsertNextTuple1(nodeVertexId);
 
             // Add node scalar
-            scalar->InsertNextTuple1(trees[i]->getValue<dataType>(node));
+            auto scalarValue = trees[i]->getValue<dataType>(node);
+
+            scalar->InsertNextTuple1(scalarValue);
 
             // Add criticalType
             printMsg("// Add criticalType", ttk::debug::Priority::VERBOSE);
@@ -1519,6 +1523,14 @@ public:
             // Add isDummyNode
             bool isDummy
               = toAdd == 2 and toAddT == 1 and !trees[i]->isRoot(node);
+            if(pathPlanarLayout_) {
+              isDummy = (toAdd >= 2 and dummyNode and toAddT == 0);
+              isDummy = isDummy
+                        or (pathDummyNode
+                            and ((toAdd == 2 and toAddT == 1)
+                                 or (toAdd == 3 and toAddT == 2)));
+              isDummy = isDummy and !trees[i]->isRoot(node);
+            }
             isDummyNode->InsertNextTuple1(isDummy);
 
             // Add isInterpolatedTree

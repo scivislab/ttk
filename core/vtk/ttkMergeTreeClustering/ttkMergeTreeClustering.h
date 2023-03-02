@@ -135,6 +135,10 @@ private:
   std::vector<std::vector<
     std::vector<std::tuple<ttk::ftm::idNode, ttk::ftm::idNode, double>>>>
     outputMatchingBarycenter, outputMatchingBarycenter2;
+  std::vector<std::vector<
+    std::vector<std::pair<std::pair<ttk::ftm::idNode, ttk::ftm::idNode>,
+                          std::pair<ttk::ftm::idNode, ttk::ftm::idNode>>>>>
+    outputMatchings_path;
 
   // Barycenter
   std::vector<ttk::ftm::MergeTree<double>> barycentersS, barycentersS2;
@@ -164,13 +168,13 @@ private:
       std::vector<
         std::vector<std::tuple<ttk::ftm::idNode, ttk::ftm::idNode, double>>>(
         numInputs));
-
     outputMatchingBarycenter2 = std::vector<std::vector<
       std::vector<std::tuple<ttk::ftm::idNode, ttk::ftm::idNode, double>>>>(
       NumberOfBarycenters,
       std::vector<
         std::vector<std::tuple<ttk::ftm::idNode, ttk::ftm::idNode, double>>>(
         numInputs2));
+    outputMatchings_path.resize(NumberOfBarycenters);
 
     // Barycenter
     barycentersS

@@ -383,22 +383,23 @@ int ttkMergeTreeClustering::runCompute(
           Epsilon1UseFarthestSaddle);
       }
 
-      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
-        outputMatchings_path;
       mergeTreeBarycenter.execute<dataType>(
-        intermediateMTrees, outputMatchingBarycenter[0], outputMatchings_path, barycenters[0]);
+        intermediateMTrees, outputMatchingBarycenter[0],
+        outputMatchings_path[0], barycenters[0]);
       trees1NodeCorrMesh = mergeTreeBarycenter.getTreesNodeCorr();
       finalDistances = mergeTreeBarycenter.getFinalDistances();
 
-      std::cout << "Path Mappings:\n";
-      for(auto matching : outputMatchings_path){
+      /*std::cout << "Path Mappings:\n";
+      for(auto matching : outputMatchings_path[0]) {
         std::cout << "---------------------------\n";
-        for(auto m : matching){
+        std::cout << intermediateMTrees[i]->printTree().str() << std:::
+        for(auto m : matching) {
           std::cout << "(" << m.first.first << "," << m.first.second << ") - ";
-          std::cout << "(" << m.second.first << "," << m.second.second << ")" << std::endl;
+          std::cout << "(" << m.second.first << "," << m.second.second << ")"
+                    << std::endl;
         }
         std::cout << "---------------------------\n";
-      }
+      }*/
     } else {
       MergeTreeClustering<dataType> mergeTreeClustering;
       mergeTreeClustering.setAssignmentSolver(AssignmentSolver);
@@ -772,9 +773,9 @@ int ttkMergeTreeClustering::runOutput(
         }
       }
       for(unsigned int c = 0; c < NumberOfBarycenters; ++c) {
-#ifdef TTK_ENABLE_OPENMP
-#pragma omp parallel for schedule(dynamic) num_threads(this->threadNumber_)
-#endif
+        /*#ifdef TTK_ENABLE_OPENMP
+        #pragma omp parallel for schedule(dynamic)
+        num_threads(this->threadNumber_) #endif*/
         for(int i = 0; i < numInputs; ++i) {
           if(clusteringAssignment[i] != (int)c)
             continue;
@@ -819,6 +820,7 @@ int ttkMergeTreeClustering::runOutput(
           visuMaker.setVtkOutputSegmentation(vtkOutputSegmentation);
           visuMaker.setClusteringAssignment(clusteringAssignment);
           visuMaker.setOutputMatchingBarycenter(outputMatchingBarycenter);
+          visuMaker.setPathMatchings(outputMatchings_path);
           visuMaker.setPrintTreeId(i);
           visuMaker.setPrintClusterId(c);
           visuMaker.setDebugLevel(this->debugLevel_);
@@ -934,6 +936,7 @@ int ttkMergeTreeClustering::runOutput(
         visuMakerBary.setVtkOutputSegmentation(vtkOutputSegmentation);
         visuMakerBary.setClusteringAssignment(clusteringAssignment);
         visuMakerBary.setOutputMatchingBarycenter(outputMatchingBarycenter);
+        visuMakerBary.setPathMatchings(outputMatchings_path);
         visuMakerBary.setPrintTreeId(c);
         visuMakerBary.setPrintClusterId(c);
         if(numInputs == 2 and NumberOfBarycenters == 1) {

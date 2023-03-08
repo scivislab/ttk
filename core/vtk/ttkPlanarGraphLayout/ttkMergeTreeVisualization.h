@@ -44,6 +44,7 @@ private:
   bool outputTreeNodeIndex = false;
   bool isPersistenceDiagram = false;
   bool isPDSadMax = true;
+  bool enableBarycenterAlignment = false;
 
   // Shift mode
   // -1: None ; 0: Star ; 1: Star Barycenter ; 2: Line ; 3: Double Line
@@ -163,6 +164,10 @@ public:
   }
   void setIsPDSadMax(bool isSadMax) {
     isPDSadMax = isSadMax;
+  }
+
+  void setEnableBarycenterAlignment(bool eba) {
+    enableBarycenterAlignment = eba;
   }
 
   // Offset
@@ -662,7 +667,8 @@ public:
     NumberOfBarycenters
       = std::max(NumberOfBarycenters, 1); // to always enter the outer loop
     PlanarLayout |= isPersistenceDiagram;
-    bool alignTrees = trees.size() == 2 and barycenters.size() == 1;
+    bool alignTrees = trees.size() == 2 and barycenters.size() == 1
+                      and enableBarycenterAlignment;
 
     // TreeNodeIdRev
     for(int i = 0; i < numInputs; ++i) {

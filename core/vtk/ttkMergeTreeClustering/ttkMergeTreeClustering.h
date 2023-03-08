@@ -174,6 +174,7 @@ private:
       std::vector<
         std::vector<std::tuple<ttk::ftm::idNode, ttk::ftm::idNode, double>>>(
         numInputs2));
+    outputMatchings_path.clear();
     outputMatchings_path.resize(NumberOfBarycenters);
 
     // Barycenter

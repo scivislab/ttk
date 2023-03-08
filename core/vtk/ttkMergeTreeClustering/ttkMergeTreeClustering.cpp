@@ -827,6 +827,7 @@ int ttkMergeTreeClustering::runOutput(
           visuMaker.setIsPersistenceDiagram(IsPersistenceDiagram);
           visuMaker.setIsPDSadMax(JoinSplitMixtureCoefficient == 0);
           visuMaker.setPathPlanarLayout(PathPlanarLayout);
+          visuMaker.setEnableBarycenterAlignment(baseModule == 2);
           // visuMaker.setPathPlanarLayout(baseModule == 2);
 
           visuMaker.makeTreesOutput<dataType>(
@@ -947,6 +948,7 @@ int ttkMergeTreeClustering::runOutput(
         visuMakerBary.setIsPersistenceDiagram(IsPersistenceDiagram);
         visuMakerBary.setIsPDSadMax(JoinSplitMixtureCoefficient == 0);
         visuMakerBary.setPathPlanarLayout(PathPlanarLayout);
+        visuMakerBary.setEnableBarycenterAlignment(baseModule == 2);
         // visuMakerBary.setPathPlanarLayout(baseModule == 2);
 
         visuMakerBary.makeTreesOutput<dataType>(

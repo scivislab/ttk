@@ -713,7 +713,8 @@ public:
       if(not isPersistenceDiagram)
         barycenters[c]->getTreeBranching(
           allBaryBranching[c], allBaryBranchingID[c]);
-      if(pathPlanarLayout_ and !pathMatchings.empty())
+      if(pathPlanarLayout_ and !pathMatchings.empty()
+         and !pathMatchings[c].empty())
         getTreePathing(barycenters[c], pathMatchings[c], true,
                        allBaryPathing[c], allBaryPathingID[c]);
     }
@@ -972,7 +973,8 @@ public:
         std::vector<ttk::ftm::idNode> pathOrigin;
         if(not isPersistenceDiagram) {
           trees[i]->getTreeBranching(treeBranching, treeBranchingID);
-          if(pathPlanarLayout_ and !pathMatchings.empty()) {
+          if(pathPlanarLayout_ and !pathMatchings.empty()
+             and !pathMatchings[c].empty()) {
             isRootPath.resize(trees[i]->getNumberOfNodes());
             std::fill(isRootPath.begin(), isRootPath.end(), false);
             pathOrigin.resize(trees[i]->getNumberOfNodes());
@@ -1436,7 +1438,8 @@ public:
                   tBranchID = allBaryBranchingID[c][treeMatching[nodeToGet]];
                 branchBaryID->InsertNextTuple1(tBranchID);
                 // Path
-                if(pathPlanarLayout_ and !pathMatchings.empty()) {
+                if(pathPlanarLayout_ and !pathMatchings.empty()
+                   and !pathMatchings[c].empty()) {
                   int tPathID = -1;
                   nodeToGet = node;
                   if(treeMatching[nodeToGet] < allBaryPathingID[c].size())
@@ -1451,7 +1454,8 @@ public:
                 int tBranchID = treeBranchingID[node];
                 branchID->InsertNextTuple1(tBranchID);
                 // Path
-                if(pathPlanarLayout_ and !pathMatchings.empty()) {
+                if(pathPlanarLayout_ and !pathMatchings.empty()
+                   and !pathMatchings[c].empty()) {
                   int tPathID = treePathingID[node];
                   pathID->InsertNextTuple1(tPathID);
                 }
@@ -1622,7 +1626,8 @@ public:
                 tBranchID = allBaryBranchingID[c][treeMatching[branchNode]];
               branchBaryNodeID->InsertNextTuple1(tBranchID);
               // Path
-              if(pathPlanarLayout_ and !pathMatchings.empty()) {
+              if(pathPlanarLayout_ and !pathMatchings.empty()
+                 and !pathMatchings[c].empty()) {
                 int tPathID = -1;
                 auto pathNode
                   = (isPathDummyNode
@@ -1644,7 +1649,8 @@ public:
               int tBranchID = treeBranchingID[branchNode];
               branchNodeID->InsertNextTuple1(tBranchID);
               // Path
-              if(pathPlanarLayout_ and !pathMatchings.empty()) {
+              if(pathPlanarLayout_ and !pathMatchings.empty()
+                 and !pathMatchings[c].empty()) {
                 auto pathNode
                   = (isPathDummyNode
                        ? node
@@ -1835,14 +1841,16 @@ public:
       vtkOutputNode->GetPointData()->AddArray(nodeID);
       vtkOutputNode->GetPointData()->AddArray(branchNodeID);
       vtkOutputNode->GetPointData()->AddArray(isDummyNode);
-      if(pathPlanarLayout_ and !pathMatchings.empty())
+      if(pathPlanarLayout_ and !pathMatchings.empty()
+         and !pathMatchings[0].empty())
         vtkOutputNode->GetPointData()->AddArray(pathNodeID);
     }
     if(not branchDecompositionPlanarLayout_ and not isPersistenceDiagram)
       vtkOutputNode->GetPointData()->AddArray(scalar);
     if(clusteringOutput and ShiftMode != 1) {
       vtkOutputNode->GetPointData()->AddArray(branchBaryNodeID);
-      if(pathPlanarLayout_ and !pathMatchings.empty())
+      if(pathPlanarLayout_ and !pathMatchings.empty()
+         and !pathMatchings[0].empty())
         vtkOutputNode->GetPointData()->AddArray(pathBaryNodeID);
       vtkOutputNode->GetPointData()->AddArray(persistenceBaryNode);
       vtkOutputNode->GetPointData()->AddArray(persistenceBaryOrderNode);
@@ -1877,14 +1885,16 @@ public:
     if(not isPersistenceDiagram) {
       vtkArcs->GetCellData()->AddArray(isDummyArc);
       vtkArcs->GetCellData()->AddArray(branchID);
-      if(pathPlanarLayout_ and !pathMatchings.empty())
+      if(pathPlanarLayout_ and !pathMatchings.empty()
+         and !pathMatchings[0].empty())
         vtkArcs->GetCellData()->AddArray(pathID);
       vtkArcs->GetCellData()->AddArray(upNodeId);
       vtkArcs->GetCellData()->AddArray(downNodeId);
     }
     if(clusteringOutput and ShiftMode != 1) {
       vtkArcs->GetCellData()->AddArray(branchBaryID);
-      if(pathPlanarLayout_ and !pathMatchings.empty())
+      if(pathPlanarLayout_ and !pathMatchings.empty()
+         and !pathMatchings[0].empty())
         vtkArcs->GetCellData()->AddArray(pathBaryID);
       vtkArcs->GetCellData()->AddArray(persistenceBaryArc);
       vtkArcs->GetCellData()->AddArray(persistenceBaryOrderArc);

@@ -517,6 +517,10 @@ public:
     tree1NodeIdField->SetName("tree1NodeId");
     vtkNew<vtkIntArray> tree2NodeIdField{};
     tree2NodeIdField->SetName("tree2NodeId");
+    vtkNew<vtkIntArray> mergeTree1NodeIdField{};
+    mergeTree1NodeIdField->SetName("mergeTree1NodeId");
+    vtkNew<vtkIntArray> mergeTree2NodeIdField{};
+    mergeTree2NodeIdField->SetName("mergeTree2NodeId");
 
     vtkNew<vtkFloatArray> matchingPercentMatch{};
     matchingPercentMatch->SetName("MatchingPercentMatch");
@@ -578,6 +582,8 @@ public:
             "// Add tree1 and tree2 node ids", ttk::debug::Priority::VERBOSE);
           tree1NodeIdField->InsertNextTuple1(pointToGet1);
           tree2NodeIdField->InsertNextTuple1(pointToGet2);
+          mergeTree1NodeIdField->InsertNextTuple1(tree1NodeId);
+          mergeTree2NodeIdField->InsertNextTuple1(tree2NodeId);
 
           // Add matching ID
           matchingID->InsertNextTuple1(count);
@@ -626,6 +632,8 @@ public:
     vtkMatching->GetCellData()->AddArray(costArray);
     vtkMatching->GetCellData()->AddArray(tree1NodeIdField);
     vtkMatching->GetCellData()->AddArray(tree2NodeIdField);
+    vtkMatching->GetCellData()->AddArray(mergeTree1NodeIdField);
+    vtkMatching->GetCellData()->AddArray(mergeTree2NodeIdField);
     if(allBaryPercentMatch.size() != 0)
       vtkMatching->GetCellData()->AddArray(matchingPercentMatch);
     vtkOutputMatching->ShallowCopy(vtkMatching);

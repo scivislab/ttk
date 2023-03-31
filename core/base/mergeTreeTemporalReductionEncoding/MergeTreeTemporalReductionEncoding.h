@@ -215,7 +215,7 @@ namespace ttk {
       std::vector<bool> treeRemoved(mTrees.size(), false);
 
       int toRemoved = mTrees.size() * removalPercentage_ / 100.;
-      toRemoved = std::min(toRemoved, (int)(mTrees.size() - 3));
+      toRemoved = std::min(toRemoved, (int)(mTrees.size() - 2));
 
       std::vector<std::vector<dataType>> images(fieldL2_.size());
       for(size_t i = 0; i < fieldL2_.size(); ++i)

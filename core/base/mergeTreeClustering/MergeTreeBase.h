@@ -1318,7 +1318,7 @@ namespace ttk {
       std::stringstream ss;
       ss << trees.size() << " trees average [node: " << avgNodes << " / "
          << avgNodesT << ", depth: " << avgDepth << "]";
-      printMsg(ss.str());
+      printMsg(ss.str(),debug::Priority::PERFORMANCE);
     }
 
     template <class dataType>

@@ -57,7 +57,7 @@ namespace ttk {
     int baseModule_ = 0;
     bool useMedianBarycenter_ = false;
     bool useFixedInit_ = false;
-    bool useEarlyOut_ = false;
+    bool useEarlyOut_ = true;
     int fixedInitNumber_ = 0;
     //int iterationLimit_ = 0;
 
@@ -315,7 +315,7 @@ namespace ttk {
                             bool distMinimizer = true) {
       int bestIndex;
       if(useFixedInit_){
-        if(fixedInitNumber_ >= 0 && fixedInitNumber_ < trees.size()) bestIndex = fixedInitNumber_;
+        if(fixedInitNumber_ >= 0 && fixedInitNumber_ < (int) trees.size()) bestIndex = fixedInitNumber_;
         else bestIndex = 0;
       }
       else bestIndex = getBestInitTreeIndex<dataType>(trees, distMinimizer);
@@ -1389,6 +1389,8 @@ namespace ttk {
       int cptBlocked = 0;
       int NoIteration = 0;
       std::stringstream energySequence;
+      int minBarySize = std::numeric_limits<int>::max();
+      int maxBarySize = 0;
       while(not converged && NoIteration<100){// && NoIteration<iterationLimit_) {
         ++NoIteration;
 
@@ -1452,11 +1454,14 @@ namespace ttk {
         auto barycenterTime = t_bary.getElapsedTime() - addDeletedNodesTime_;
         printMsg("Total", 1, barycenterTime, this->threadNumber_,
                  debug::LineMode::NEW, debug::Priority::INFO);
-        printBaryStats(baryTree);
+        printBaryStats(baryTree,debug::Priority::INFO);
         ss4 << "Frechet energy : " << frechetEnergy;
         ss5 << "Frechet energy non-squared: " << currentFrechetEnergy2;
         printMsg(ss4.str());
         printMsg(ss5.str());
+
+        if((int) baryTree->getNumberOfNodes() > maxBarySize) maxBarySize = baryTree->getNumberOfNodes();
+        if((int)baryTree->getNumberOfNodes() < minBarySize) minBarySize = baryTree->getNumberOfNodes();
 
         minFrechet = std::min(minFrechet, frechetEnergy);
         if(not converged and (not progressiveBarycenter_ or treesUnscaled)) {
@@ -1513,15 +1518,25 @@ namespace ttk {
           currentFrechetEnergy += alphas[i] * distances[i] * distances[i];
       }
 
+      auto barycenterTime = t_bary.getElapsedTime() - addDeletedNodesTime_;
       std::stringstream ss, ss2;
       ss << "Frechet energy : " << currentFrechetEnergy;
       ss2 << "Frechet energy non-squared: " << currentFrechetEnergy2;
       printMsg(ss.str());
       printMsg(ss2.str());
-      auto barycenterTime = t_bary.getElapsedTime() - addDeletedNodesTime_;
       printMsg("Total", 1, barycenterTime, this->threadNumber_,
-               debug::LineMode::NEW, debug::Priority::INFO);
+               debug::LineMode::NEW, debug::Priority::PERFORMANCE);
       // std::cout << "Bary Distance Time = " << allDistanceTime_ << std::endl;
+
+      std::stringstream ssIt;
+      ssIt << "Number of iterations: " << NoIteration;
+      printMsg(ssIt.str(),debug::Priority::PERFORMANCE);
+      std::stringstream ssMin;
+      ssMin << "Min barycenter bize: " << minBarySize;
+      printMsg(ssMin.str(),debug::Priority::PERFORMANCE);
+      std::stringstream ssMax;
+      ssMax << "Max barycenter bize: " << maxBarySize;
+      printMsg(ssMax.str(),debug::Priority::PERFORMANCE);
 
       if(trees.size() == 2 and not isCalled_ && baseModule_!=2)
         verifyBarycenterTwoTrees<dataType>(

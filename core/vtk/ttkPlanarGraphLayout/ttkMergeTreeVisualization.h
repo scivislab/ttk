@@ -521,6 +521,8 @@ public:
     mergeTree1NodeIdField->SetName("mergeTree1NodeId");
     vtkNew<vtkIntArray> mergeTree2NodeIdField{};
     mergeTree2NodeIdField->SetName("mergeTree2NodeId");
+    vtkNew<vtkIntArray> isBarycenterNodeField{};
+    isBarycenterNodeField->SetName("isBarycenterNode");
 
     vtkNew<vtkFloatArray> matchingPercentMatch{};
     matchingPercentMatch->SetName("MatchingPercentMatch");
@@ -556,6 +558,8 @@ public:
                                                    : nodeCorr1[0][tree1NodeId];
           double *point1 = vtkOutputNode2->GetPoints()->GetPoint(pointToGet1);
           const SimplexId nextPointId1 = pointsM->InsertNextPoint(point1);
+          if(not clusteringOutput) isBarycenterNodeField->InsertNextTuple1(0);
+          else isBarycenterNodeField->InsertNextTuple1(1);
           pointIds[0] = nextPointId1;
 
           // Get second point
@@ -564,6 +568,7 @@ public:
                                                    : nodeCorr1[1][tree2NodeId];
           double *point2 = vtkOutputNode1->GetPoints()->GetPoint(pointToGet2);
           const SimplexId nextPointId2 = pointsM->InsertNextPoint(point2);
+          isBarycenterNodeField->InsertNextTuple1(0);
           pointIds[1] = nextPointId2;
 
           // Add cell
@@ -634,6 +639,7 @@ public:
     vtkMatching->GetCellData()->AddArray(tree2NodeIdField);
     vtkMatching->GetCellData()->AddArray(mergeTree1NodeIdField);
     vtkMatching->GetCellData()->AddArray(mergeTree2NodeIdField);
+    vtkMatching->GetPointData()->AddArray(isBarycenterNodeField);
     if(allBaryPercentMatch.size() != 0)
       vtkMatching->GetCellData()->AddArray(matchingPercentMatch);
     vtkOutputMatching->ShallowCopy(vtkMatching);

@@ -1,0 +1,12 @@
+{
+    "configurations": [
+        {
+            "name": "run benchmark",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/bin/bash",
+            "cwd": "${workspaceFolder}",
+            "args": [ "${workspaceFolder}/run-benchmark.sh" ],
+        }
+    ]
+}

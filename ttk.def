@@ -1,0 +1,17 @@
+Bootstrap: docker
+From: topologytoolkit/ttk-dev:5.10.1
+
+%files
+    . /ttk
+
+%post
+    cmake -B /build -S /ttk --preset Benchmark
+    cmake --build /build
+    cmake --install /build
+    mv /ttk/data /ttk/run-benchmark.sh /
+    rm -rf /build /ttk
+    mkdir /output 
+    chmod a+rwX /output
+
+%runscript
+    /bin/bash /run-benchmark.sh

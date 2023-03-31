@@ -80,6 +80,18 @@ Online examples:
                   </Documentation>
                 </IntVectorProperty>
                 
+                <IntVectorProperty
+                name="UsePathMappings"
+                command="SetUsePathMappings"
+                label="Use Path Mapping Distance"
+                number_of_elements="1"
+                default_values="0">
+                  <Documentation>
+                    Use the path mapping distance instead of wasserstein distance.
+                  </Documentation>
+                  <BooleanDomain name="bool"/>
+                </IntVectorProperty>
+                
                <!-- Output options -->
                 <IntVectorProperty
                 name="OutputTrees"
@@ -149,6 +161,7 @@ Online examples:
                 
             <PropertyGroup panel_widget="Line" label="Input options">
               <Property name="AssignmentSolver"/>
+              <Property name="UsePathMappings"/>
             </PropertyGroup>
             
             <PropertyGroup panel_widget="Line" label="Output options">

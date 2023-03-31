@@ -124,6 +124,10 @@ Online examples:
                                               mode="visibility"
                                               property="Backend"
                                               value="0" />
+                      <PropertyWidgetDecorator type="GenericDecorator"
+                                                  mode="visibility"
+                                                  property="Backend"
+                                                  value="4" />
                     </Expression>
                   </PropertyWidgetDecorator>
                   </Hints>
@@ -142,28 +146,34 @@ Online examples:
                   <Hints>
                   <PropertyWidgetDecorator type="CompositeDecorator">
                     <Expression type="and">
-                      <Expression type="and">
-                        <Expression type="or">
-                          <Expression type="and">
-                            <PropertyWidgetDecorator type="GenericDecorator"
-                                                    mode="visibility"
-                                                    property="BranchDecomposition"
-                                                    value="1" />
+                      <Expression type="or">
+                        <Expression type="and">
+                          <Expression type="or">
+                            <Expression type="and">
+                              <PropertyWidgetDecorator type="GenericDecorator"
+                                                      mode="visibility"
+                                                      property="BranchDecomposition"
+                                                      value="1" />
+                              <PropertyWidgetDecorator type="GenericDecorator"
+                                                      mode="visibility"
+                                                      property="Backend"
+                                                      value="2" />
+                            </Expression>
                             <PropertyWidgetDecorator type="GenericDecorator"
                                                     mode="visibility"
                                                     property="Backend"
-                                                    value="2" />
+                                                    value="0" />
                           </Expression>
                           <PropertyWidgetDecorator type="GenericDecorator"
                                                   mode="visibility"
-                                                  property="Backend"
+                                                  property="KeepSubtree"
                                                   value="0" />
                         </Expression>
                         <PropertyWidgetDecorator type="GenericDecorator"
-                                                mode="visibility"
-                                                property="KeepSubtree"
-                                                value="0" />
-                      </Expression>
+                                                    mode="visibility"
+                                                    property="Backend"
+                                                    value="4" />
+                        </Expression>
                       <PropertyWidgetDecorator type="GenericDecorator"
                                               mode="visibility"
                                               property="ComputeBarycenter"
@@ -175,6 +185,134 @@ Online examples:
                     Number of barycenters/clusters to compute (performs a KMeans with merge trees as centroids).
                   </Documentation>
                 </IntVectorProperty>
+
+                <IntVectorProperty
+                name="UseMedianBarycenter"
+                command="SetUseMedianBarycenter"
+                label="Use median barycenter method"
+                number_of_elements="1"
+                default_values="0">
+                  <Hints>
+                  <PropertyWidgetDecorator type="CompositeDecorator">
+                    <Expression type="and">
+                      <PropertyWidgetDecorator type="GenericDecorator"
+                                                mode="visibility"
+                                                property="Backend"
+                                                value="4" />
+                      <PropertyWidgetDecorator type="GenericDecorator"
+                                                mode="visibility"
+                                                property="ComputeBarycenter"
+                                                value="1" />
+                    </Expression>
+                  </PropertyWidgetDecorator>
+                  </Hints>
+                  <Documentation>
+                    Use median update procedure instead of average.
+                  </Documentation>
+                  <BooleanDomain name="bool"/>
+                </IntVectorProperty>
+
+                <IntVectorProperty
+                name="UseFixedInit"
+                command="SetUseFixedInit"
+                label="Use fixed initial candidate"
+                number_of_elements="1"
+                default_values="0">
+                  <Hints>
+                    <PropertyWidgetDecorator type="GenericDecorator"
+                                              mode="visibility"
+                                              property="ComputeBarycenter"
+                                              value="1" />
+                  </Hints>
+                  <Documentation>
+                    Use fixed member for initial barycenter candidate.
+                  </Documentation>
+                  <BooleanDomain name="bool"/>
+                </IntVectorProperty>
+
+                <IntVectorProperty
+                name="FixedInitNumber"
+                command="SetFixedInitNumber"
+                label="Member for initial candidate"
+                number_of_elements="1"
+                default_values="0">
+                  <Hints>
+                    <PropertyWidgetDecorator type="GenericDecorator"
+                                            mode="visibility"
+                                            property="UseFixedInit"
+                                            value="1" />
+                  </Hints>
+                  <Documentation>
+                    Member index for initial barycenter candidate.
+                  </Documentation>
+                </IntVectorProperty>
+
+                <IntVectorProperty
+                name="UseEarlyOut"
+                command="SetUseEarlyOut"
+                label="Stop when converged"
+                number_of_elements="1"
+                default_values="1">
+                  <Hints>
+                    <PropertyWidgetDecorator type="GenericDecorator"
+                                              mode="visibility"
+                                              property="ComputeBarycenter"
+                                              value="1" />
+                  </Hints>
+                  <Documentation>
+                    Stop barycenter iteration when convergence good enough.
+                  </Documentation>
+                  <BooleanDomain name="bool"/>
+                </IntVectorProperty>
+
+                <!-- <IntVectorProperty
+                name="IterationLimit"
+                command="SetIterationLimit"
+                label="Max Number of Iterations"
+                number_of_elements="1"
+                default_values="20">
+                  <Hints>
+                  <PropertyWidgetDecorator type="CompositeDecorator">
+                    <Expression type="and">
+                      <Expression type="or">
+                        <Expression type="and">
+                          <Expression type="or">
+                            <Expression type="and">
+                              <PropertyWidgetDecorator type="GenericDecorator"
+                                                      mode="visibility"
+                                                      property="BranchDecomposition"
+                                                      value="1" />
+                              <PropertyWidgetDecorator type="GenericDecorator"
+                                                      mode="visibility"
+                                                      property="Backend"
+                                                      value="2" />
+                            </Expression>
+                            <PropertyWidgetDecorator type="GenericDecorator"
+                                                    mode="visibility"
+                                                    property="Backend"
+                                                    value="0" />
+                          </Expression>
+                          <PropertyWidgetDecorator type="GenericDecorator"
+                                                  mode="visibility"
+                                                  property="KeepSubtree"
+                                                  value="0" />
+                        </Expression>
+                        <PropertyWidgetDecorator type="GenericDecorator"
+                                                    mode="visibility"
+                                                    property="Backend"
+                                                    value="4" />
+                        </Expression>
+                      <PropertyWidgetDecorator type="GenericDecorator"
+                                              mode="visibility"
+                                              property="ComputeBarycenter"
+                                              value="1" />
+                    </Expression>
+                  </PropertyWidgetDecorator>
+                  </Hints>
+                  <Documentation>
+                    Maximum number of iterations in barycenter computation.
+                  </Documentation>
+                </IntVectorProperty> -->
 
                 <DoubleVectorProperty
                 name="BarycenterSizeLimitPercent"
@@ -230,27 +368,33 @@ Online examples:
                   <Hints>
                   <PropertyWidgetDecorator type="CompositeDecorator">
                     <Expression type="and">
-                      <Expression type="and">
-                        <Expression type="or">
-                          <Expression type="and">
-                            <PropertyWidgetDecorator type="GenericDecorator"
-                                                    mode="visibility"
-                                                    property="BranchDecomposition"
-                                                    value="1" />
+                      <Expression type="or">
+                        <Expression type="and">
+                          <Expression type="or">
+                            <Expression type="and">
+                              <PropertyWidgetDecorator type="GenericDecorator"
+                                                      mode="visibility"
+                                                      property="BranchDecomposition"
+                                                      value="1" />
+                              <PropertyWidgetDecorator type="GenericDecorator"
+                                                      mode="visibility"
+                                                      property="Backend"
+                                                      value="2" />
+                            </Expression>
                             <PropertyWidgetDecorator type="GenericDecorator"
                                                     mode="visibility"
                                                     property="Backend"
-                                                    value="2" />
+                                                    value="0" />
                           </Expression>
                           <PropertyWidgetDecorator type="GenericDecorator"
                                                   mode="visibility"
-                                                  property="Backend"
+                                                  property="KeepSubtree"
                                                   value="0" />
                         </Expression>
                         <PropertyWidgetDecorator type="GenericDecorator"
                                                 mode="visibility"
-                                                property="KeepSubtree"
-                                                value="0" />
+                                                property="Backend"
+                                                value="4" />
                       </Expression>
                       <PropertyWidgetDecorator type="GenericDecorator"
                                               mode="visibility"
@@ -358,19 +502,73 @@ Online examples:
                                            mode="visibility"
                                            property="OutputTrees"
                                            value="1" />
-                  <PropertyWidgetDecorator type="GenericDecorator"
-                                           mode="visibility"
-                                           property="MergeTreePlanarLayout"
-                                           value="0" />
                   </Hints>
                 <EnumerationDomain name="enum">
                     <Entry value="0" text="X"/>
                     <Entry value="1" text="Y"/>
                     <Entry value="2" text="Z"/>
+                    <Entry value="3" text="Custom"/>
                 </EnumerationDomain>
                   <Documentation>
                   </Documentation>
                 </IntVectorProperty>
+                
+                <DoubleVectorProperty
+                name="XShift"
+                command="SetXShift"
+                label="X Shift"
+                number_of_elements="1"
+                default_values="1"
+                panel_visibility="advanced">
+                  <Hints>
+                  <PropertyWidgetDecorator type="GenericDecorator"
+                                           mode="visibility"
+                                           property="DimensionToShift"
+                                           value="3" />
+                  </Hints>
+                  <Documentation>
+                    
+                  </Documentation>
+                  <DoubleRangeDomain name="range" min="0" max="1" />
+                </DoubleVectorProperty>
+                
+                <DoubleVectorProperty
+                name="YShift"
+                command="SetYShift"
+                label="Y Shift"
+                number_of_elements="1"
+                default_values="0"
+                panel_visibility="advanced">
+                  <Hints>
+                  <PropertyWidgetDecorator type="GenericDecorator"
+                                           mode="visibility"
+                                           property="DimensionToShift"
+                                           value="3" />
+                  </Hints>
+                  <Documentation>
+                    
+                  </Documentation>
+                  <DoubleRangeDomain name="range" min="0" max="1" />
+                </DoubleVectorProperty>
+                
+                <DoubleVectorProperty
+                name="ZShift"
+                command="SetZShift"
+                label="Z Shift"
+                number_of_elements="1"
+                default_values="0"
+                panel_visibility="advanced">
+                  <Hints>
+                  <PropertyWidgetDecorator type="GenericDecorator"
+                                           mode="visibility"
+                                           property="DimensionToShift"
+                                           value="3" />
+                  </Hints>
+                  <Documentation>
+                    
+                  </Documentation>
+                  <DoubleRangeDomain name="range" min="0" max="1" />
+                </DoubleVectorProperty>
                 
                 <IntVectorProperty
                 name="BarycenterPositionAlpha"
@@ -457,6 +655,10 @@ Online examples:
               <Property name="Deterministic"/>
               <Property name="Alpha"/>
               <Property name="JoinSplitMixtureCoefficient"/>
+              <Property name="UseMedianBarycenter"/>
+              <Property name="UseFixedInit"/>
+              <Property name="FixedInitNumber"/>
+              <Property name="UseEarlyOut"/>
               <!-- <Property name="UseMinMaxPair"/> -->
             </PropertyGroup>
             ${MERGE_TREE_PREPROCESS_WIDGETS}
@@ -465,6 +667,9 @@ Online examples:
               <Property name="OutputTrees"/>
               <Property name="DimensionSpacing"/>
               <Property name="DimensionToShift"/>
+              <Property name="XShift"/>
+              <Property name="YShift"/>
+              <Property name="ZShift"/>
               <Property name="BarycenterPositionAlpha"/>
               <Property name="MergeTreePlanarLayout"/>
             </PropertyGroup>

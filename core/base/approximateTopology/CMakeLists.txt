@@ -5,6 +5,7 @@ ttk_add_base_library(approximateTopology
     ApproximateTopology.h
   DEPENDS
     multiresTriangulation
+    multiresTopology
     triangulation
     dynamicTree
     progressiveTopology

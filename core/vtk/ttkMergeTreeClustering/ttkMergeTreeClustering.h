@@ -90,16 +90,25 @@ private:
   int pathMetric = 0;
   int branchMetric = 0;
   int baseModule = 0;
+  bool useMedianBarycenter = false;
+  bool useFixedInit = false;
+  int fixedInitNumber = 0;
+  bool useEarlyOut = true;
+  // int iterationLimit = 0;
 
   // Output Options
   bool OutputTrees = true;
   bool OutputSegmentation = false;
   bool PlanarLayout = false;
   bool BranchDecompositionPlanarLayout = false;
+  bool PathPlanarLayout = false;
   double BranchSpacing = 1.;
   bool RescaleTreesIndividually = false;
   double DimensionSpacing = 1.;
   int DimensionToShift = 0;
+  double XShift = 1.0;
+  double YShift = 0.0;
+  double ZShift = 0.0;
   double ImportantPairs = 50.;
   int MaximumImportantPairs = 0;
   int MinimumImportantPairs = 0;
@@ -126,6 +135,10 @@ private:
   std::vector<std::vector<
     std::vector<std::tuple<ttk::ftm::idNode, ttk::ftm::idNode, double>>>>
     outputMatchingBarycenter, outputMatchingBarycenter2;
+  std::vector<std::vector<
+    std::vector<std::pair<std::pair<ttk::ftm::idNode, ttk::ftm::idNode>,
+                          std::pair<ttk::ftm::idNode, ttk::ftm::idNode>>>>>
+    outputMatchings_path;
 
   // Barycenter
   std::vector<ttk::ftm::MergeTree<double>> barycentersS, barycentersS2;
@@ -155,13 +168,14 @@ private:
       std::vector<
         std::vector<std::tuple<ttk::ftm::idNode, ttk::ftm::idNode, double>>>(
         numInputs));
-
     outputMatchingBarycenter2 = std::vector<std::vector<
       std::vector<std::tuple<ttk::ftm::idNode, ttk::ftm::idNode, double>>>>(
       NumberOfBarycenters,
       std::vector<
         std::vector<std::tuple<ttk::ftm::idNode, ttk::ftm::idNode, double>>>(
         numInputs2));
+    outputMatchings_path.clear();
+    outputMatchings_path.resize(NumberOfBarycenters);
 
     // Barycenter
     barycentersS
@@ -328,12 +342,44 @@ public:
   void SetBranchMetric(int m) {
     branchMetric = m;
     Modified();
+    resetDataVisualization();
   }
 
   void SetPathMetric(int m) {
     pathMetric = m;
     Modified();
+    resetDataVisualization();
   }
+
+  void SetUseMedianBarycenter(bool useMedian) {
+    useMedianBarycenter = useMedian;
+    Modified();
+    resetDataVisualization();
+  }
+
+  void SetUseFixedInit(bool ufi) {
+    useFixedInit = ufi;
+    Modified();
+    resetDataVisualization();
+  }
+
+  void SetFixedInitNumber(int fi) {
+    fixedInitNumber = fi;
+    Modified();
+    resetDataVisualization();
+  }
+
+  void SetUseEarlyOut(bool eo) {
+    useEarlyOut = eo;
+    Modified();
+    resetDataVisualization();
+  }
+
+  // void SetIterationLimit(int l) {
+  //   iterationLimit = l;
+  //   Modified();
+  //   resetDataVisualization();
+  // }
 
   // Output Options
   vtkSetMacro(BarycenterPositionAlpha, bool);
@@ -351,6 +397,9 @@ public:
   vtkSetMacro(BranchDecompositionPlanarLayout, bool);
   vtkGetMacro(BranchDecompositionPlanarLayout, bool);
 
+  vtkSetMacro(PathPlanarLayout, bool);
+  vtkGetMacro(PathPlanarLayout, bool);
+
   vtkSetMacro(BranchSpacing, double);
   vtkGetMacro(BranchSpacing, double);
 
@@ -362,6 +411,15 @@ public:
 
   vtkSetMacro(DimensionToShift, int);
   vtkGetMacro(DimensionToShift, int);
+
+  vtkSetMacro(XShift, double);
+  vtkGetMacro(XShift, double);
+
+  vtkSetMacro(YShift, double);
+  vtkGetMacro(YShift, double);
+
+  vtkSetMacro(ZShift, double);
+  vtkGetMacro(ZShift, double);
 
   vtkSetMacro(ImportantPairs, double);
   vtkGetMacro(ImportantPairs, double);

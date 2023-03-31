@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "Benchmark",
+      "inherits": "TTK-PerformanceBenchmark",
+      "cacheVariables": {
+        "TTK_BUILD_DOCUMENTATION": "OFF",
+        "TTK_BUILD_STANDALONE_APPS": "OFF",
+        "TTK_BUILD_PARAVIEW_PLUGINS": "ON",
+        "TTK_ENABLE_OPENMP": "ON",
+        "TTK_ENABLE_64BIT_IDS": "OFF",
+        "TTK_WHITELIST_MODE": "ON",
+        "VTK_MODULE_ENABLE_ttkAlgorithm": "YES",
+        "VTK_MODULE_ENABLE_ttkFTMTree": "YES",
+        "VTK_MODULE_ENABLE_ttkBlockAggregator": "YES",
+        "VTK_MODULE_ENABLE_ttkMergeTreeClustering": "YES",
+        "VTK_MODULE_ENABLE_ttkPlanarGraphLayout": "YES",
+        "VTK_MODULE_ENABLE_ttkGeometrySmoother": "YES",
+        "VTK_MODULE_ENABLE_ttkConnectedComponents": "YES",
+        "VTK_MODULE_ENABLE_ttkIcosphere": "YES",
+        "VTK_MODULE_ENABLE_ttkIcospheresFromPoints": "YES",
+        "VTK_MODULE_ENABLE_ttkIdentifyByScalarField": "YES",
+        "VTK_MODULE_ENABLE_ttkTopologicalSimplificationByPersistence": "YES"
+      }
+    }
+  ]
+}

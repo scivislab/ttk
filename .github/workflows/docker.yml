@@ -16,7 +16,7 @@ on:
 
 jobs:
   docker:
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     strategy:
       matrix:
         arch: [linux/amd64, linux/arm64]

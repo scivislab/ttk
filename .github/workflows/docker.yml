@@ -42,8 +42,8 @@ jobs:
           platforms: ${{ matrix.arch }}
           context: "{{defaultContext}}:scripts/docker"
           target: builder
-          cache-from: type=gha,ref=ghcr.io/scivislab/ttk:builder
-          cache-to:   type=gha,ref=ghcr.io/scivislab/ttk:builder,mode=max
+          cache-from: type=gha,ref=ttk:base
+          cache-to:   type=gha,ref=ttk:base,mode=max
       -
         name: Build and push ttk
         uses: docker/build-push-action@v4
@@ -53,8 +53,8 @@ jobs:
           target: ttk
           push: true
           tags: |
-            ghcr.io/topology-tool-kit/ttk:latest
-          cache-from: type=gha,ref=ghcr.io/scivislab/ttk:builder
+            ghcr.io/scivislab/ttk:latest
+          cache-from: type=gha,ref=ttk:base
       -
         name: Build and push ttk-dev
         uses: docker/build-push-action@v4
@@ -64,5 +64,5 @@ jobs:
           target: ttk-dev
           push: true
           tags: |
-            ghcr.io/topology-tool-kit/ttk-dev:latest
-          cache-from: type=gha,ref=ghcr.io/scivislab/ttk:builder
+            ghcr.io/scivislab/ttk-dev:latest
+          cache-from: type=gha,ref=ttk:base

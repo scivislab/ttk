@@ -9,7 +9,7 @@
 /// distance between two merge trees.
 ///
 /// \param Input vtkMultiBlockDataSet Input trees
-/// \param Input (optionnal) vtkMultiBlockDataSet Input trees
+/// \param Input (optional) vtkMultiBlockDataSet Input trees
 /// \param Output vtkMultiBlockDataSet Input trees (processed)
 /// \param Output vtkMultiBlockDataSet Centroids trees
 /// \param Output vtkMultiBlockDataSet Matchings
@@ -33,6 +33,12 @@
 ///   - <a
 ///   href="https://topology-tool-kit.github.io/examples/mergeTreeClustering/">Merge
 ///   Tree Clustering example</a> \n
+///   - <a
+///   href="https://topology-tool-kit.github.io/examples/mergeTreeFeatureTracking/">Merge
+///   Tree Feature Tracking example</a> \n
+///   - <a
+///   href="https://topology-tool-kit.github.io/examples/mergeTreePGA/">Merge
+///   Tree Principal Geodesic Analysis example</a> \n
 
 #pragma once
 
@@ -95,6 +101,7 @@ private:
   int fixedInitNumber = 0;
   bool useEarlyOut = true;
   // int iterationLimit = 0;
+  double NonMatchingWeight = 1.0;
 
   // Output Options
   bool OutputTrees = true;
@@ -380,6 +387,12 @@ public:
   //   Modified();
   //   resetDataVisualization();
   // }
+  void SetNonMatchingWeight(double weight) {
+    NonMatchingWeight = weight;
+    Modified();
+    resetDataVisualization();
+  }
+  vtkGetMacro(NonMatchingWeight, double);
 
   // Output Options
   vtkSetMacro(BarycenterPositionAlpha, bool);

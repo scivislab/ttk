@@ -11,7 +11,7 @@
 #include <vtkTransformFilter.h>
 #include <vtkUnsignedCharArray.h>
 #include <vtkUnstructuredGrid.h>
-#include <vtkVersion.h> // for VTK_VERSION_CHECK via ParaView 5.8.1
+#include <vtkVersionMacros.h> // for VTK_VERSION_CHECK
 
 int VTUToDiagram(ttk::DiagramType &diagram,
                  vtkUnstructuredGrid *vtu,
@@ -206,12 +206,12 @@ int DiagramToVTU(vtkUnstructuredGrid *vtu,
   pairsDim->SetNumberOfTuples(diagram.size());
   cd->AddArray(pairsDim);
 
-  vtkSmartPointer<vtkDataArray> persistence{inputScalars->NewInstance()};
+  vtkSmartPointer<vtkDataArray> const persistence{inputScalars->NewInstance()};
   persistence->SetName(ttk::PersistenceName);
   persistence->SetNumberOfTuples(diagram.size());
   cd->AddArray(persistence);
 
-  vtkSmartPointer<vtkDataArray> birthScalars{inputScalars->NewInstance()};
+  vtkSmartPointer<vtkDataArray> const birthScalars{inputScalars->NewInstance()};
   birthScalars->SetName(ttk::PersistenceBirthName);
   birthScalars->SetNumberOfTuples(diagram.size());
   cd->AddArray(birthScalars);

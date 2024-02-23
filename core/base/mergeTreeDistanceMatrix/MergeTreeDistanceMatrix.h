@@ -10,6 +10,9 @@
 ///   - <a
 ///   href="https://topology-tool-kit.github.io/examples/mergeTreeClustering/">Merge
 ///   Tree Clustering example</a> \n
+///   - <a
+///   href="https://topology-tool-kit.github.io/examples/mergeTreePGA/">Merge
+///   Tree Principal Geodesic Analysis example</a> \n
 
 #pragma once
 
@@ -87,11 +90,11 @@ namespace ttk {
         BranchMappingDistance branchDist;
         branchDist.setBaseMetric(branchMetric_);
         branchDist.setAssignmentSolver(assignmentSolverID_);
-        branchDist.setSquared(distanceSquared_);
+        branchDist.setSquared(not distanceSquaredRoot_);
         PathMappingDistance pathDist;
         pathDist.setBaseMetric(pathMetric_);
         pathDist.setAssignmentSolver(assignmentSolverID_);
-        pathDist.setSquared(distanceSquared_);
+        pathDist.setSquared(not distanceSquaredRoot_);
         pathDist.setComputeMapping(true);
 
         distanceMatrix[i][i] = 0.0;
@@ -145,7 +148,6 @@ namespace ttk {
             stream << i << " / " << distanceMatrix.size();
             printMsg(stream.str());
           }
-
           distanceMatrix[i][i] = 0.0;
           for(unsigned int j = i + 1; j < distanceMatrix[0].size(); ++j) {
             // Execute
@@ -158,8 +160,6 @@ namespace ttk {
               mergeTreeDistance.setEpsilon2Tree2(epsilon2Tree2_);
               mergeTreeDistance.setEpsilon3Tree1(epsilon3Tree1_);
               mergeTreeDistance.setEpsilon3Tree2(epsilon3Tree2_);
-              mergeTreeDistance.setProgressiveComputation(
-                progressiveComputation_);
               mergeTreeDistance.setBranchDecomposition(branchDecomposition_);
               mergeTreeDistance.setParallelize(parallelize_);
               mergeTreeDistance.setPersistenceThreshold(persistenceThreshold_);
@@ -167,11 +167,8 @@ namespace ttk {
               mergeTreeDistance.setThreadNumber(this->threadNumber_);
               mergeTreeDistance.setNormalizedWasserstein(
                 normalizedWasserstein_);
-              mergeTreeDistance.setRescaledWasserstein(rescaledWasserstein_);
-              mergeTreeDistance.setNormalizedWassersteinReg(
-                normalizedWassersteinReg_);
               mergeTreeDistance.setKeepSubtree(keepSubtree_);
-              mergeTreeDistance.setDistanceSquared(distanceSquared_);
+              mergeTreeDistance.setDistanceSquaredRoot(distanceSquaredRoot_);
               mergeTreeDistance.setUseMinMaxPair(useMinMaxPair_);
               mergeTreeDistance.setSaveTree(true);
               mergeTreeDistance.setCleanTree(true);
@@ -179,9 +176,10 @@ namespace ttk {
               mergeTreeDistance.setPostprocess(false);
               mergeTreeDistance.setIsPersistenceDiagram(isPersistenceDiagram_);
               if(useDoubleInput_) {
-                double weight = mixDistancesMinMaxPairWeight(isFirstInput);
+                double const weight
+                  = mixDistancesMinMaxPairWeight(isFirstInput);
                 mergeTreeDistance.setMinMaxPairWeight(weight);
-                mergeTreeDistance.setDistanceSquared(true);
+                mergeTreeDistance.setDistanceSquaredRoot(true);
               }
               std::vector<std::tuple<ftm::idNode, ftm::idNode>> outputMatching;
               distanceMatrix[i][j] = mergeTreeDistance.execute<dataType>(

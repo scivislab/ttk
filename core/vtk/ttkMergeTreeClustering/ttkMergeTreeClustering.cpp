@@ -5,8 +5,8 @@
 #include <MergeTreeUtils.h>
 #include <MergeTreeVisualization.h>
 #include <PathMappingDistance.h>
-#include <ttkFTMTreeUtils.h>
 #include <ttkMergeTreeClustering.h>
+#include <ttkMergeTreeUtils.h>
 #include <ttkMergeTreeVisualization.h>
 
 #include <vtkDataObject.h> // For port information
@@ -187,7 +187,7 @@ int ttkMergeTreeClustering::runCompute(
   std::vector<FTMTree_MT *> intermediateTrees(numInputs),
     intermediateTrees2(numInputs2);
 
-  bool useSadMaxPairs = (JoinSplitMixtureCoefficient == 0);
+  bool const useSadMaxPairs = (JoinSplitMixtureCoefficient == 0);
   IsPersistenceDiagram
     = constructTrees<dataType>(inputTrees, intermediateMTrees, treesNodes,
                                treesArcs, treesSegmentation, useSadMaxPairs);
@@ -206,7 +206,7 @@ int ttkMergeTreeClustering::runCompute(
   // ------------------------------------------------------------------------------------
   // --- Call base
   // ------------------------------------------------------------------------------------
-  bool AddNodes = true;
+  bool const AddNodes = true;
   // Classical distance
   double distance = 0;
 
@@ -268,6 +268,7 @@ int ttkMergeTreeClustering::runCompute(
       mergeTreeDistance.setDeleteMultiPersPairs(DeleteMultiPersPairs);
       mergeTreeDistance.setEpsilon1UseFarthestSaddle(Epsilon1UseFarthestSaddle);
       mergeTreeDistance.setIsPersistenceDiagram(IsPersistenceDiagram);
+      mergeTreeDistance.setNonMatchingWeight(NonMatchingWeight);
       mergeTreeDistance.setThreadNumber(this->threadNumber_);
       mergeTreeDistance.setDebugLevel(this->debugLevel_);
 
@@ -453,7 +454,7 @@ int ttkMergeTreeClustering::runCompute(
   return 1;
 }
 
-void addFieldData(vtkDataSet *in, vtkDataSet *out) {
+static void addFieldData(vtkDataSet *in, vtkDataSet *out) {
   auto inFieldData = in->GetFieldData();
   auto outFieldData = out->GetFieldData();
   for(int i = 0; i < inFieldData->GetNumberOfArrays(); ++i) {
@@ -474,8 +475,8 @@ void makeDoubleInputPersistenceDiagramOutput(
   vtkUnstructuredGrid *treeNodes,
   int i,
   std::vector<SimplexId> &nodeCorr2) {
-  int nodeCorrShift = vtkOutputNode->GetNumberOfPoints();
-  vtkSmartPointer<vtkUnstructuredGrid> vtkOutputNode2
+  int const nodeCorrShift = vtkOutputNode->GetNumberOfPoints();
+  vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputNode2
     = vtkSmartPointer<vtkUnstructuredGrid>::New();
   visuMaker.setVtkOutputNode(vtkOutputNode2);
   visuMaker.setVtkOutputArc(vtkOutputNode2);
@@ -511,7 +512,7 @@ void makeDoubleInputPersistenceDiagramMatching(
   std::vector<std::vector<SimplexId>> &nodeCorr2,
   std::vector<std::vector<SimplexId>> &nodeCorrBary2,
   std::vector<std::vector<float>> &allBaryPercentMatch2) {
-  vtkSmartPointer<vtkUnstructuredGrid> vtkOutputMatching2
+  vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputMatching2
     = vtkSmartPointer<vtkUnstructuredGrid>::New();
   visuMakerMatching.setVtkOutputMatching(vtkOutputMatching2);
   visuMakerMatching.setOutputMatchingBarycenter(outputMatchingBarycenter2);
@@ -573,25 +574,25 @@ int ttkMergeTreeClustering::runOutput(
       // --- Input trees
       // ------------------------------------------
       // Declare vtk objects
-      vtkSmartPointer<vtkUnstructuredGrid> vtkOutputNode1
+      vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputNode1
         = vtkSmartPointer<vtkUnstructuredGrid>::New();
-      vtkSmartPointer<vtkUnstructuredGrid> vtkOutputArc1
+      vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputArc1
         = vtkSmartPointer<vtkUnstructuredGrid>::New();
-      vtkSmartPointer<vtkUnstructuredGrid> vtkOutputSegmentation1
-        = vtkSmartPointer<vtkUnstructuredGrid>::New();
-
-      vtkSmartPointer<vtkUnstructuredGrid> vtkOutputNode2
-        = vtkSmartPointer<vtkUnstructuredGrid>::New();
-      vtkSmartPointer<vtkUnstructuredGrid> vtkOutputArc2
-        = vtkSmartPointer<vtkUnstructuredGrid>::New();
-      vtkSmartPointer<vtkUnstructuredGrid> vtkOutputSegmentation2
+      vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputSegmentation1
         = vtkSmartPointer<vtkUnstructuredGrid>::New();
 
-      vtkSmartPointer<vtkMultiBlockDataSet> vtkBlockNodes
+      vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputNode2
+        = vtkSmartPointer<vtkUnstructuredGrid>::New();
+      vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputArc2
+        = vtkSmartPointer<vtkUnstructuredGrid>::New();
+      vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputSegmentation2
+        = vtkSmartPointer<vtkUnstructuredGrid>::New();
+
+      vtkSmartPointer<vtkMultiBlockDataSet> const vtkBlockNodes
         = vtkSmartPointer<vtkMultiBlockDataSet>::New();
-      vtkSmartPointer<vtkMultiBlockDataSet> vtkBlockArcs
+      vtkSmartPointer<vtkMultiBlockDataSet> const vtkBlockArcs
         = vtkSmartPointer<vtkMultiBlockDataSet>::New();
-      vtkSmartPointer<vtkMultiBlockDataSet> vtkBlockSegs
+      vtkSmartPointer<vtkMultiBlockDataSet> const vtkBlockSegs
         = vtkSmartPointer<vtkMultiBlockDataSet>::New();
 
       // Fill vtk objects
@@ -700,7 +701,7 @@ int ttkMergeTreeClustering::runOutput(
           vtkBlockSegs->SetNumberOfBlocks(2);
           vtkBlockSegs->SetBlock(0, vtkOutputSegmentation1);
           vtkBlockSegs->SetBlock(1, vtkOutputSegmentation2);
-          int segBlockID = 1 + !IsPersistenceDiagram;
+          int const segBlockID = 1 + !IsPersistenceDiagram;
           output_clusters->SetBlock(segBlockID, vtkBlockSegs);
         }
       }
@@ -709,7 +710,7 @@ int ttkMergeTreeClustering::runOutput(
       // --- Matching
       // ------------------------------------------
       // Declare vtk objects
-      vtkSmartPointer<vtkUnstructuredGrid> vtkOutputMatching
+      vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputMatching
         = vtkSmartPointer<vtkUnstructuredGrid>::New();
 
       // Fill vtk objects
@@ -757,16 +758,16 @@ int ttkMergeTreeClustering::runOutput(
         output_clusters->SetNumberOfBlocks(numInputs);
       } else {
         output_clusters->SetNumberOfBlocks((OutputSegmentation ? 3 : 2));
-        vtkSmartPointer<vtkMultiBlockDataSet> vtkBlockNodes
+        vtkSmartPointer<vtkMultiBlockDataSet> const vtkBlockNodes
           = vtkSmartPointer<vtkMultiBlockDataSet>::New();
         vtkBlockNodes->SetNumberOfBlocks(numInputs);
         output_clusters->SetBlock(0, vtkBlockNodes);
-        vtkSmartPointer<vtkMultiBlockDataSet> vtkBlockArcs
+        vtkSmartPointer<vtkMultiBlockDataSet> const vtkBlockArcs
           = vtkSmartPointer<vtkMultiBlockDataSet>::New();
         vtkBlockArcs->SetNumberOfBlocks(numInputs);
         output_clusters->SetBlock(1, vtkBlockArcs);
         if(OutputSegmentation) {
-          vtkSmartPointer<vtkMultiBlockDataSet> vtkBlockSegs
+          vtkSmartPointer<vtkMultiBlockDataSet> const vtkBlockSegs
             = vtkSmartPointer<vtkMultiBlockDataSet>::New();
           vtkBlockSegs->SetNumberOfBlocks(numInputs);
           output_clusters->SetBlock(2, vtkBlockSegs);
@@ -783,9 +784,9 @@ int ttkMergeTreeClustering::runOutput(
           // Declare vtk objects
           vtkSmartPointer<vtkUnstructuredGrid> vtkOutputNode
             = vtkSmartPointer<vtkUnstructuredGrid>::New();
-          vtkSmartPointer<vtkUnstructuredGrid> vtkOutputArc
+          vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputArc
             = vtkSmartPointer<vtkUnstructuredGrid>::New();
-          vtkSmartPointer<vtkUnstructuredGrid> vtkOutputSegmentation
+          vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputSegmentation
             = vtkSmartPointer<vtkUnstructuredGrid>::New();
 
           // Fill vtk objects
@@ -869,7 +870,7 @@ int ttkMergeTreeClustering::runOutput(
               vtkMultiBlockDataSet::SafeDownCast(output_clusters->GetBlock(1))
                 ->SetBlock(i, vtkOutputArc);
             if(OutputSegmentation) {
-              int segBlockID = 1 + !IsPersistenceDiagram;
+              int const segBlockID = 1 + !IsPersistenceDiagram;
               vtkMultiBlockDataSet::SafeDownCast(
                 output_clusters->GetBlock(segBlockID))
                 ->SetBlock(i, vtkOutputSegmentation);
@@ -885,11 +886,11 @@ int ttkMergeTreeClustering::runOutput(
         output_centroids->SetNumberOfBlocks(NumberOfBarycenters);
       } else {
         output_centroids->SetNumberOfBlocks(2);
-        vtkSmartPointer<vtkMultiBlockDataSet> vtkBlockNodes2
+        vtkSmartPointer<vtkMultiBlockDataSet> const vtkBlockNodes2
           = vtkSmartPointer<vtkMultiBlockDataSet>::New();
         vtkBlockNodes2->SetNumberOfBlocks(NumberOfBarycenters);
         output_centroids->SetBlock(0, vtkBlockNodes2);
-        vtkSmartPointer<vtkMultiBlockDataSet> vtkBlockArcs2
+        vtkSmartPointer<vtkMultiBlockDataSet> const vtkBlockArcs2
           = vtkSmartPointer<vtkMultiBlockDataSet>::New();
         vtkBlockArcs2->SetNumberOfBlocks(NumberOfBarycenters);
         output_centroids->SetBlock(1, vtkBlockArcs2);
@@ -899,9 +900,9 @@ int ttkMergeTreeClustering::runOutput(
         // Declare vtk objects
         vtkSmartPointer<vtkUnstructuredGrid> vtkOutputNode
           = vtkSmartPointer<vtkUnstructuredGrid>::New();
-        vtkSmartPointer<vtkUnstructuredGrid> vtkOutputArc
+        vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputArc
           = vtkSmartPointer<vtkUnstructuredGrid>::New();
-        vtkSmartPointer<vtkUnstructuredGrid> vtkOutputSegmentation
+        vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputSegmentation
           = vtkSmartPointer<vtkUnstructuredGrid>::New();
 
         // Fill vtk objects
@@ -998,14 +999,14 @@ int ttkMergeTreeClustering::runOutput(
           // Declare vtk objects
           vtkSmartPointer<vtkUnstructuredGrid> vtkOutputMatching
             = vtkSmartPointer<vtkUnstructuredGrid>::New();
-          vtkSmartPointer<vtkUnstructuredGrid> vtkOutputNode1
+          vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputNode1
             = vtkUnstructuredGrid::SafeDownCast(
               (IsPersistenceDiagram and not OutputSegmentation
                  ? output_clusters->GetBlock(i)
                  : vtkMultiBlockDataSet::SafeDownCast(
                      output_clusters->GetBlock(0))
                      ->GetBlock(i)));
-          vtkSmartPointer<vtkUnstructuredGrid> vtkOutputNode2
+          vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputNode2
             = vtkUnstructuredGrid::SafeDownCast(
               (IsPersistenceDiagram ? output_centroids->GetBlock(c)
                                     : vtkMultiBlockDataSet::SafeDownCast(

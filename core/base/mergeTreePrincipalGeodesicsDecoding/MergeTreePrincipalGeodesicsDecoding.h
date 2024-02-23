@@ -10,6 +10,11 @@
 /// \b Related \b publication: \n
 /// "Principal Geodesic Analysis of Merge Trees (and Persistence Diagrams)" \n
 /// Mathieu Pont, Jules Vidal, Julien Tierny.\n
+///
+/// \b Online \b examples: \n
+///   - <a
+///   href="https://topology-tool-kit.github.io/examples/mergeTreePGA/">Merge
+///   Tree Principal Geodesic Analysis example</a> \n
 
 #pragma once
 
@@ -30,8 +35,8 @@ namespace ttk {
 
   protected:
     bool computeReconstructionError_ = false;
-    bool transferInputTreesInformations_ = false;
-    bool transferBarycenterInformations_ = false;
+    bool transferInputTreesInformation_ = false;
+    bool transferBarycenterInformation_ = false;
 
     std::vector<std::vector<double *>> pVS_, pV2s_, pTrees2Vs_, pTrees2V2s_;
     size_t vSize_, vSize2_;
@@ -55,9 +60,9 @@ namespace ttk {
     template <class dataType>
     void preprocessBarycenter(ftm::MergeTree<dataType> &barycenter) {
       if(not isPersistenceDiagram_) {
-        bool useMinMax = true;
-        bool cleanTree = false;
-        bool pt = 0.0;
+        bool const useMinMax = true;
+        bool const cleanTree = false;
+        bool const pt = 0.0;
         std::vector<int> nodeCorr;
         preprocessingPipeline<dataType>(barycenter, 0.0, 100.0, 100.0,
                                         branchDecomposition_, useMinMax,
@@ -174,7 +179,7 @@ namespace ttk {
 
       // Reconstruction
       reconstructedTrees.resize(allTreesTs_.size());
-      if(transferBarycenterInformations_)
+      if(transferBarycenterInformation_)
         recBaryMatchings.resize(reconstructedTrees.size());
 #ifdef TTK_ENABLE_OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(this->threadNumber_)
@@ -183,7 +188,7 @@ namespace ttk {
         getMultiInterpolation<dataType>(barycenter, vSToUse, v2sToUse,
                                         vSizeToUse, allTreesTs_[i],
                                         reconstructedTrees[i]);
-        if(transferBarycenterInformations_) {
+        if(transferBarycenterInformation_) {
           dataType distance;
           computeOneDistance<dataType>(reconstructedTrees[i], barycenter,
                                        recBaryMatchings[i], distance, true);
@@ -192,7 +197,7 @@ namespace ttk {
 
       // Compute reconstruction error (if input trees are provided)
       if(inputTrees.size() != 0
-         and (computeReconstructionError_ or transferInputTreesInformations_)) {
+         and (computeReconstructionError_ or transferInputTreesInformation_)) {
         auto reconstructionError = computeReconstructionError(
           barycenter, inputTrees, vSToUse, v2sToUse, vSizeToUse, allTreesTs_,
           reconstructionErrors, recInputMatchings);
@@ -216,13 +221,13 @@ namespace ttk {
       for(unsigned int i = 0; i < inputTrees.size(); ++i)
         postprocessingPipeline<dataType>(&(inputTrees[i].tree));
 
-      if(inputTrees.size() != 0 and transferInputTreesInformations_) {
+      if(inputTrees.size() != 0 and transferInputTreesInformation_) {
         for(unsigned int i = 0; i < inputTrees.size(); ++i)
           convertBranchDecompositionMatching<dataType>(
             &(reconstructedTrees[i].tree), &(inputTrees[i].tree),
             recInputMatchings[i]);
       }
-      if(transferBarycenterInformations_)
+      if(transferBarycenterInformation_)
         for(unsigned int i = 0; i < reconstructedTrees.size(); ++i)
           convertBranchDecompositionMatching<dataType>(
             &(reconstructedTrees[i].tree), &(barycenter.tree),
@@ -261,7 +266,7 @@ namespace ttk {
           getInterpolation<dataType>(barycenter, vSToUse[i], v2sToUse[i],
                                      vSizeToUse, t, geodesicsTrees[i][j]);
           tGeodesics_[i][j][i] = t;
-          int i2 = (i + 1) % 2;
+          int const i2 = (i + 1) % 2;
           tGeodesics_[i][j][i2] = middle[i2];
         }
 
@@ -307,14 +312,14 @@ namespace ttk {
 #pragma omp parallel for schedule(dynamic) num_threads(this->threadNumber_)
 #endif
       for(unsigned int i = 0; i < noSample; ++i) {
-        double angle = 360.0 / noSample * i;
-        double pi = M_PI;
-        double radius = 1.0;
+        double const angle = 360.0 / noSample * i;
+        double const pi = M_PI;
+        double const radius = 1.0;
         double x = -1 * radius * std::cos(-1 * angle * pi / 180);
         double y = -1 * radius * std::sin(-1 * angle * pi / 180);
 
         // 0: upper-left ; 1: upper-right ; 2: bottom-right ; 3: bottom-left
-        int quadrant = (x < 0.0 ? (y > 0.0 ? 0 : 3) : (y > 0.0 ? 1 : 2));
+        int const quadrant = (x < 0.0 ? (y > 0.0 ? 0 : 3) : (y > 0.0 ? 1 : 2));
         if(quadrant == 0 or quadrant == 3)
           x = (x + 1.0) * middle[0];
         if(quadrant == 1 or quadrant == 2)
@@ -376,10 +381,10 @@ namespace ttk {
 #endif
       for(unsigned int i = 0; i < noSample; ++i) {
         // 0: left ; 1: up; 2: right ; 3: bottom
-        int quadrant = i / (noSample / 4);
+        int const quadrant = i / (noSample / 4);
 
         double x = 0.0, y = 0.0;
-        double offset = (i % (noSample / 4)) / ((noSample / 4.0) - 1.0);
+        double const offset = (i % (noSample / 4)) / ((noSample / 4.0) - 1.0);
         switch(quadrant) {
           case 0: // Left
             x = 0.0;
@@ -446,9 +451,9 @@ namespace ttk {
 #endif
       for(unsigned int i = 0; i < k_; ++i) {
         for(unsigned int j = 0; j < k_; ++j) {
-          double x = 1.0 / (k_ - 1) * i;
-          double y = 1.0 / (k_ - 1) * j;
-          int index = i * k_ + j;
+          double const x = 1.0 / (k_ - 1) * i;
+          double const y = 1.0 / (k_ - 1) * j;
+          int const index = i * k_ + j;
           // Get Boundary ID
           if(i == 0 or j == 0 or i == k_ - 1 or j == k_ - 1) {
             surfaceIsBoundary_[index] = true;

@@ -57,8 +57,8 @@ using namespace ttk;
   case EdgePosition::H_Ny_2D
 
 ImplicitTriangulation::ImplicitTriangulation()
-  : dimensionality_{-1}, cellNumber_{}, vertexNumber_{}, edgeNumber_{},
-    triangleNumber_{}, tetrahedronNumber_{}, isAccelerated_{} {
+  : cellNumber_{}, vertexNumber_{}, edgeNumber_{}, triangleNumber_{},
+    tetrahedronNumber_{}, isAccelerated_{} {
   setDebugMsgPrefix("ImplicitTriangulation");
 #ifdef TTK_ENABLE_MPI
   this->hasPreconditionedDistributedEdges_ = true;
@@ -250,9 +250,9 @@ int ImplicitTriangulation::checkAcceleration() {
       isAccelerated_ = true;
     }
   } else if(dimensionality_ == 2) {
-    bool isDi = isPowerOfTwo(dimensions_[Di_], msb[Di_]);
-    bool isDj = isPowerOfTwo(dimensions_[Dj_], msb[Dj_]);
-    bool allDimensionsArePowerOfTwo = (isDi and isDj);
+    bool const isDi = isPowerOfTwo(dimensions_[Di_], msb[Di_]);
+    bool const isDj = isPowerOfTwo(dimensions_[Dj_], msb[Dj_]);
+    bool const allDimensionsArePowerOfTwo = (isDi and isDj);
 
     if(allDimensionsArePowerOfTwo) {
       mod_[0] = dimensions_[Di_] - 1;
@@ -283,11 +283,11 @@ template <typename Derived>
 bool ImplicitTriangulationCRTP<Derived>::TTK_TRIANGULATION_INTERNAL(
   isVertexOnBoundary)(const SimplexId &vertexId) const {
 
-#if TTK_ENABLE_MPI
+#ifdef TTK_ENABLE_MPI
   if(this->metaGrid_ != nullptr) {
     return this->isVertexOnGlobalBoundaryInternal(vertexId);
   }
-#endif
+#endif // TTK_ENABLE_MPI
 
 #ifndef TTK_ENABLE_KAMIKAZE
   if(vertexId < 0 or vertexId >= vertexNumber_)
@@ -308,11 +308,11 @@ template <typename Derived>
 bool ImplicitTriangulationCRTP<Derived>::TTK_TRIANGULATION_INTERNAL(
   isEdgeOnBoundary)(const SimplexId &edgeId) const {
 
-#if TTK_ENABLE_MPI
+#ifdef TTK_ENABLE_MPI
   if(this->metaGrid_ != nullptr) {
     return this->isEdgeOnGlobalBoundaryInternal(edgeId);
   }
-#endif
+#endif // TTK_ENABLE_MPI
 
 #ifndef TTK_ENABLE_KAMIKAZE
   if(edgeId < 0 or edgeId >= edgeNumber_)
@@ -340,11 +340,11 @@ bool ImplicitTriangulationCRTP<Derived>::TTK_TRIANGULATION_INTERNAL(
 bool ImplicitTriangulation::TTK_TRIANGULATION_INTERNAL(isTriangleOnBoundary)(
   const SimplexId &triangleId) const {
 
-#if TTK_ENABLE_MPI
+#ifdef TTK_ENABLE_MPI
   if(this->metaGrid_ != nullptr) {
     return this->isTriangleOnGlobalBoundaryInternal(triangleId);
   }
-#endif
+#endif // TTK_ENABLE_MPI
 
 #ifndef TTK_ENABLE_KAMIKAZE
   if(triangleId < 0 or triangleId >= triangleNumber_)
@@ -355,144 +355,6 @@ bool ImplicitTriangulation::TTK_TRIANGULATION_INTERNAL(isTriangleOnBoundary)(
     return (TTK_TRIANGULATION_INTERNAL(getTriangleStarNumber)(triangleId) == 1);
 
   return false;
-}
-
-template <typename Derived>
-int ImplicitTriangulationCRTP<Derived>::TTK_TRIANGULATION_INTERNAL(
-  getVertexNeighbor)(const SimplexId &vertexId,
-                     const int &localNeighborId,
-                     SimplexId &neighborId) const {
-
-#ifndef TTK_ENABLE_KAMIKAZE
-  if(localNeighborId < 0
-     or localNeighborId >= getVertexNeighborNumber(vertexId))
-    return -1;
-#endif // !TTK_ENABLE_KAMIKAZE
-
-  switch(this->underlying().getVertexPosition(vertexId)) {
-    case VertexPosition::CENTER_3D:
-      neighborId = vertexId + this->vertexNeighborABCDEFGH_[localNeighborId];
-      break;
-    case VertexPosition::FRONT_FACE_3D:
-      neighborId = vertexId + this->vertexNeighborABCD_[localNeighborId];
-      break;
-    case VertexPosition::BACK_FACE_3D:
-      neighborId = vertexId + this->vertexNeighborEFGH_[localNeighborId];
-      break;
-    case VertexPosition::TOP_FACE_3D:
-      neighborId = vertexId + this->vertexNeighborAEFB_[localNeighborId];
-      break;
-    case VertexPosition::BOTTOM_FACE_3D:
-      neighborId = vertexId + this->vertexNeighborGHDC_[localNeighborId];
-      break;
-    case VertexPosition::LEFT_FACE_3D:
-      neighborId = vertexId + this->vertexNeighborAEGC_[localNeighborId];
-      break;
-    case VertexPosition::RIGHT_FACE_3D:
-      neighborId = vertexId + this->vertexNeighborBFHD_[localNeighborId];
-      break;
-    case VertexPosition::TOP_FRONT_EDGE_3D: // ab
-      neighborId = vertexId + this->vertexNeighborAB_[localNeighborId];
-      break;
-    case VertexPosition::BOTTOM_FRONT_EDGE_3D: // cd
-      neighborId = vertexId + this->vertexNeighborCD_[localNeighborId];
-      break;
-    case VertexPosition::LEFT_FRONT_EDGE_3D: // ac
-      neighborId = vertexId + this->vertexNeighborAC_[localNeighborId];
-      break;
-    case VertexPosition::RIGHT_FRONT_EDGE_3D: // bd
-      neighborId = vertexId + this->vertexNeighborBD_[localNeighborId];
-      break;
-    case VertexPosition::TOP_BACK_EDGE_3D: // ef
-      neighborId = vertexId + this->vertexNeighborEF_[localNeighborId];
-      break;
-    case VertexPosition::BOTTOM_BACK_EDGE_3D: // gh
-      neighborId = vertexId + this->vertexNeighborGH_[localNeighborId];
-      break;
-    case VertexPosition::LEFT_BACK_EDGE_3D: // eg
-      neighborId = vertexId + this->vertexNeighborEG_[localNeighborId];
-      break;
-    case VertexPosition::RIGHT_BACK_EDGE_3D: // fh
-      neighborId = vertexId + this->vertexNeighborFH_[localNeighborId];
-      break;
-    case VertexPosition::TOP_LEFT_EDGE_3D: // ae
-      neighborId = vertexId + this->vertexNeighborAE_[localNeighborId];
-      break;
-    case VertexPosition::TOP_RIGHT_EDGE_3D: // bf
-      neighborId = vertexId + this->vertexNeighborBF_[localNeighborId];
-      break;
-    case VertexPosition::BOTTOM_LEFT_EDGE_3D: // cg
-      neighborId = vertexId + this->vertexNeighborCG_[localNeighborId];
-      break;
-    case VertexPosition::BOTTOM_RIGHT_EDGE_3D: // dh
-      neighborId = vertexId + this->vertexNeighborDH_[localNeighborId];
-      break;
-    case VertexPosition::TOP_LEFT_FRONT_CORNER_3D: // a
-      neighborId = vertexId + this->vertexNeighborA_[localNeighborId];
-      break;
-    case VertexPosition::TOP_RIGHT_FRONT_CORNER_3D: // b
-      neighborId = vertexId + this->vertexNeighborB_[localNeighborId];
-      break;
-    case VertexPosition::BOTTOM_LEFT_FRONT_CORNER_3D: // c
-      neighborId = vertexId + this->vertexNeighborC_[localNeighborId];
-      break;
-    case VertexPosition::BOTTOM_RIGHT_FRONT_CORNER_3D: // d
-      neighborId = vertexId + this->vertexNeighborD_[localNeighborId];
-      break;
-    case VertexPosition::TOP_LEFT_BACK_CORNER_3D: // e
-      neighborId = vertexId + this->vertexNeighborE_[localNeighborId];
-      break;
-    case VertexPosition::TOP_RIGHT_BACK_CORNER_3D: // f
-      neighborId = vertexId + this->vertexNeighborF_[localNeighborId];
-      break;
-    case VertexPosition::BOTTOM_LEFT_BACK_CORNER_3D: // g
-      neighborId = vertexId + this->vertexNeighborG_[localNeighborId];
-      break;
-    case VertexPosition::BOTTOM_RIGHT_BACK_CORNER_3D: // h
-      neighborId = vertexId + this->vertexNeighborH_[localNeighborId];
-      break;
-    case VertexPosition::CENTER_2D:
-      neighborId = vertexId + this->vertexNeighbor2dABCD_[localNeighborId];
-      break;
-    case VertexPosition::TOP_EDGE_2D:
-      neighborId = vertexId + this->vertexNeighbor2dAB_[localNeighborId];
-      break;
-    case VertexPosition::BOTTOM_EDGE_2D:
-      neighborId = vertexId + this->vertexNeighbor2dCD_[localNeighborId];
-      break;
-    case VertexPosition::LEFT_EDGE_2D:
-      neighborId = vertexId + this->vertexNeighbor2dAC_[localNeighborId];
-      break;
-    case VertexPosition::RIGHT_EDGE_2D:
-      neighborId = vertexId + this->vertexNeighbor2dBD_[localNeighborId];
-      break;
-    case VertexPosition::TOP_LEFT_CORNER_2D: // a
-      neighborId = vertexId + this->vertexNeighbor2dA_[localNeighborId];
-      break;
-    case VertexPosition::TOP_RIGHT_CORNER_2D: // b
-      neighborId = vertexId + this->vertexNeighbor2dB_[localNeighborId];
-      break;
-    case VertexPosition::BOTTOM_LEFT_CORNER_2D: // c
-      neighborId = vertexId + this->vertexNeighbor2dC_[localNeighborId];
-      break;
-    case VertexPosition::BOTTOM_RIGHT_CORNER_2D: // d
-      neighborId = vertexId + this->vertexNeighbor2dD_[localNeighborId];
-      break;
-    case VertexPosition::CENTER_1D:
-      neighborId = (localNeighborId == 0 ? vertexId + 1 : vertexId - 1);
-      break;
-    case VertexPosition::LEFT_CORNER_1D:
-      neighborId = vertexId + 1;
-      break;
-    case VertexPosition::RIGHT_CORNER_1D:
-      neighborId = vertexId - 1;
-      break;
-    default:
-      neighborId = -1;
-      break;
-  }
-
-  return 0;
 }
 
 const vector<vector<SimplexId>> *
@@ -3077,8 +2939,10 @@ int ttk::ImplicitTriangulation::preconditionDistributedCells() {
   if(!ttk::hasInitializedMPI()) {
     return -1;
   }
-  if(this->cellRankArray_ == nullptr) {
-    this->printErr("Missing cell RankArray!");
+  if(this->cellGhost_ == nullptr) {
+    if(ttk::isRunningWithMPI()) {
+      this->printErr("Missing cell ghost array!");
+    }
     return -3;
   }
 
@@ -3088,98 +2952,88 @@ int ttk::ImplicitTriangulation::preconditionDistributedCells() {
   const auto nLocCells{this->getNumberOfCells()};
 
   // there are 6 tetrahedra per cubic cell (and 2 triangles per square)
-  const int nTetraPerCube{ImplicitTriangulation::getDimensionality() == 3 ? 6
-                                                                          : 2};
+  const int nTetraPerCube{this->dimensionality_ == 3 ? 6 : 2};
   std::vector<unsigned char> fillCells(nLocCells / nTetraPerCube);
 
   this->ghostCellsPerOwner_.resize(ttk::MPIsize_);
 
-  for(LongSimplexId lcid = 0; lcid < nLocCells; ++lcid) {
-    const auto locCubeId{lcid / nTetraPerCube};
-    if(this->cellRankArray_[locCubeId] != ttk::MPIrank_) {
-      // store ghost cell global ids (per rank)
-      this->ghostCellsPerOwner_[this->cellRankArray_[locCubeId]].emplace_back(
-        this->getCellGlobalIdInternal(lcid));
+  this->neighborCellBBoxes_.resize(ttk::MPIsize_);
+  auto &localBBox{this->neighborCellBBoxes_[ttk::MPIrank_]};
+
+  ttk::SimplexId localBBox_x_min{this->localGridOffset_[0]
+                                 + this->dimensions_[0]},
+    localBBox_y_min{this->localGridOffset_[1] + this->dimensions_[1]},
+    localBBox_z_min{this->localGridOffset_[2] + this->dimensions_[2]};
+  ttk::SimplexId localBBox_x_max{this->localGridOffset_[0]},
+    localBBox_y_max{this->localGridOffset_[1]},
+    localBBox_z_max{this->localGridOffset_[2]};
+
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp parallel for reduction(                    \
+  min                                                  \
+  : localBBox_x_min, localBBox_y_min, localBBox_z_min) \
+  reduction(max                                        \
+            : localBBox_x_max, localBBox_y_max, localBBox_z_max)
+#endif
+  for(SimplexId lcid = 0; lcid < nLocCells; ++lcid) {
+    // only keep non-ghost cells
+    if(this->cellGhost_[lcid / nTetraPerCube] == 1) {
+      continue;
+    }
+    // local vertex coordinates
+    std::array<SimplexId, 3> p{};
+    if(this->dimensionality_ == 3) {
+      this->tetrahedronToPosition(lcid, p.data());
+    } else if(this->dimensionality_ == 2) {
+      this->triangleToPosition2d(lcid, p.data());
+      // compatibility with tetrahedronToPosition; fix a bounding box
+      // error in the first axis
+      p[0] /= 2;
+    }
+
+    // global vertex coordinates
+    p[0] += this->localGridOffset_[0];
+    p[1] += this->localGridOffset_[1];
+    p[2] += this->localGridOffset_[2];
+
+    if(p[0] < localBBox_x_min) {
+      localBBox_x_min = p[0];
+    }
+    if(p[0] > localBBox_x_max) {
+      localBBox_x_max = p[0];
+    }
+    if(p[1] < localBBox_y_min) {
+      localBBox_y_min = p[1];
+    }
+    if(p[1] > localBBox_y_max) {
+      localBBox_y_max = p[1];
+    }
+    if(p[2] < localBBox_z_min) {
+      localBBox_z_min = p[2];
+    }
+    if(p[2] > localBBox_z_max) {
+      localBBox_z_max = p[2];
     }
   }
+  localBBox_x_max++;
+  localBBox_y_max++;
+  localBBox_z_max++;
 
-  // for each rank, store the global id of local cells that are ghost cells of
-  // other ranks.
-  const auto MIT{ttk::getMPIType(ttk::SimplexId{})};
-  this->remoteGhostCells_.resize(ttk::MPIsize_);
-  // number of owned cells that are ghost cells of other ranks
-  std::vector<size_t> nOwnedGhostCellsPerRank(ttk::MPIsize_);
+  localBBox = {
+    localBBox_x_min, localBBox_x_max, localBBox_y_min,
+    localBBox_y_max, localBBox_z_min, localBBox_z_max,
+  };
 
-  for(const auto neigh : this->neighborRanks_) {
-    // 1. send to neigh number of ghost cells owned by neigh
-    const auto nCells{this->ghostCellsPerOwner_[neigh].size()};
-    MPI_Sendrecv(&nCells, 1, ttk::getMPIType(nCells), neigh, ttk::MPIrank_,
-                 &nOwnedGhostCellsPerRank[neigh], 1, ttk::getMPIType(nCells),
-                 neigh, neigh, ttk::MPIcomm_, MPI_STATUS_IGNORE);
-    this->remoteGhostCells_[neigh].resize(nOwnedGhostCellsPerRank[neigh]);
-
-    // 2. send to neigh list of ghost cells owned by neigh
-    MPI_Sendrecv(this->ghostCellsPerOwner_[neigh].data(),
-                 this->ghostCellsPerOwner_[neigh].size(), MIT, neigh,
-                 ttk::MPIrank_, this->remoteGhostCells_[neigh].data(),
-                 this->remoteGhostCells_[neigh].size(), MIT, neigh, neigh,
-                 ttk::MPIcomm_, MPI_STATUS_IGNORE);
+  for(size_t i = 0; i < this->neighborRanks_.size(); ++i) {
+    const auto neigh{this->neighborRanks_[i]};
+    MPI_Sendrecv(this->neighborCellBBoxes_[ttk::MPIrank_].data(), 6,
+                 ttk::getMPIType(SimplexId{}), neigh, ttk::MPIrank_,
+                 this->neighborCellBBoxes_[neigh].data(), 6,
+                 ttk::getMPIType(SimplexId{}), neigh, neigh, ttk::MPIcomm_,
+                 MPI_STATUS_IGNORE);
   }
 
   this->hasPreconditionedDistributedCells_ = true;
-
-  return 0;
-}
-
-int ImplicitTriangulation::preconditionDistributedVertices() {
-  if(this->hasPreconditionedDistributedVertices_) {
-    return 0;
-  }
-  if(!hasInitializedMPI()) {
-    return -1;
-  }
-  if(this->vertexRankArray_ == nullptr) {
-    this->printErr("Missing vertex RankArray!");
-    return -3;
-  }
-
-  // number of local vertices (with ghost vertices...)
-  const auto nLocVertices{this->getNumberOfVertices()};
-
-  this->ghostVerticesPerOwner_.resize(ttk::MPIsize_);
-
-  for(LongSimplexId lvid = 0; lvid < nLocVertices; ++lvid) {
-    if(this->vertexRankArray_[lvid] != ttk::MPIrank_) {
-      // store ghost cell global ids (per rank)
-      this->ghostVerticesPerOwner_[this->vertexRankArray_[lvid]].emplace_back(
-        this->getVertexGlobalIdInternal(lvid));
-    }
-  }
-
-  // for each rank, store the global id of local cells that are ghost cells of
-  // other ranks.
-  const auto MIT{ttk::getMPIType(ttk::SimplexId{})};
-  this->remoteGhostVertices_.resize(ttk::MPIsize_);
-  // number of owned cells that are ghost cells of other ranks
-  std::vector<size_t> nOwnedGhostVerticesPerRank(ttk::MPIsize_);
-
-  for(const auto neigh : this->neighborRanks_) {
-    // 1. send to neigh number of ghost cells owned by neigh
-    const auto nVerts{this->ghostVerticesPerOwner_[neigh].size()};
-    MPI_Sendrecv(&nVerts, 1, ttk::getMPIType(nVerts), neigh, ttk::MPIrank_,
-                 &nOwnedGhostVerticesPerRank[neigh], 1, ttk::getMPIType(nVerts),
-                 neigh, neigh, ttk::MPIcomm_, MPI_STATUS_IGNORE);
-    this->remoteGhostVertices_[neigh].resize(nOwnedGhostVerticesPerRank[neigh]);
-
-    // 2. send to neigh list of ghost cells owned by neigh
-    MPI_Sendrecv(this->ghostVerticesPerOwner_[neigh].data(),
-                 this->ghostVerticesPerOwner_[neigh].size(), MIT, neigh,
-                 ttk::MPIrank_, this->remoteGhostVertices_[neigh].data(),
-                 this->remoteGhostVertices_[neigh].size(), MIT, neigh, neigh,
-                 ttk::MPIcomm_, MPI_STATUS_IGNORE);
-  }
-
-  this->hasPreconditionedDistributedVertices_ = true;
 
   return 0;
 }
@@ -3188,6 +3042,11 @@ void ttk::ImplicitTriangulation::createMetaGrid(const double *const bounds) {
 
   // only works with 2 processes or more
   if(!ttk::isRunningWithMPI()) {
+    return;
+  }
+
+  // no need to create it anew?
+  if(this->metaGrid_ != nullptr) {
     return;
   }
 
@@ -3211,22 +3070,26 @@ void ttk::ImplicitTriangulation::createMetaGrid(const double *const bounds) {
   };
 
   const std::array<int, 3> dimensions = {
-    static_cast<int>((globalBounds[1] - globalBounds[0]) / this->spacing_[0])
+    static_cast<int>(
+      std::round((globalBounds[1] - globalBounds[0]) / this->spacing_[0]))
       + 1,
-    static_cast<int>((globalBounds[3] - globalBounds[2]) / this->spacing_[1])
+    static_cast<int>(
+      std::round((globalBounds[3] - globalBounds[2]) / this->spacing_[1]))
       + 1,
-    static_cast<int>((globalBounds[5] - globalBounds[4]) / this->spacing_[2])
+    static_cast<int>(
+      std::round((globalBounds[5] - globalBounds[4]) / this->spacing_[2]))
       + 1,
   };
 
   this->localGridOffset_ = {
-    static_cast<SimplexId>((this->origin_[0] - globalBounds[0])
-                           / this->spacing_[0]),
-    static_cast<SimplexId>((this->origin_[1] - globalBounds[2])
-                           / this->spacing_[1]),
-    static_cast<SimplexId>((this->origin_[2] - globalBounds[4])
-                           / this->spacing_[2]),
+    static_cast<SimplexId>(
+      std::round((this->origin_[0] - globalBounds[0]) / this->spacing_[0])),
+    static_cast<SimplexId>(
+      std::round((this->origin_[1] - globalBounds[2]) / this->spacing_[1])),
+    static_cast<SimplexId>(
+      std::round((this->origin_[2] - globalBounds[4]) / this->spacing_[2])),
   };
+
   this->metaGrid_ = std::make_shared<ImplicitNoPreconditions>();
   this->metaGrid_->setInputGrid(globalBounds[0], globalBounds[1],
                                 globalBounds[2], this->spacing_[0],
@@ -3237,22 +3100,8 @@ void ttk::ImplicitTriangulation::createMetaGrid(const double *const bounds) {
   this->metaGrid_->preconditionBoundaryTriangles();
 }
 
-SimplexId ttk::ImplicitTriangulation::getVertexGlobalIdInternal(
-  const SimplexId lvid) const {
-
-  if(!ttk::isRunningWithMPI()) {
-    return lvid;
-  }
-
-#ifndef TTK_ENABLE_KAMIKAZE
-  if(lvid > this->TTK_TRIANGULATION_INTERNAL(getNumberOfVertices)() - 1
-     || lvid < 0) {
-    return -1;
-  }
-  if(this->metaGrid_ == nullptr) {
-    return -1;
-  }
-#endif // TTK_ENABLE_KAMIKAZE
+std::array<SimplexId, 3>
+  ttk::ImplicitTriangulation::getVertGlobalCoords(const SimplexId lvid) const {
 
   // local vertex coordinates
   std::array<SimplexId, 3> p{};
@@ -3267,29 +3116,11 @@ SimplexId ttk::ImplicitTriangulation::getVertexGlobalIdInternal(
   p[1] += this->localGridOffset_[1];
   p[2] += this->localGridOffset_[2];
 
-  const auto &dims{this->metaGrid_->getGridDimensions()};
-
-  // global coordinates to identifier (inverse of vertexToPosition)
-  return p[0] + p[1] * dims[0] + p[2] * dims[0] * dims[1];
+  return p;
 }
 
-SimplexId ttk::ImplicitTriangulation::getVertexLocalIdInternal(
-  const SimplexId gvid) const {
-
-  if(!ttk::isRunningWithMPI()) {
-    return gvid;
-  }
-
-#ifndef TTK_ENABLE_KAMIKAZE
-  if(this->metaGrid_ == nullptr) {
-    return -1;
-  }
-  if(gvid
-       > this->metaGrid_->TTK_TRIANGULATION_INTERNAL(getNumberOfVertices)() - 1
-     || gvid < 0) {
-    return -1;
-  }
-#endif // TTK_ENABLE_KAMIKAZE
+std::array<SimplexId, 3>
+  ttk::ImplicitTriangulation::getVertLocalCoords(const SimplexId gvid) const {
 
   // global vertex coordinates
   std::array<SimplexId, 3> p{};
@@ -3304,285 +3135,7 @@ SimplexId ttk::ImplicitTriangulation::getVertexLocalIdInternal(
   p[1] -= this->localGridOffset_[1];
   p[2] -= this->localGridOffset_[2];
 
-  const auto &dims{this->getGridDimensions()};
-
-  // local coordinates to identifier (inverse of vertexToPosition)
-  return p[0] + p[1] * dims[0] + p[2] * dims[0] * dims[1];
-}
-
-SimplexId ttk::ImplicitTriangulation::getCellGlobalIdInternal(
-  const SimplexId lcid) const {
-
-  if(!ttk::isRunningWithMPI()) {
-    return lcid;
-  }
-
-#ifndef TTK_ENABLE_KAMIKAZE
-  if(lcid > this->TTK_TRIANGULATION_INTERNAL(getNumberOfCells)() - 1
-     || lcid < 0) {
-    return -1;
-  }
-  if(this->metaGrid_ == nullptr) {
-    return -1;
-  }
-#endif // TTK_ENABLE_KAMIKAZE
-
-  // local cube coordinates
-  std::array<SimplexId, 3> p{};
-  if(this->dimensionality_ == 3) {
-    this->tetrahedronToPosition(lcid, p.data());
-  } else if(this->dimensionality_ == 2) {
-    this->triangleToPosition2d(lcid, p.data());
-  }
-
-  // global cube coordinates
-  p[0] += this->localGridOffset_[0];
-  p[1] += this->localGridOffset_[1];
-  p[2] += this->localGridOffset_[2];
-
-  const auto &dims{this->metaGrid_->getGridDimensions()};
-
-  // global coordinates to identifier (inverse of tetrahedronToPosition)
-  const auto globCubeId{p[0] + p[1] * (dims[0] - 1)
-                        + p[2] * (dims[0] - 1) * (dims[1] - 1)};
-
-  const auto nCellsPerCube{this->dimensionality_ == 3 ? 6 : 2};
-  return globCubeId * nCellsPerCube + lcid % nCellsPerCube;
-}
-
-SimplexId ttk::ImplicitTriangulation::getCellLocalIdInternal(
-  const SimplexId gcid) const {
-
-  if(!ttk::isRunningWithMPI()) {
-    return gcid;
-  }
-
-#ifndef TTK_ENABLE_KAMIKAZE
-  if(this->metaGrid_ == nullptr) {
-    return -1;
-  }
-  if(gcid > this->metaGrid_->TTK_TRIANGULATION_INTERNAL(getNumberOfCells)() - 1
-     || gcid < 0) {
-    return -1;
-  }
-#endif // TTK_ENABLE_KAMIKAZE
-
-  // global cube coordinates
-  std::array<SimplexId, 3> p{};
-  if(this->dimensionality_ == 3) {
-    this->metaGrid_->tetrahedronToPosition(gcid, p.data());
-  } else if(this->dimensionality_ == 2) {
-    this->metaGrid_->triangleToPosition2d(gcid, p.data());
-  }
-
-  // local cube coordinates
-  p[0] -= this->localGridOffset_[0];
-  p[1] -= this->localGridOffset_[1];
-  p[2] -= this->localGridOffset_[2];
-
-  const auto &dims{this->getGridDimensions()};
-
-  // local coordinates to identifier (inverse of tetrahedronToPosition)
-  const auto locCubeId{p[0] + p[1] * (dims[0] - 1)
-                       + p[2] * (dims[0] - 1) * (dims[1] - 1)};
-
-  const auto nCellsPerCube{this->dimensionality_ == 3 ? 6 : 2};
-  return locCubeId * nCellsPerCube + gcid % nCellsPerCube;
-}
-
-SimplexId
-  ttk::ImplicitTriangulation::findEdgeFromVertices(const SimplexId v0,
-                                                   const SimplexId v1) const {
-  // loop over v0 edges to find the one between v0 and v1
-  const auto nEdges = this->getVertexEdgeNumberInternal(v0);
-  for(SimplexId i = 0; i < nEdges; ++i) {
-    SimplexId e{};
-    std::array<SimplexId, 2> eVerts{};
-    this->getVertexEdgeInternal(v0, i, e);
-    this->getEdgeVertexInternal(e, 0, eVerts[0]);
-    this->getEdgeVertexInternal(e, 1, eVerts[1]);
-    if((v0 == eVerts[0] && v1 == eVerts[1])
-       || (v0 == eVerts[1] && v1 == eVerts[0])) {
-      return e;
-    }
-  }
-
-  return -1;
-}
-
-SimplexId ttk::ImplicitTriangulation::getEdgeGlobalIdInternal(
-  const SimplexId leid) const {
-
-  if(!ttk::isRunningWithMPI()) {
-    return leid;
-  }
-
-#ifndef TTK_ENABLE_KAMIKAZE
-  if(leid > this->getNumberOfEdgesInternal() - 1 || leid < 0) {
-    return -1;
-  }
-  if(this->metaGrid_ == nullptr) {
-    return -1;
-  }
-#endif // TTK_ENABLE_KAMIKAZE
-
-  if(this->dimensionality_ == 1) {
-    return this->getCellGlobalIdInternal(leid);
-  }
-
-  // local vertices ids
-  SimplexId lv0{}, lv1{};
-  this->getEdgeVertexInternal(leid, 0, lv0);
-  this->getEdgeVertexInternal(leid, 1, lv1);
-
-  // global vertices ids
-  const auto gv0 = this->getVertexGlobalId(lv0);
-  const auto gv1 = this->getVertexGlobalId(lv1);
-  if(gv0 == -1 || gv1 == -1) {
-    return -1;
-  }
-
-  return this->metaGrid_->findEdgeFromVertices(gv0, gv1);
-}
-
-SimplexId ttk::ImplicitTriangulation::getEdgeLocalIdInternal(
-  const SimplexId geid) const {
-
-  if(!ttk::isRunningWithMPI()) {
-    return geid;
-  }
-
-#ifndef TTK_ENABLE_KAMIKAZE
-  if(this->metaGrid_ == nullptr) {
-    return -1;
-  }
-  if(geid > this->metaGrid_->getNumberOfEdgesInternal() - 1 || geid < 0) {
-    return -1;
-  }
-#endif // TTK_ENABLE_KAMIKAZE
-
-  if(this->dimensionality_ == 1) {
-    return this->getCellLocalIdInternal(geid);
-  }
-
-  // global vertices ids
-  SimplexId gv0{}, gv1{};
-  this->metaGrid_->getEdgeVertexInternal(geid, 0, gv0);
-  this->metaGrid_->getEdgeVertexInternal(geid, 1, gv1);
-
-  // local vertices ids
-  const auto lv0 = this->getVertexLocalId(gv0);
-  const auto lv1 = this->getVertexLocalId(gv1);
-  if(lv0 == -1 || lv1 == -1) {
-    return -1;
-  }
-
-  return this->findEdgeFromVertices(lv0, lv1);
-}
-
-SimplexId ttk::ImplicitTriangulation::findTriangleFromVertices(
-  std::array<SimplexId, 3> &verts) const {
-
-  std::sort(verts.begin(), verts.end());
-
-  // loop over verts[0] triangles to find the one shared by all 3
-  const auto nTriangles = this->getVertexTriangleNumberInternal(verts[0]);
-  for(SimplexId i = 0; i < nTriangles; ++i) {
-    SimplexId t{};
-    std::array<SimplexId, 3> tVerts{};
-    this->getVertexTriangleInternal(verts[0], i, t);
-    this->getTriangleVertexInternal(t, 0, tVerts[0]);
-    this->getTriangleVertexInternal(t, 1, tVerts[1]);
-    this->getTriangleVertexInternal(t, 2, tVerts[2]);
-    std::sort(tVerts.begin(), tVerts.end());
-    if(tVerts == verts) {
-      return t;
-    }
-  }
-
-  return -1;
-}
-
-SimplexId ttk::ImplicitTriangulation::getTriangleGlobalIdInternal(
-  const SimplexId ltid) const {
-
-  if(!ttk::isRunningWithMPI()) {
-    return ltid;
-  }
-
-#ifndef TTK_ENABLE_KAMIKAZE
-  if(ltid > this->getNumberOfTrianglesInternal() - 1 || ltid < 0) {
-    return -1;
-  }
-  if(this->metaGrid_ == nullptr) {
-    return -1;
-  }
-#endif // TTK_ENABLE_KAMIKAZE
-
-  if(this->dimensionality_ == 2) {
-    return this->getCellGlobalIdInternal(ltid);
-  }
-
-  // local vertices ids
-  SimplexId lv0{}, lv1{}, lv2{};
-  this->getTriangleVertexInternal(ltid, 0, lv0);
-  this->getTriangleVertexInternal(ltid, 1, lv1);
-  this->getTriangleVertexInternal(ltid, 2, lv2);
-
-  // global vertices ids
-  std::array<SimplexId, 3> globVerts{
-    this->getVertexGlobalId(lv0),
-    this->getVertexGlobalId(lv1),
-    this->getVertexGlobalId(lv2),
-  };
-  for(const auto gv : globVerts) {
-    if(gv == -1) {
-      return -1;
-    }
-  }
-
-  return this->metaGrid_->findTriangleFromVertices(globVerts);
-}
-
-SimplexId ttk::ImplicitTriangulation::getTriangleLocalIdInternal(
-  const SimplexId gtid) const {
-
-  if(!ttk::isRunningWithMPI()) {
-    return gtid;
-  }
-
-#ifndef TTK_ENABLE_KAMIKAZE
-  if(this->metaGrid_ == nullptr) {
-    return -1;
-  }
-  if(gtid > this->metaGrid_->getNumberOfTrianglesInternal() - 1 || gtid < 0) {
-    return -1;
-  }
-#endif // TTK_ENABLE_KAMIKAZE
-
-  if(this->dimensionality_ == 2) {
-    return this->getCellGlobalIdInternal(gtid);
-  }
-
-  // local vertices ids
-  SimplexId gv0{}, gv1{}, gv2{};
-  this->metaGrid_->getTriangleVertexInternal(gtid, 0, gv0);
-  this->metaGrid_->getTriangleVertexInternal(gtid, 1, gv1);
-  this->metaGrid_->getTriangleVertexInternal(gtid, 2, gv2);
-
-  // global vertices ids
-  std::array<SimplexId, 3> locVerts{
-    this->getVertexLocalId(gv0),
-    this->getVertexLocalId(gv1),
-    this->getVertexLocalId(gv2),
-  };
-  for(const auto lv : locVerts) {
-    if(lv == -1) {
-      return -1;
-    }
-  }
-
-  return this->findTriangleFromVertices(locVerts);
+  return p;
 }
 
 bool ImplicitTriangulation::isVertexOnGlobalBoundaryInternal(
@@ -3653,6 +3206,50 @@ bool ImplicitTriangulation::isTriangleOnGlobalBoundaryInternal(
     return false;
   }
   return this->metaGrid_->isTriangleOnBoundary(gtid);
+}
+
+int ttk::ImplicitTriangulation::getCellRankInternal(
+  const SimplexId lcid) const {
+
+  const int nTetraPerCube{this->dimensionality_ == 3 ? 6 : 2};
+  const auto locCubeId{lcid / nTetraPerCube};
+
+  if(this->cellGhost_[locCubeId] == 0) {
+    return ttk::MPIrank_;
+  }
+
+#ifndef TTK_ENABLE_KAMIKAZE
+  if(this->neighborRanks_.empty() && ttk::MPIsize_ > 1) {
+    this->printErr("Empty neighborsRanks_!");
+    return -1;
+  }
+#endif // TTK_ENABLE_KAMIKAZE
+
+  const auto nVertsCell{this->getCellVertexNumber(lcid)};
+  std::vector<bool> inRank(nVertsCell);
+  for(const auto neigh : this->neighborRanks_) {
+    std::fill(inRank.begin(), inRank.end(), false);
+    const auto &bbox{this->neighborCellBBoxes_[neigh]};
+    for(SimplexId i = 0; i < nVertsCell; ++i) {
+      SimplexId v{};
+      this->getCellVertex(lcid, i, v);
+      if(this->vertexGhost_[v] == 0) {
+        inRank[i] = true;
+      } else {
+        const auto p{this->getVertGlobalCoords(v)};
+        if(p[0] >= bbox[0] && p[0] <= bbox[1] && p[1] >= bbox[2]
+           && p[1] <= bbox[3] && p[2] >= bbox[4] && p[2] <= bbox[5]) {
+          inRank[i] = true;
+        }
+      }
+    }
+    if(std::all_of(
+         inRank.begin(), inRank.end(), [](const bool v) { return v; })) {
+      return neigh;
+    }
+  }
+
+  return -1;
 }
 
 #endif // TTK_ENABLE_MPI

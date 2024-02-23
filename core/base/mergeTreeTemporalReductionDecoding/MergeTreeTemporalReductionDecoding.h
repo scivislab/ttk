@@ -59,7 +59,7 @@ namespace ttk {
         mergeTreeDistance.setEpsilonTree2(epsilonTree2_);
         mergeTreeDistance.setPersistenceThreshold(persistenceThreshold_);
         mergeTreeDistance.setThreadNumber(this->threadNumber_);
-        mergeTreeDistance.setDistanceSquared(false); // squared root
+        mergeTreeDistance.setDistanceSquaredRoot(false); // squared root
         mergeTreeDistance.setDebugLevel(2);
         mergeTreeDistance.setPreprocess(false);
         mergeTreeDistance.setComputeMapping(true);
@@ -80,17 +80,17 @@ namespace ttk {
         mergeTreeDistance.setEpsilon2Tree2(epsilon2Tree2_);
         mergeTreeDistance.setEpsilon3Tree1(epsilon3Tree1_);
         mergeTreeDistance.setEpsilon3Tree2(epsilon3Tree2_);
-        mergeTreeDistance.setProgressiveComputation(progressiveComputation_);
+        // mergeTreeDistance.setProgressiveComputation(progressiveComputation_);
         mergeTreeDistance.setBranchDecomposition(branchDecomposition_);
         mergeTreeDistance.setParallelize(parallelize_);
         mergeTreeDistance.setPersistenceThreshold(persistenceThreshold_);
         mergeTreeDistance.setNormalizedWasserstein(normalizedWasserstein_);
-        mergeTreeDistance.setNormalizedWassersteinReg(normalizedWassersteinReg_);
-        mergeTreeDistance.setRescaledWasserstein(rescaledWasserstein_);
+        // mergeTreeDistance.setNormalizedWassersteinReg(normalizedWassersteinReg_);
+        // mergeTreeDistance.setRescaledWasserstein(rescaledWasserstein_);
         mergeTreeDistance.setKeepSubtree(keepSubtree_);
         mergeTreeDistance.setUseMinMaxPair(useMinMaxPair_);
         mergeTreeDistance.setThreadNumber(this->threadNumber_);
-        mergeTreeDistance.setDistanceSquared(true); // squared root
+        mergeTreeDistance.setDistanceSquaredRoot(true); // squared root
         mergeTreeDistance.setDebugLevel(2);
         mergeTreeDistance.setPreprocess(false);
         mergeTreeDistance.setPostprocess(false);
@@ -122,7 +122,6 @@ namespace ttk {
       mergeTreeBarycenter.setEpsilon2Tree2(epsilon2Tree2_);
       mergeTreeBarycenter.setEpsilon3Tree1(epsilon3Tree1_);
       mergeTreeBarycenter.setEpsilon3Tree2(epsilon3Tree2_);
-      mergeTreeBarycenter.setProgressiveComputation(progressiveComputation_);
       mergeTreeBarycenter.setBranchDecomposition(branchDecomposition_);
       mergeTreeBarycenter.setParallelize(parallelize_);
       mergeTreeBarycenter.setPersistenceThreshold(persistenceThreshold_);
@@ -147,8 +146,8 @@ namespace ttk {
       else{
         mergeTreeBarycenter.setBranchDecomposition(true);
         mergeTreeBarycenter.setNormalizedWasserstein(normalizedWasserstein_);
-        mergeTreeBarycenter.setNormalizedWassersteinReg(normalizedWassersteinReg_);
-        mergeTreeBarycenter.setRescaledWasserstein(rescaledWasserstein_);
+        // mergeTreeBarycenter.setNormalizedWassersteinReg(normalizedWassersteinReg_);
+        // mergeTreeBarycenter.setRescaledWasserstein(rescaledWasserstein_);
       }
 
       std::vector<ftm::MergeTree<dataType>> intermediateTrees;
@@ -223,9 +222,9 @@ namespace ttk {
       size_t cpt = 0;
       while(cpt < coefs.size()) {
         while(cpt < coefs.size() and std::get<2>(coefs[cpt]) <= index) {
-          double alpha = std::get<0>(coefs[cpt]);
-          int index1 = std::get<1>(coefs[cpt]);
-          int index2 = std::get<2>(coefs[cpt]);
+          double const alpha = std::get<0>(coefs[cpt]);
+          int const index1 = std::get<1>(coefs[cpt]);
+          int const index2 = std::get<2>(coefs[cpt]);
           ftm::MergeTree<dataType> tree = computeBarycenter<dataType>(
             mTrees[index1], mTrees[index2], alpha);
           allMT.push_back(tree);

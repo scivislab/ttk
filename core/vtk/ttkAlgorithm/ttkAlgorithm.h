@@ -9,7 +9,7 @@
 /// \brief Baseclass of all VTK filters that wrap ttk modules.
 ///
 /// This is an abstract vtkAlgorithm that provides standardized input/output
-/// managment for VTK wrappers of ttk filters. The class also provides a static
+/// management for VTK wrappers of ttk filters. The class also provides a static
 /// method to retrieve a ttk::Triangulation of a vtkDataSet.
 
 #pragma once
@@ -35,7 +35,6 @@ class TTKALGORITHM_EXPORT ttkAlgorithm : public vtkAlgorithm,
 private:
   int ThreadNumber{1};
   bool UseAllCores{true};
-  float CompactTriangulationCacheSize{0.2f};
 
 public:
   static ttkAlgorithm *New();
@@ -54,7 +53,7 @@ public:
 
   /**
    * Explicitly sets the maximum number of threads for the base code
-   * (overriden by UseAllCores member).
+   * (overridden by UseAllCores member).
    */
   void SetThreadNumber(int threadNumber) {
     this->ThreadNumber = threadNumber;
@@ -114,16 +113,47 @@ public:
    * identifier field, or with a user-provided offset field through
    * the \p enforceArrayIndex parameter and the \p arrayIndex. The
    * generated sorted offset field is then attached to the input
-   * vtkDataset \p inputData.
+   * vtkDataset \p inputData. The argument getGlobalOrder, when set to true,
+   * triggers a computation of a global order array, over all MPI processes.
+   * The triangulation argument is only required when getGlobalOrder is set
+   * to true.
    */
   vtkDataArray *GetOrderArray(vtkDataSet *const inputData,
                               const int scalarArrayIdx,
+                              ttk::Triangulation *triangulation,
+                              const bool getGlobalOrder = false,
                               const int orderArrayIdx = 0,
                               const bool enforceOrderArrayIdx = false);
 
   /**
+   * Checks whether the global order should be global or not, then triggers the
+   * computation accordingly.
+   */
+  vtkDataArray *
+    checkForGlobalAndComputeOrderArray(vtkDataSet *const inputData,
+                                       vtkDataArray *scalarArray,
+                                       const int scalarArrayIdx,
+                                       const bool getGlobalOrder,
+                                       vtkDataArray *orderArray,
+                                       ttk::Triangulation *triangulation,
+                                       const bool enforceOrderArrayIdx);
+
+  /**
+   * Initializes and computes the order array. When using MPI processes,
+   * the order will be local when getGlobalOrder is set to false, and global
+   * otherwise. This function is called in GetOrderArray and should not be
+   * called directly in other functions or algorithms.
+   */
+
+  vtkDataArray *ComputeOrderArray(vtkDataSet *const inputData,
+                                  vtkDataArray *scalarArray,
+                                  const int scalarArrayIdx,
+                                  const bool getGlobalOrder,
+                                  vtkDataArray *oldOrderArray,
+                                  ttk::Triangulation *triangulation);
+  /**
    * Retrieve an identifier field and provides a ttk::SimplexId
-   * pointer to the underlaying buffer.
+   * pointer to the underlying buffer.
    *
    * Use the same parameters as GetOptionalArray to fetch the VTK data
    * array.
@@ -205,10 +235,49 @@ public:
   void AddInputData(vtkDataSet *);
   void AddInputData(int, vtkDataSet *);
 
+  /**
+   * @brief This method tests whether the input is a nullptr.
+   * If the computation is being done on multiple processes, it is possible
+   * that the domain of one process or more is empty, but not others, therefore
+   * in that particular case the rest of the filter will not be computed but
+   * an error message will not be sent.
+   *
+   * @tparam inputType
+   * @param input  the input to assess
+   * @return int 0: error, 1: stop without error, 2: continue
+   */
+  template <typename inputType>
+  inline int checkEmptyMPIInput(inputType *input) {
+    if(!input) {
+#ifdef TTK_ENABLE_MPI
+      if(ttk::isRunningWithMPI()) {
+        return 1;
+      } else {
+#endif
+        return 0;
+#ifdef TTK_ENABLE_MPI
+      }
+#endif
+    }
+    return 2;
+  };
+
 protected:
   ttkAlgorithm();
   ~ttkAlgorithm() override;
+  float CompactTriangulationCacheSize{0.2f};
 
+#ifdef TTK_ENABLE_MPI
+  /**
+   * @brief Creates a new communicator if one of the processes doesn't contain
+   * any point or cells. In this case, the RankArray is update for vertices and
+   * cells to match the new ranks.
+   *
+   * @param input input data set
+   * @return int 0 if input contains no points or no cells
+   */
+  int updateMPICommunicator(vtkDataSet *input);
+#endif
   /**
    * This method is called in GetTriangulation, after the triangulation as been
    * created. It verifies that ghost cells and points are present and if they
@@ -224,6 +293,7 @@ protected:
    */
   void MPIPipelinePreconditioning(vtkDataSet *input,
                                   std::vector<int> &neighbors,
+                                  std::map<int, int> &neighToId,
                                   ttk::Triangulation *triangulation = nullptr);
 
   /**
@@ -244,10 +314,11 @@ protected:
    * datasets.
    */
 
-  bool GenerateGlobalIds(
+  int GenerateGlobalIds(
     vtkDataSet *input,
     std::unordered_map<ttk::SimplexId, ttk::SimplexId> &vertGtoL,
-    std::vector<int> &neighborRanks);
+    std::vector<int> &neighborRanks,
+    std::map<int, int> &neighborsToId);
 
   /**
    * This method is called in GetTriangulation, after the triangulation as been
@@ -261,7 +332,7 @@ protected:
   /**
    * This method is called during the first pipeline pass in
    * ProcessRequest() to create empty output data objects. The data type of
-   * the generated outputs is specified in FillOutputPortInfomration().
+   * the generated outputs is specified in FillOutputPortInformation().
    *
    * In general it should not be necessary to override this method.
    */

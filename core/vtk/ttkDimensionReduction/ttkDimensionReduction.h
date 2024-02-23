@@ -27,18 +27,30 @@
 ///   href="https://topology-tool-kit.github.io/examples/clusteringKelvinHelmholtzInstabilities/">
 ///   Clustering Kelvin Helmholtz Instabilities example</a> \n
 ///   - <a
-///   href="https://topology-tool-kit.github.io/examples/karhunenLoveDigits64Dimensions//">Karhunen-Love
+///   href="https://topology-tool-kit.github.io/examples/karhunenLoveDigits64Dimensions/">Karhunen-Love
 ///   Digits 64-Dimensions example</a> \n
 ///   - <a
 ///   href="https://topology-tool-kit.github.io/examples/mergeTreeClustering/">Merge
 ///   Tree Clustering example</a> \n
+///   - <a
+///   href="https://topology-tool-kit.github.io/examples/mergeTreePGA/">Merge
+///   Tree Principal Geodesic Analysis example</a> \n
 ///   - <a
 ///   href="https://topology-tool-kit.github.io/examples/persistentGenerators_householdAnalysis/">Persistent
 ///   Generators Household Analysis example</a> \n
 ///   - <a
 ///   href="https://topology-tool-kit.github.io/examples/persistentGenerators_periodicPicture/">Persistent
 ///   Generators Periodic Picture example</a> \n
+///   - <a
+///   href="https://topology-tool-kit.github.io/examples/topoMapTeaser/">TopoMap
+///   Teaser example</a> \n
 ///
+
+/// \b Related \b publication: \n
+/// "Topomap: A 0-dimensional homology preserving projection of high-dimensional
+/// data"\n Harish Doraiswamy, Julien Tierny, Paulo J. S. Silva, Luis Gustavo
+/// Nonato, and Claudio Silva\n Proc. of IEEE VIS 2020.\n IEEE Transactions on
+/// Visualization and Computer Graphics 27(2): 561-571, 2020.
 
 #pragma once
 
@@ -47,7 +59,9 @@
 
 // TTK includes
 #include <DimensionReduction.h>
+#include <TopoMap.h>
 #include <ttkAlgorithm.h>
+#include <ttkMacros.h>
 
 class TTKDIMENSIONREDUCTION_EXPORT ttkDimensionReduction
   : public ttkAlgorithm,
@@ -83,8 +97,8 @@ public:
   vtkSetMacro(IsDeterministic, int);
   vtkGetMacro(IsDeterministic, int);
 
-  vtkSetMacro(Method, int);
-  vtkGetMacro(Method, int);
+  ttkSetEnumMacro(Method, METHOD);
+  vtkGetEnumMacro(Method, METHOD);
 
   vtkSetMacro(KeepAllDataArrays, bool);
   vtkGetMacro(KeepAllDataArrays, bool);
@@ -92,12 +106,7 @@ public:
   // SE && MDS
   void SetInputIsADistanceMatrix(const bool b) {
     this->InputIsADistanceMatrix = b;
-    if(b) {
-      this->mds_Dissimilarity = "precomputed";
-      this->se_Affinity = "precomputed";
-      this->tsne_Metric = "precomputed";
-      this->iso_Metric = "precomputed";
-    }
+    this->setIsInputDistanceMatrix(b);
     Modified();
   }
   vtkGetMacro(InputIsADistanceMatrix, bool);
@@ -222,6 +231,16 @@ public:
   vtkSetMacro(pca_MaxIteration, const std::string &);
   vtkGetMacro(pca_MaxIteration, std::string);
 
+  // TopoMap
+  vtkSetMacro(topomap_AngularSampleNb, unsigned long int);
+  vtkGetMacro(topomap_AngularSampleNb, unsigned long int);
+
+  vtkSetMacro(topomap_CheckMST, bool);
+  vtkGetMacro(topomap_CheckMST, bool);
+
+  ttkSetEnumMacro(topomap_Strategy, ttk::TopoMap::STRATEGY);
+  vtkGetEnumMacro(topomap_Strategy, ttk::TopoMap::STRATEGY);
+
   // testing
   vtkSetMacro(ModulePath, const std::string &);
   vtkGetMacro(ModulePath, std::string);
@@ -247,10 +266,6 @@ private:
   std::string RegexpString{".*"};
   std::vector<std::string> ScalarFields{};
 
-  int NumberOfComponents{2};
-  int NumberOfNeighbors{5};
-  int Method{2}; // MDS
-  int IsDeterministic{true};
   bool KeepAllDataArrays{true};
 
   // mds && se

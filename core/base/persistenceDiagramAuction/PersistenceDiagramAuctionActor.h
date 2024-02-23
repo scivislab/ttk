@@ -44,6 +44,21 @@ namespace ttk {
       return this->coords_;
     }
 
+    void GetKDTCoordinates(double geometricalFactor,
+                           std::array<double, 5> &coordinates) const {
+      coordinates[0] = geometricalFactor * this->x_;
+      coordinates[1] = geometricalFactor * this->y_;
+      if(geometricalFactor < 1) {
+        coordinates[2] = (1 - geometricalFactor) * this->coords_[0];
+        coordinates[3] = (1 - geometricalFactor) * this->coords_[1];
+        coordinates[4] = (1 - geometricalFactor) * this->coords_[2];
+      } else {
+        coordinates[2] = 0;
+        coordinates[3] = 0;
+        coordinates[4] = 0;
+      }
+    }
+
     void projectOnDiagonal() {
       x_ = (x_ + y_) / 2;
       y_ = x_;
@@ -64,12 +79,14 @@ namespace ttk {
 
     double cost(const PersistenceDiagramAuctionActor &g,
                 const int wasserstein,
-                const double geometricalFactor) const;
+                const double geometricalFactor,
+                const double nonMatchingWeight) const;
 
     inline double cost(const PersistenceDiagramAuctionActor *g,
                        const int wasserstein,
-                       const double geometricalFactor) const {
-      return this->cost(*g, wasserstein, geometricalFactor);
+                       const double geometricalFactor,
+                       const double nonMatchingWeight) const {
+      return this->cost(*g, wasserstein, geometricalFactor, nonMatchingWeight);
     }
 
     double getPairGeometricalLength(const int wasserstein) const {
@@ -235,12 +252,14 @@ namespace ttk {
                    Good &diagonalGood,
                    int wasserstein,
                    double epsilon,
-                   double geometricalFactor);
+                   double geometricalFactor,
+                   double nonMatchingWeight);
     int runKDTBidding(GoodDiagram *goods,
                       Good &diagonalGood,
                       int wasserstein,
                       double epsilon,
                       double geometricalFactor,
+                      double nonMatchingWeight,
                       KDT *kdt,
                       const int kdt_index = 0);
 
@@ -251,6 +270,7 @@ namespace ttk {
       int wasserstein,
       double epsilon,
       double geometricalFactor,
+      double nonMatchingWeight,
       std::priority_queue<std::pair<int, double>,
                           std::vector<std::pair<int, double>>,
                           Compare> &diagonal_queue);
@@ -260,7 +280,8 @@ namespace ttk {
       int wasserstein,
       double epsilon,
       double geometricalFactor,
-      std::vector<KDT *> &correspondance_kdt_map,
+      double nonMatchingWeight,
+      std::vector<KDT *> &correspondence_kdt_map,
       std::priority_queue<std::pair<int, double>,
                           std::vector<std::pair<int, double>>,
                           Compare> &diagonal_queue,

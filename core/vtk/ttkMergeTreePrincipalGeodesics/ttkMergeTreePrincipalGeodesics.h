@@ -8,14 +8,15 @@
 ///
 /// This VTK filter uses the ttk::MergeTreePrincipalGeodesics module to compute
 /// Principal Geodesic Analysis on the space of merge trees or persistence
-/// diagrams, that is, a set of orthognal geodesic axes defining a basis with
+/// diagrams, that is, a set of orthogonal geodesic axes defining a basis with
 /// the barycenter as origin.
 ///
 /// \param Input vtkMultiBlockDataSet Input trees
-/// \param Input (optionnal) vtkMultiBlockDataSet Input trees
+/// \param Input (optional) vtkMultiBlockDataSet Input trees
 /// \param Output vtkMultiBlockDataSet Barycenter
-/// \param Output vtkMultiBlockDataSet Geodesics
 /// \param Output vtkTable Coefficients
+/// \param Output vtkTable Geodesics Vectors
+/// \param Output vtkTable Correlation Matrix
 ///
 /// This filter can be used as any other VTK filter (for instance, by using the
 /// sequence of calls SetInputData(), Update(), GetOutputDataObject()).
@@ -29,9 +30,15 @@
 /// \b Related \b publication: \n
 /// "Principal Geodesic Analysis of Merge Trees (and Persistence Diagrams)" \n
 /// Mathieu Pont, Jules Vidal, Julien Tierny.\n
+/// IEEE Transactions on Visualization and Computer Graphics, 2022
 ///
 /// \sa ttk::MergeTreePrincipalGeodesics
 /// \sa ttkAlgorithm
+///
+/// \b Online \b examples: \n
+///   - <a
+///   href="https://topology-tool-kit.github.io/examples/mergeTreePGA/">Merge
+///   Tree Principal Geodesic Analysis example</a> \n
 
 #pragma once
 
@@ -74,14 +81,8 @@ private:
   // Output
   // -> base class
 
-  void setDataVisualization(int numInputs, int numInputs2) {
-    // Trees
-    treesNodes.resize(numInputs);
-    treesNodes2.resize(numInputs2);
-    treesArcs.resize(numInputs);
-    treesArcs2.resize(numInputs2);
-    treesSegmentation.resize(numInputs);
-    treesSegmentation2.resize(numInputs2);
+  void setDataVisualization(int ttkNotUsed(numInputs),
+                            int ttkNotUsed(numInputs2)) {
   }
 
   void resetDataVisualization() {

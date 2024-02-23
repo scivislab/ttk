@@ -67,8 +67,8 @@ namespace ttk {
     MPI_Datatype mpiPointType_;
     int dimension_{};
     int hasSentData_{0};
-    ttk::SimplexId *vertexRankArray_{nullptr};
-    ttk::SimplexId *cellRankArray_{nullptr};
+    int *vertexRankArray_{nullptr};
+    int *cellRankArray_{nullptr};
     unsigned char *vertGhost_{nullptr};
     unsigned char *cellGhost_{nullptr};
     std::vector<std::vector<ttk::SimplexId>> pointsToCells_;
@@ -109,11 +109,11 @@ namespace ttk {
       pointsToCells_ = pointsToCells;
     }
 
-    void setVertexRankArray(ttk::SimplexId *vertexRankArray) {
+    void setVertexRankArray(int *vertexRankArray) {
       this->vertexRankArray_ = vertexRankArray;
     }
 
-    void setCellRankArray(ttk::SimplexId *cellRankArray) {
+    void setCellRankArray(int *cellRankArray) {
       this->cellRankArray_ = cellRankArray;
     }
 
@@ -156,7 +156,7 @@ namespace ttk {
 
     void buildKDTree() {
       kdt_ = ttk::KDTree<float, std::array<float, 3>>(false, 2);
-      kdt_.build(pointSet_, vertexNumber_, dimension_);
+      kdt_.build(pointSet_, vertexNumber_, 3);
     }
 
     void setOutdatedGlobalCellIds(ttk::LongSimplexId *outdatedGlobalCellIds) {
@@ -197,16 +197,15 @@ namespace ttk {
     }
 
     void initializeNeighbors(double *boundingBox,
-                             std::vector<int> &neighborRanks) {
+                             std::vector<int> &neighborRanks,
+                             std::map<int, int> &neighborsToId) {
       if(neighborRanks.empty()) {
-        preconditionNeighborsUsingBoundingBox(boundingBox, neighborRanks);
+        preconditionNeighborsUsingBoundingBox(
+          boundingBox, neighborRanks, neighborsToId);
       }
       neighbors_ = &neighborRanks;
-      neighborToId_.clear();
       neighborNumber_ = neighbors_->size();
-      for(int i = 0; i < neighborNumber_; i++) {
-        neighborToId_[neighbors_->at(i)] = i;
-      }
+      neighborToId_ = neighborsToId;
     }
 
     /**
@@ -248,9 +247,9 @@ namespace ttk {
            && bounds_[5] >= receivedPoints[n].z) {
           this->findPoint(
             id, receivedPoints[n].x, receivedPoints[n].y, receivedPoints[n].z);
-          if((vertGhost_ != nullptr && vertGhost_[id] == 0)
-             || (vertexRankArray_ != nullptr
-                 && vertexRankArray_[id] == ttk::MPIrank_)) {
+          if((vertexRankArray_ != nullptr
+              && vertexRankArray_[id] == ttk::MPIrank_)
+             || (vertGhost_ != nullptr && vertGhost_[id] == 0)) {
             globalId = vertexIdentifiers_[id];
             if(globalId >= 0) {
 #ifdef TTK_ENABLE_OPENMP
@@ -351,7 +350,8 @@ namespace ttk {
       localPointIds.reserve(dimension_ + 1);
       size_t expectedSize = static_cast<size_t>(dimension_) + 1;
 #ifdef TTK_ENABLE_OPENMP
-#pragma omp parallel for num_threads(threadNumber_) firstprivate(localPointIds)
+#pragma omp parallel for num_threads(threadNumber_) \
+  firstprivate(search, localPointIds)
 #endif
       for(int n = 0; n < recvMessageSize; n += dimension_ + 2) {
         localPointIds.clear();

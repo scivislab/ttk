@@ -24,6 +24,9 @@
 ///   - <a
 ///   href="https://topology-tool-kit.github.io/examples/mergeTreeClustering/">Merge
 ///   Tree Clustering example</a> \n
+///   - <a
+///   href="https://topology-tool-kit.github.io/examples/mergeTreePGA/">Merge
+///   Tree Principal Geodesic Analysis example</a> \n
 
 #pragma once
 
@@ -170,12 +173,12 @@ public:
     return keepSubtree_;
   }
 
-  void SetDistanceSquared(bool distanceSquared) {
-    distanceSquared_ = distanceSquared;
+  void SetDistanceSquaredRoot(bool distanceSquaredRoot) {
+    distanceSquaredRoot_ = distanceSquaredRoot;
     Modified();
   }
-  int GetDistanceSquared() {
-    return distanceSquared_;
+  int GetDistanceSquaredRoot() {
+    return distanceSquaredRoot_;
   }
 
   vtkSetMacro(UseFieldDataParameters, bool);

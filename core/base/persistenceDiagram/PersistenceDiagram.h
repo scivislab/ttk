@@ -44,7 +44,8 @@
 /// "Discrete Morse Sandwich: Fast Computation of Persistence Diagrams for
 /// Scalar Data -- An Algorithm and A Benchmark" \n
 /// Pierre Guillou, Jules Vidal, Julien Tierny \n
-/// Technical Report, arXiv:2206.13932, 2022 \n
+/// IEEE Transactions on Visualization and Computer Graphics, 2023.\n
+/// arXiv:2206.13932, 2023.\n
 /// Fast and versatile algorithm for persistence diagram computation.
 ///
 /// 4) Approximate Approach \n
@@ -173,6 +174,16 @@ namespace ttk {
       this->dms_.setComputeSadMax(data);
     }
 
+    /**
+     * @brief Complete a ttk::DiagramType instance with scalar field
+     * values (useful for persistence) and 3D coordinates of critical vertices
+     */
+    template <typename scalarType, typename triangulationType>
+    void
+      augmentPersistenceDiagram(std::vector<PersistencePair> &persistencePairs,
+                                const scalarType *const scalars,
+                                const triangulationType *triangulation);
+
     ttk::CriticalType getNodeType(ftm::FTMTree_MT *tree,
                                   ftm::TreeType treeType,
                                   const SimplexId vertexId) const;
@@ -191,7 +202,7 @@ namespace ttk {
      * @pre For this function to behave correctly in the absence of
      * the VTK wrapper, ttk::preconditionOrderArray() needs to be
      * called to fill the @p inputOffsets buffer prior to any
-     * computation (the VTK wrapper already includes a mecanism to
+     * computation (the VTK wrapper already includes a mechanism to
      * automatically generate such a preconditioned buffer).
      * @see examples/c++/main.cpp for an example use.
      */
@@ -232,6 +243,9 @@ namespace ttk {
     template <class triangulationType>
     void checkProgressivityRequirement(const triangulationType *triangulation);
 
+    template <class triangulationType>
+    void checkManifold(const triangulationType *const triangulation);
+
     inline void
       preconditionTriangulation(AbstractTriangulation *triangulation) {
       if(triangulation) {
@@ -247,8 +261,10 @@ namespace ttk {
           dms_.setDebugLevel(debugLevel_);
           dms_.setThreadNumber(threadNumber_);
           dms_.preconditionTriangulation(triangulation);
+          triangulation->preconditionManifold();
         }
-        if(this->BackEnd == BACKEND::PERSISTENT_SIMPLEX) {
+        if(this->BackEnd == BACKEND::PERSISTENT_SIMPLEX
+           || this->BackEnd == BACKEND::DISCRETE_MORSE_SANDWICH) {
           psp_.preconditionTriangulation(triangulation);
         }
       }
@@ -335,6 +351,26 @@ int ttk::PersistenceDiagram::computeCTPersistenceDiagram(
   return 0;
 }
 
+template <typename scalarType, typename triangulationType>
+void ttk::PersistenceDiagram::augmentPersistenceDiagram(
+  std::vector<PersistencePair> &persistencePairs,
+  const scalarType *const scalars,
+  const triangulationType *triangulation) {
+
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp parallel for num_threads(threadNumber_)
+#endif // TTK_ENABLE_OPENMP
+  for(std::size_t i = 0; i < persistencePairs.size(); ++i) {
+    auto &pair{persistencePairs[i]};
+    triangulation->getVertexPoint(pair.birth.id, pair.birth.coords[0],
+                                  pair.birth.coords[1], pair.birth.coords[2]);
+    pair.birth.sfValue = scalars[pair.birth.id];
+    triangulation->getVertexPoint(pair.death.id, pair.death.coords[0],
+                                  pair.death.coords[1], pair.death.coords[2]);
+    pair.death.sfValue = scalars[pair.death.id];
+  }
+}
+
 template <typename scalarType, class triangulationType>
 int ttk::PersistenceDiagram::execute(std::vector<PersistencePair> &CTDiagram,
                                      const scalarType *inputScalars,
@@ -345,6 +381,7 @@ int ttk::PersistenceDiagram::execute(std::vector<PersistencePair> &CTDiagram,
   printMsg(ttk::debug::Separator::L1);
 
   checkProgressivityRequirement(triangulation);
+  checkManifold(triangulation);
 
   Timer tm{};
 
@@ -371,6 +408,9 @@ int ttk::PersistenceDiagram::execute(std::vector<PersistencePair> &CTDiagram,
 
   this->printMsg("Complete", 1.0, tm.getElapsedTime(), this->threadNumber_);
 
+  // augment persistence pairs with meta-data
+  augmentPersistenceDiagram(CTDiagram, inputScalars, triangulation);
+
   // finally sort the diagram
   sortPersistenceDiagram(CTDiagram, inputOffsets);
 
@@ -385,7 +425,7 @@ int ttk::PersistenceDiagram::executePersistentSimplex(
   const SimplexId *inputOffsets,
   const triangulationType *triangulation) {
 
-  Timer tm{};
+  Timer const tm{};
   const auto dim = triangulation->getDimensionality();
 
   std::vector<ttk::PersistentSimplexPairs::PersistencePair> pairs{};
@@ -398,20 +438,18 @@ int ttk::PersistenceDiagram::executePersistentSimplex(
   // convert PersistentSimplex pairs (with critical cells id) to PL
   // pairs (with vertices id)
 
-  for(auto &p : pairs) {
-    int birthType{};
-    if(dim == 3) {
-      birthType = p.type;
-    } else if(dim == 2) {
-      birthType = (p.type == 0) ? 0 : 1;
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp parallel for num_threads(threadNumber_)
+#endif // TTK_ENABLE_OPENMP
+  for(size_t i = 0; i < pairs.size(); ++i) {
+    auto &pair{pairs[i]};
+    if(pair.type > 0) {
+      pair.birth = dms_.getCellGreaterVertex(
+        Cell{pair.type, pair.birth}, *triangulation);
     }
-    if(p.type > 0) {
-      p.birth
-        = dms_.getCellGreaterVertex(Cell{birthType, p.birth}, *triangulation);
-    }
-    if(p.death != -1) {
-      p.death = dms_.getCellGreaterVertex(
-        Cell{birthType + 1, p.death}, *triangulation);
+    if(pair.death != -1) {
+      pair.death = dms_.getCellGreaterVertex(
+        Cell{pair.type + 1, pair.death}, *triangulation);
     }
   }
 
@@ -450,7 +488,6 @@ int ttk::PersistenceDiagram::executePersistentSimplex(
     }
   }
 
-  this->printMsg("Complete", 1.0, tm.getElapsedTime(), this->threadNumber_);
   return 0;
 }
 
@@ -462,7 +499,7 @@ int ttk::PersistenceDiagram::executeDiscreteMorseSandwich(
   const SimplexId *inputOffsets,
   const triangulationType *triangulation) {
 
-  Timer tm{};
+  Timer const tm{};
   const auto dim = triangulation->getDimensionality();
 
   dms_.buildGradient(inputScalars, scalarsMTime, inputOffsets, *triangulation);
@@ -537,7 +574,8 @@ int ttk::PersistenceDiagram::executeApproximateTopology(
 
   approxT_.setDebugLevel(debugLevel_);
   approxT_.setThreadNumber(threadNumber_);
-  approxT_.setupTriangulation((ttk::ImplicitTriangulation *)triangulation);
+  approxT_.setupTriangulation(const_cast<ttk::ImplicitTriangulation *>(
+    (const ImplicitTriangulation *)triangulation));
   approxT_.setStartingResolutionLevel(StartingResolutionLevel);
   approxT_.setStoppingResolutionLevel(StoppingResolutionLevel);
   approxT_.setPreallocateMemory(true);
@@ -580,7 +618,8 @@ int ttk::PersistenceDiagram::executeProgressiveTopology(
 
   progT_.setDebugLevel(debugLevel_);
   progT_.setThreadNumber(threadNumber_);
-  progT_.setupTriangulation((ttk::ImplicitTriangulation *)triangulation);
+  progT_.setupTriangulation(const_cast<ttk::ImplicitTriangulation *>(
+    (const ImplicitTriangulation *)triangulation));
   progT_.setStartingResolutionLevel(StartingResolutionLevel);
   progT_.setStoppingResolutionLevel(StoppingResolutionLevel);
   progT_.setTimeLimit(TimeLimit);
@@ -681,5 +720,21 @@ void ttk::PersistenceDiagram::checkProgressivityRequirement(
     printWrn("Defaulting to the FTM backend.");
 
     BackEnd = BACKEND::FTM;
+  }
+}
+
+template <class triangulationType>
+void ttk::PersistenceDiagram::checkManifold(
+  const triangulationType *const triangulation) {
+
+  if(this->BackEnd != BACKEND::DISCRETE_MORSE_SANDWICH) {
+    return;
+  }
+
+  if(!triangulation->isManifold()) {
+    this->printWrn("Non-manifold data-set detected.");
+    this->printWrn("Defaulting to the Persistence Simplex backend.");
+
+    this->BackEnd = BACKEND::PERSISTENT_SIMPLEX;
   }
 }

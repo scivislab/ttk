@@ -1,5 +1,5 @@
-#include <ttkFTMTreeUtils.h>
 #include <ttkMergeTreePrincipalGeodesics.h>
+#include <ttkMergeTreeUtils.h>
 
 #include <vtkInformation.h>
 
@@ -150,22 +150,20 @@ int ttkMergeTreePrincipalGeodesics::runCompute(
   // ------------------------------------------------------------------------------------
   // --- Construct trees
   // ------------------------------------------------------------------------------------
-  const int numInputs = inputTrees.size();
-  const int numInputs2
-    = (not isPersistenceDiagram_
-         ? inputTrees2.size()
-         : (mixtureCoefficient_ != 0 and mixtureCoefficient_ != 1 ? numInputs
-                                                                  : 0));
+  std::vector<ttk::ftm::MergeTree<dataType>> intermediateMTrees,
+    intermediateMTrees2;
 
-  setDataVisualization(numInputs, numInputs2);
-
-  std::vector<ttk::ftm::MergeTree<dataType>> intermediateMTrees(numInputs),
-    intermediateMTrees2(numInputs2);
-
-  bool useSadMaxPairs = (mixtureCoefficient_ == 0);
+  bool const useSadMaxPairs = (mixtureCoefficient_ == 0);
   isPersistenceDiagram_ = ttk::ftm::constructTrees<dataType>(
     inputTrees, intermediateMTrees, treesNodes, treesArcs, treesSegmentation,
     useSadMaxPairs);
+  // If merge trees are provided in input and normalization is not asked
+  convertToDiagram_
+    = (not isPersistenceDiagram_ and not normalizedWasserstein_);
+  if(convertToDiagram_) {
+    mixtureCoefficient_
+      = (intermediateMTrees[0].tree.template isJoinTree<dataType>() ? 1 : 0);
+  }
   if(not isPersistenceDiagram_
      or (mixtureCoefficient_ != 0 and mixtureCoefficient_ != 1)) {
     auto &inputTrees2ToUse
@@ -175,6 +173,10 @@ int ttkMergeTreePrincipalGeodesics::runCompute(
                                        treesSegmentation2, !useSadMaxPairs);
   }
   isPersistenceDiagram_ |= (not normalizedWasserstein_);
+
+  const int numInputs = intermediateMTrees.size();
+  const int numInputs2 = intermediateMTrees2.size();
+  setDataVisualization(numInputs, numInputs2);
 
   // ------------------------------------------------------------------------------------
   // --- Call base
@@ -192,9 +194,9 @@ void ttkMergeTreePrincipalGeodesics::makeBarycenterOutput(
   ttk::ftm::MergeTree<dataType> &barycenter,
   int blockId,
   vtkMultiBlockDataSet *output_barycenter) {
-  vtkSmartPointer<vtkUnstructuredGrid> vtkOutputNodeBary
+  vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputNodeBary
     = vtkSmartPointer<vtkUnstructuredGrid>::New();
-  vtkSmartPointer<vtkUnstructuredGrid> vtkOutputArcBary
+  vtkSmartPointer<vtkUnstructuredGrid> const vtkOutputArcBary
     = vtkSmartPointer<vtkUnstructuredGrid>::New();
 
   ttkMergeTreeVisualization visuMakerBary;
@@ -208,10 +210,12 @@ void ttkMergeTreePrincipalGeodesics::makeBarycenterOutput(
       visuMakerBary.setIsPDSadMax(blockId);
     else
       visuMakerBary.setIsPDSadMax(mixtureCoefficient_ == 0);
+    visuMakerBary.setPlanarLayout(true);
   }
   visuMakerBary.setDebugLevel(this->debugLevel_);
   visuMakerBary.setOutputTreeNodeId(true);
   visuMakerBary.setIsPersistenceDiagram(isPersistenceDiagram_);
+  visuMakerBary.setConvertedToDiagram(convertToDiagram_);
   visuMakerBary.makeTreesOutput<dataType>(&(barycenter.tree));
 
   // Construct multiblock
@@ -246,11 +250,11 @@ int ttkMergeTreePrincipalGeodesics::runOutput(
          or (mixtureCoefficient_ != 0 and mixtureCoefficient_ != 1));
   output_barycenter->SetNumberOfBlocks(noBlockBary);
   if(not isPersistenceDiagram_) {
-    vtkSmartPointer<vtkMultiBlockDataSet> vtkBlockNodes
+    vtkSmartPointer<vtkMultiBlockDataSet> const vtkBlockNodes
       = vtkSmartPointer<vtkMultiBlockDataSet>::New();
-    vtkSmartPointer<vtkMultiBlockDataSet> vtkBlockArcs
+    vtkSmartPointer<vtkMultiBlockDataSet> const vtkBlockArcs
       = vtkSmartPointer<vtkMultiBlockDataSet>::New();
-    int noBlock = (inputTrees2.size() == 0 ? 1 : 2);
+    int const noBlock = (inputTrees2.size() == 0 ? 1 : 2);
     vtkBlockNodes->SetNumberOfBlocks(noBlock);
     vtkBlockArcs->SetNumberOfBlocks(noBlock);
     output_barycenter->SetBlock(0, vtkBlockNodes);
@@ -286,8 +290,8 @@ int ttkMergeTreePrincipalGeodesics::runOutput(
     for(unsigned int i = 0; i < (*allTs[t]).size(); ++i) {
       vtkNew<vtkDoubleArray> tArray{};
       auto size = (*allTs[t]).size();
-      std::string name = (t == 0 ? getTableCoefficientName(size, i)
-                                 : getTableCoefficientNormName(size, i));
+      std::string const name = (t == 0 ? getTableCoefficientName(size, i)
+                                       : getTableCoefficientNormName(size, i));
       tArray->SetName(name.c_str());
       tArray->SetNumberOfTuples(inputTrees.size());
       for(unsigned int j = 0; j < (*allTs[t])[i].size(); ++j)
@@ -341,8 +345,8 @@ int ttkMergeTreePrincipalGeodesics::runOutput(
     for(unsigned int i = 0; i < (*vector).size(); ++i)
       for(unsigned int k = 0; k < 2; ++k) {
         vtkNew<vtkDoubleArray> vectorArray{};
-        bool isSecondInput = (v >= 2);
-        std::string name
+        bool const isSecondInput = (v >= 2);
+        std::string const name
           = getTableVectorName((*vector).size(), i, v % 2, k, isSecondInput);
         vectorArray->SetName(name.c_str());
         vectorArray->SetNumberOfTuples(maxSize);
@@ -359,14 +363,14 @@ int ttkMergeTreePrincipalGeodesics::runOutput(
   // ------------------------------------------
   // TODO manage second input
   // Correlation coefficients
-  unsigned int noCols = branchesCorrelationMatrix_[0].size();
-  unsigned int noRows = branchesCorrelationMatrix_.size();
+  unsigned int const noCols = branchesCorrelationMatrix_[0].size();
+  unsigned int const noRows = branchesCorrelationMatrix_.size();
   for(unsigned int j = 0; j < noCols; ++j) {
     vtkNew<vtkDoubleArray> corrArray{}, persArray{};
-    std::string name = getTableCorrelationName(noCols, j);
+    std::string const name = getTableCorrelationName(noCols, j);
     corrArray->SetName(name.c_str());
     corrArray->SetNumberOfTuples(noRows);
-    std::string name2 = getTableCorrelationPersName(noCols, j);
+    std::string const name2 = getTableCorrelationPersName(noCols, j);
     persArray->SetName(name2.c_str());
     persArray->SetNumberOfTuples(noRows);
     for(unsigned int i = 0; i < noRows; ++i) {
@@ -390,7 +394,7 @@ int ttkMergeTreePrincipalGeodesics::runOutput(
             ->getOrigin();
   for(unsigned int j = 0; j < inputTrees.size(); ++j) {
     vtkNew<vtkIntArray> corrArray{};
-    std::string name = getTableCorrelationTreeName(inputTrees.size(), j);
+    std::string const name = getTableCorrelationTreeName(inputTrees.size(), j);
     corrArray->SetName(name.c_str());
     corrArray->SetNumberOfTuples(noRows);
     for(unsigned int i = 0; i < noRows; ++i)
@@ -432,7 +436,7 @@ int ttkMergeTreePrincipalGeodesics::runOutput(
     intermediateDTrees[i].tree.template getPersistencePairsFromTree<double>(
       pairs, false);
     for(unsigned int j = 0; j < pairs.size(); ++j) {
-      int index = pairs.size() - 1 - j;
+      int const index = pairs.size() - 1 - j;
       treesOrder[i][std::get<0>(pairs[j])] = index;
       treesOrder[i][std::get<1>(pairs[j])] = index;
     }

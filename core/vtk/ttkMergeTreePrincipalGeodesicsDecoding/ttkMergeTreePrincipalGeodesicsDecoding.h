@@ -27,6 +27,11 @@
 ///
 /// \sa ttk::MergeTreePrincipalGeodesicsDecoding
 /// \sa ttkAlgorithm
+///
+/// \b Online \b examples: \n
+///   - <a
+///   href="https://topology-tool-kit.github.io/examples/mergeTreePGA/">Merge
+///   Tree Principal Geodesic Analysis example</a> \n
 
 #pragma once
 
@@ -159,19 +164,19 @@ public:
   }
   vtkGetMacro(computeReconstructionError_, bool);
 
-  void SettransferInputTreesInformations_(bool b) {
-    transferInputTreesInformations_ = b;
+  void SettransferInputTreesInformation_(bool b) {
+    transferInputTreesInformation_ = b;
     Modified();
     resetDataVisualization();
   }
-  vtkGetMacro(transferInputTreesInformations_, bool);
+  vtkGetMacro(transferInputTreesInformation_, bool);
 
-  void SettransferBarycenterInformations_(bool b) {
-    transferBarycenterInformations_ = b;
+  void SettransferBarycenterInformation_(bool b) {
+    transferBarycenterInformation_ = b;
     Modified();
     resetDataVisualization();
   }
-  vtkGetMacro(transferBarycenterInformations_, bool);
+  vtkGetMacro(transferBarycenterInformation_, bool);
 
   vtkSetMacro(ConstructGeodesicsTrees, bool);
   vtkGetMacro(ConstructGeodesicsTrees, bool);

@@ -78,6 +78,13 @@ int ttkPersistenceDiagramClustering::RequestData(
     this->printErr("No input detected");
     return 0;
   }
+  if(numInputs != 2 and NonMatchingWeight != 1.0) {
+    // We need to modify the update of the barycenter by taking into account the
+    // non-matching weight
+    printWrn("Custom weight only supported for pairwise distance.");
+    printWrn("Non-matching weight is set to 1.");
+    NonMatchingWeight = 1.0;
+  }
 
   // Get output pointers
   auto output_clusters = vtkMultiBlockDataSet::GetData(outputVector, 0);
@@ -147,6 +154,7 @@ int ttkPersistenceDiagramClustering::RequestData(
       pdBarycenter.setThreadNumber(threadNumber_);
       pdBarycenter.setAlpha(Alpha);
       pdBarycenter.setLambda(Lambda);
+      pdBarycenter.setNonMatchingWeight(NonMatchingWeight);
       pdBarycenter.execute(
         intermediateDiagrams_, final_centroids_[0], all_matchings_);
 
@@ -169,10 +177,10 @@ int ttkPersistenceDiagramClustering::RequestData(
   return 1;
 }
 
-void addCostsAsFieldData(vtkUnstructuredGrid *vtu,
-                         const double minSadCost,
-                         const double sadSadCost,
-                         const double sadMaxCost) {
+static void addCostsAsFieldData(vtkUnstructuredGrid *vtu,
+                                const double minSadCost,
+                                const double sadSadCost,
+                                const double sadMaxCost) {
 
   // add global matchings cost as FieldData (only 1 tuple per array)
   vtkNew<vtkDoubleArray> minSad{};

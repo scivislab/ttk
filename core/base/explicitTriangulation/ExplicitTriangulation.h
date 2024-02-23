@@ -410,13 +410,13 @@ namespace ttk {
 #endif
 
       if(doublePrecision_) {
-        x = ((double *)pointSet_)[3 * vertexId];
-        y = ((double *)pointSet_)[3 * vertexId + 1];
-        z = ((double *)pointSet_)[3 * vertexId + 2];
+        x = ((const double *)pointSet_)[3 * vertexId];
+        y = ((const double *)pointSet_)[3 * vertexId + 1];
+        z = ((const double *)pointSet_)[3 * vertexId + 2];
       } else {
-        x = ((float *)pointSet_)[3 * vertexId];
-        y = ((float *)pointSet_)[3 * vertexId + 1];
-        z = ((float *)pointSet_)[3 * vertexId + 2];
+        x = ((const float *)pointSet_)[3 * vertexId];
+        y = ((const float *)pointSet_)[3 * vertexId + 1];
+        z = ((const float *)pointSet_)[3 * vertexId + 2];
       }
 
       return 0;
@@ -514,6 +514,8 @@ namespace ttk {
     int preconditionVertexNeighborsInternal() override;
     int preconditionVertexStarsInternal() override;
     int preconditionVertexTrianglesInternal() override;
+
+    int preconditionManifoldInternal() override;
 
 #ifdef TTK_CELL_ARRAY_NEW
     // Layout with connectivity + offset array (new)
@@ -620,6 +622,13 @@ namespace ttk {
 
 #ifdef TTK_ENABLE_MPI
 
+    inline void setCellsGlobalIds(const LongSimplexId *const cellGid) {
+      this->cellGid_ = cellGid;
+    }
+    inline void setVertsGlobalIds(const LongSimplexId *array) {
+      this->vertGid_ = array;
+    }
+
     inline SimplexId
       getVertexGlobalIdInternal(const SimplexId lvid) const override {
       return this->vertGid_[lvid];
@@ -628,11 +637,9 @@ namespace ttk {
     inline SimplexId
       getVertexLocalIdInternal(const SimplexId gvid) const override {
       const auto it{this->vertexGidToLid_.find(gvid)};
-#ifndef TTK_ENABLE_KAMIKAZE
       if(it == this->vertexGidToLid_.end()) {
         return -1;
       }
-#endif // TTK_ENABLE_KAMIKAZE
       return it->second;
     }
 
@@ -684,6 +691,31 @@ namespace ttk {
       return it->second;
     }
 
+    inline int setVertexRankArray(const int *rankArray) override {
+      vertexRankArray_.resize(vertexNumber_);
+      std::copy(rankArray, rankArray + vertexNumber_, vertexRankArray_.begin());
+      return 0;
+    }
+
+    inline int setCellRankArray(const int *rankArray) override {
+      cellRankArray_.resize(cellNumber_);
+      std::copy(rankArray, rankArray + cellNumber_, cellRankArray_.begin());
+      return 0;
+    }
+
+    inline int getVertexRankInternal(const SimplexId lvid) const override {
+      return this->vertexRankArray_[lvid];
+    }
+
+    inline std::unordered_map<SimplexId, SimplexId> &getVertexGlobalIdMap() {
+      return this->vertexGidToLid_;
+    }
+
+    inline void setBoundingBox(const double *const bBox) {
+      this->boundingBox_
+        = {bBox[0], bBox[1], bBox[2], bBox[3], bBox[4], bBox[5]};
+    }
+
   protected:
     template <typename Func0, typename Func1, typename Func2>
     int exchangeDistributedInternal(const Func0 &getGlobalSimplexId,
@@ -696,9 +728,13 @@ namespace ttk {
       computeCellRangeOffsets(std::vector<size_t> &nSimplicesPerRange) const;
 
     int preconditionDistributedCells() override;
+    int preconditionExchangeGhostCells() override;
     int preconditionDistributedEdges() override;
     int preconditionDistributedVertices() override;
+    int preconditionExchangeGhostVertices() override;
     int preconditionDistributedTriangles() override;
+    int preconditionVertexRankArray();
+    int preconditionCellRankArray();
     int preconditionEdgeRankArray() override;
     int preconditionTriangleRankArray() override;
 
@@ -728,6 +764,13 @@ namespace ttk {
     // number of CellRanges per rank
     std::vector<int> nRangesPerRank_{};
 
+    // "GlobalCellIds" from "Generate Global Ids"
+    const LongSimplexId *cellGid_{};
+    // "GlobalPointIds" from "Generate Global Ids"
+    const LongSimplexId *vertGid_{};
+
+    // inverse of vertGid_
+    std::unordered_map<SimplexId, SimplexId> vertexGidToLid_{};
     // inverse of cellGid_
     std::unordered_map<SimplexId, SimplexId> cellGidToLid_{};
 
@@ -736,6 +779,10 @@ namespace ttk {
     std::vector<SimplexId> triangleLidToGid_{};
     std::unordered_map<SimplexId, SimplexId> triangleGidToLid_{};
 
+    std::array<double, 6> boundingBox_{};
+
+    std::vector<int> vertexRankArray_{};
+    std::vector<int> cellRankArray_{};
     std::vector<int> edgeRankArray_{};
     std::vector<int> triangleRankArray_{};
 

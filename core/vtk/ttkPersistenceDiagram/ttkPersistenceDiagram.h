@@ -56,7 +56,8 @@
 /// "Discrete Morse Sandwich: Fast Computation of Persistence Diagrams for
 /// Scalar Data -- An Algorithm and A Benchmark" \n
 /// Pierre Guillou, Jules Vidal, Julien Tierny \n
-/// Technical Report, arXiv:2206.13932, 2022 \n
+/// IEEE Transactions on Visualization and Computer Graphics, 2023.\n
+/// arXiv:2206.13932, 2023.\n
 /// Fast and versatile algorithm for persistence diagram computation.
 ///
 /// 4) Approximate Approach \n
@@ -70,7 +71,7 @@
 /// "Algorithm and Theory of Computation Handbook (Second Edition)
 /// - Special Topics and Techniques" by Atallah and Blanton on page 97.
 ///
-/// \sa ttkFTMTreePP
+/// \sa ttkMergeTreePP
 /// \sa ttkPersistenceCurve
 /// \sa ttkScalarFieldCriticalPoints
 /// \sa ttkTopologicalSimplification

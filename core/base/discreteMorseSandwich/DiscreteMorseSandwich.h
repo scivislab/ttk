@@ -13,7 +13,8 @@
 /// "Discrete Morse Sandwich: Fast Computation of Persistence Diagrams for
 /// Scalar Data -- An Algorithm and A Benchmark" \n
 /// Pierre Guillou, Jules Vidal, Julien Tierny \n
-/// Technical Report, arXiv:2206.13932, 2022
+/// IEEE Transactions on Visualization and Computer Graphics, 2023.\n
+/// arXiv:2206.13932, 2023.
 ///
 ///
 /// \sa ttk::dcg::DiscreteGradient
@@ -429,24 +430,60 @@ namespace ttk {
     void alloc(const triangulationType &triangulation) {
       Timer tm{};
       const auto dim{this->dg_.getDimensionality()};
-      this->firstRepMin_.resize(triangulation.getNumberOfVertices());
-      if(dim > 1) {
-        this->firstRepMax_.resize(triangulation.getNumberOfCells());
+      if(dim > 3 || dim < 1) {
+        return;
       }
-      if(dim > 2) {
-        this->critEdges_.resize(triangulation.getNumberOfEdges());
-        this->edgeTrianglePartner_.resize(triangulation.getNumberOfEdges(), -1);
-        this->onBoundary_.resize(triangulation.getNumberOfEdges(), false);
-        this->s2Mapping_.resize(triangulation.getNumberOfTriangles(), -1);
-        this->s1Mapping_.resize(triangulation.getNumberOfEdges(), -1);
-      }
-      for(int i = 0; i < dim + 1; ++i) {
-        this->pairedCritCells_[i].resize(
-          this->dg_.getNumberOfCells(i, triangulation), false);
-      }
-      for(int i = 1; i < dim + 1; ++i) {
-        this->critCellsOrder_[i].resize(
-          this->dg_.getNumberOfCells(i, triangulation), -1);
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp parallel master num_threads(threadNumber_)
+#endif
+      {
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp task
+#endif // TTK_ENABLE_OPENMP
+        this->firstRepMin_.resize(triangulation.getNumberOfVertices());
+        if(dim > 1) {
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp task
+#endif
+          this->firstRepMax_.resize(triangulation.getNumberOfCells());
+        }
+        if(dim > 2) {
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp task
+#endif
+          this->critEdges_.resize(triangulation.getNumberOfEdges());
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp task
+#endif
+          this->edgeTrianglePartner_.resize(
+            triangulation.getNumberOfEdges(), -1);
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp task
+#endif
+          this->onBoundary_.resize(triangulation.getNumberOfEdges(), false);
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp task
+#endif
+          this->s2Mapping_.resize(triangulation.getNumberOfTriangles(), -1);
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp task
+#endif
+          this->s1Mapping_.resize(triangulation.getNumberOfEdges(), -1);
+        }
+        for(int i = 0; i < dim + 1; ++i) {
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp task
+#endif
+          this->pairedCritCells_[i].resize(
+            this->dg_.getNumberOfCells(i, triangulation), false);
+        }
+        for(int i = 1; i < dim + 1; ++i) {
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp task
+#endif
+          this->critCellsOrder_[i].resize(
+            this->dg_.getNumberOfCells(i, triangulation), -1);
+        }
       }
       this->printMsg("Memory allocations", 1.0, tm.getElapsedTime(), 1,
                      debug::LineMode::NEW, debug::Priority::DETAIL);
@@ -505,7 +542,7 @@ std::vector<std::vector<SimplexId>>
     const auto followVPath = [this, &mins, &triangulation](const SimplexId v) {
       std::vector<Cell> vpath{};
       this->dg_.getDescendingPath(Cell{0, v}, vpath, triangulation);
-      Cell &lastCell = vpath.back();
+      const Cell &lastCell = vpath.back();
       if(lastCell.dim_ == 0 && this->dg_.isCellCritical(lastCell)) {
         mins.emplace_back(lastCell.id_);
       }
@@ -554,7 +591,7 @@ std::vector<std::vector<SimplexId>>
       = [this, dim, &maxs, &triangulation](const SimplexId v) {
           std::vector<Cell> vpath{};
           this->dg_.getAscendingPath(Cell{dim, v}, vpath, triangulation);
-          Cell &lastCell = vpath.back();
+          const Cell &lastCell = vpath.back();
           if(lastCell.dim_ == dim && this->dg_.isCellCritical(lastCell)) {
             maxs.emplace_back(lastCell.id_);
           } else if(lastCell.dim_ == dim - 1) {
@@ -901,8 +938,6 @@ void ttk::DiscreteMorseSandwich::getSaddleSaddlePairs(
     }
   }
 
-  Timer tmpar{};
-
   if(this->Compute2SaddlesChildren) {
     this->s2Children_.resize(saddles2.size());
   }
@@ -945,10 +980,10 @@ void ttk::DiscreteMorseSandwich::getSaddleSaddlePairs(
 
   // compute 2-saddles boundaries in parallel
 
-#ifdef TTK_ENABLE_OPENMP
+#ifdef TTK_ENABLE_OPENMP4
 #pragma omp parallel for num_threads(threadNumber_) schedule(dynamic) \
   firstprivate(onBoundary)
-#endif // TTK_ENABLE_OPENMP
+#endif // TTK_ENABLE_OPENMP4
   for(size_t i = 0; i < saddles2.size(); ++i) {
     // 2-saddles sorted in increasing order
     const auto s2 = saddles2[i];
@@ -1009,37 +1044,8 @@ void ttk::DiscreteMorseSandwich::extractCriticalCells(
   const bool sortEdges) const {
 
   Timer tm{};
-  const auto dim = this->dg_.getDimensionality();
 
-  for(int i = 0; i < dim + 1; ++i) {
-
-    // map: store critical cell per dimension per thread
-    std::vector<std::vector<SimplexId>> critCellsPerThread(this->threadNumber_);
-
-    const SimplexId numberOfCells
-      = this->dg_.getNumberOfCells(i, triangulation);
-#ifdef TTK_ENABLE_OPENMP
-#pragma omp parallel for num_threads(this->threadNumber_)
-#endif // TTK_ENABLE_OPENMP
-    for(SimplexId j = 0; j < numberOfCells; ++j) {
-#ifdef TTK_ENABLE_OPENMP
-      const auto tid = omp_get_thread_num();
-#else
-      const auto tid = 0;
-#endif // TTK_ENABLE_OPENMP
-      if(this->dg_.isCellCritical(i, j)) {
-        critCellsPerThread[tid].emplace_back(j);
-      }
-    }
-
-    // reduce: aggregate critical cells per thread
-    criticalCellsByDim[i] = std::move(critCellsPerThread[0]);
-    for(size_t j = 1; j < critCellsPerThread.size(); ++j) {
-      const auto &vec{critCellsPerThread[j]};
-      criticalCellsByDim[i].insert(
-        criticalCellsByDim[i].end(), vec.begin(), vec.end());
-    }
-  }
+  this->dg_.getCriticalPoints(criticalCellsByDim, triangulation);
 
   this->printMsg("Extracted critical cells", 1.0, tm.getElapsedTime(),
                  this->threadNumber_, debug::LineMode::NEW,
@@ -1093,21 +1099,6 @@ void ttk::DiscreteMorseSandwich::extractCriticalCells(
   TTK_PSORT(this->threadNumber_, critTriangles.begin(), critTriangles.end());
   TTK_PSORT(this->threadNumber_, critTetras.begin(), critTetras.end());
 
-  if(sortEdges) {
-    TTK_PSORT(this->threadNumber_, criticalCellsByDim[1].begin(),
-              criticalCellsByDim[1].end(),
-              [&critCellsOrder](const SimplexId a, const SimplexId b) {
-                return critCellsOrder[1][a] < critCellsOrder[1][b];
-              });
-  } else {
-#ifdef TTK_ENABLE_OPENMP
-#pragma omp parallel for num_threads(threadNumber_)
-#endif // TTK_ENABLE_OPENMP
-    for(size_t i = 0; i < critEdges.size(); ++i) {
-      criticalCellsByDim[1][i] = critEdges[i].id_;
-    }
-  }
-
 #ifdef TTK_ENABLE_OPENMP
 #pragma omp parallel num_threads(threadNumber_)
 #endif // TTK_ENABLE_OPENMP
@@ -1133,6 +1124,21 @@ void ttk::DiscreteMorseSandwich::extractCriticalCells(
     for(size_t i = 0; i < critTetras.size(); ++i) {
       criticalCellsByDim[3][i] = critTetras[i].id_;
       critCellsOrder[3][critTetras[i].id_] = i;
+    }
+  }
+
+  if(sortEdges) {
+    TTK_PSORT(this->threadNumber_, criticalCellsByDim[1].begin(),
+              criticalCellsByDim[1].end(),
+              [&critCellsOrder](const SimplexId a, const SimplexId b) {
+                return critCellsOrder[1][a] < critCellsOrder[1][b];
+              });
+  } else {
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp parallel for num_threads(threadNumber_)
+#endif // TTK_ENABLE_OPENMP
+    for(size_t i = 0; i < critEdges.size(); ++i) {
+      criticalCellsByDim[1][i] = critEdges[i].id_;
     }
   }
 
@@ -1278,13 +1284,16 @@ int ttk::DiscreteMorseSandwich::computePersistencePairs(
       }
     }
 
+    int nBoundComp
+      = (dim == 3 ? nCavities : nHandles) + nConnComp - nNonPairedMax;
+    nBoundComp = std::max(nBoundComp, 0);
+
     // print Betti numbers
-    std::vector<std::vector<std::string>> rows{
+    const std::vector<std::vector<std::string>> rows{
       {" #Connected components", std::to_string(nConnComp)},
       {" #Topological handles", std::to_string(nHandles)},
       {" #Cavities", std::to_string(nCavities)},
-      {" #Boundary components", std::to_string((dim == 3 ? nCavities : nHandles)
-                                               + nConnComp - nNonPairedMax)},
+      {" #Boundary components", std::to_string(nBoundComp)},
     };
 
     this->printMsg(rows, debug::Priority::DETAIL);

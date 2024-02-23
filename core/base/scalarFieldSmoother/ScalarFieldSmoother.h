@@ -26,14 +26,18 @@
 ///   - <a
 ///   href="https://topology-tool-kit.github.io/examples/harmonicSkeleton/">
 ///   Harmonic Skeleton example</a> \n
-///   - <a href="https://topology-tool-kit.github.io/examples/morseMolecule/">
-/// Morse molecule example</a> \n
 ///   - <a
 ///   href="https://topology-tool-kit.github.io/examples/interactionSites/">
 ///   Interaction sites example</a> \n
 ///   - <a
+///   href="https://topology-tool-kit.github.io/examples/mergeTreePGA/">Merge
+///   Tree Principal Geodesic Analysis example</a> \n
+///   - <a
 ///   href="https://topology-tool-kit.github.io/examples/morseMolecule/">
 ///   Morse Molecule example</a> \n
+///   - <a
+///   href="https://topology-tool-kit.github.io/examples/morseSmaleSegmentation_at/">Morse-Smale
+///   segmentation example</a> \n
 
 #pragma once
 
@@ -68,6 +72,9 @@ namespace ttk {
       // Pre-condition functions.
       if(triangulation) {
         triangulation->preconditionVertexNeighbors();
+#ifdef TTK_ENABLE_MPI
+        triangulation->preconditionExchangeGhostVertices();
+#endif // TTK_ENABLE_MPI
       }
       return 0;
     }
@@ -102,19 +109,16 @@ int ttk::ScalarFieldSmoother::smooth(const triangulationType *triangulation,
     return -4;
 #endif
 
-#if TTK_ENABLE_MPI
-  bool useMPI{false};
-  if(ttk::isRunningWithMPI() && triangulation->getVertexRankArray() != nullptr
-     && triangulation->getVertsGlobalIds() != nullptr)
-    useMPI = true;
-#endif
-  SimplexId vertexNumber = triangulation->getNumberOfVertices();
+  SimplexId const vertexNumber = triangulation->getNumberOfVertices();
 
   std::vector<dataType> tmpData(vertexNumber * dimensionNumber_, 0);
 
   dataType *outputData = (dataType *)outputData_;
   dataType *inputData = (dataType *)inputData_;
   // init the output
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp parallel for num_threads(threadNumber_)
+#endif // TTK_ENABLE_OPENMP
   for(SimplexId i = 0; i < vertexNumber; i++) {
     for(int j = 0; j < dimensionNumber_; j++) {
       outputData[dimensionNumber_ * i + j]
@@ -155,6 +159,9 @@ int ttk::ScalarFieldSmoother::smooth(const triangulationType *triangulation,
 
     if(numberOfIterations) {
       // assign the tmpData back to the output
+#ifdef TTK_ENABLE_OPENMP
+#pragma omp parallel for num_threads(threadNumber_)
+#endif // TTK_ENABLE_OPENMP
       for(SimplexId i = 0; i < vertexNumber; i++) {
         for(int j = 0; j < dimensionNumber_; j++) {
           // only set value for unmasked points
@@ -165,14 +172,14 @@ int ttk::ScalarFieldSmoother::smooth(const triangulationType *triangulation,
         }
       }
     }
-#if TTK_ENABLE_MPI
-    if(useMPI) {
+#ifdef TTK_ENABLE_MPI
+    if(ttk::isRunningWithMPI()) {
       // after each iteration we need to exchange the ghostcell values with our
       // neighbors
       exchangeGhostVertices<dataType, triangulationType>(
         outputData, triangulation, ttk::MPIcomm_, dimensionNumber_);
     }
-#endif
+#endif // TTK_ENABLE_MPI
 
     if(debugLevel_ >= (int)(debug::Priority::INFO)) {
       if(!(it % ((numberOfIterations) / timeBuckets))) {

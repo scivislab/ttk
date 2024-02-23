@@ -62,21 +62,22 @@ namespace ttk {
                      double epsilon,
                      std::vector<int> &sizes,
                      KDT &kdt,
-                     std::vector<KDT *> &correspondance_kdt_map,
+                     std::vector<KDT *> &correspondence_kdt_map,
                      std::vector<double> *min_diag_price,
                      std::vector<double> *min_price,
                      std::vector<std::vector<MatchingType>> *all_matchings,
                      bool use_kdt,
-                     int actual_distance);
+                     bool actual_distance);
 
     void
       runMatchingAuction(double *total_cost,
                          std::vector<int> &sizes,
                          KDT &kdt,
-                         std::vector<KDT *> &correspondance_kdt_map,
+                         std::vector<KDT *> &correspondence_kdt_map,
                          std::vector<double> *min_diag_price,
                          std::vector<std::vector<MatchingType>> *all_matchings,
-                         bool use_kdt);
+                         bool use_kdt,
+                         bool actual_distance);
 
     double updateBarycenter(std::vector<std::vector<MatchingType>> &matchings);
 
@@ -178,6 +179,10 @@ namespace ttk {
       }
     }
 
+    inline void setNonMatchingWeight(double nonMatchingWeight) {
+      nonMatchingWeight_ = nonMatchingWeight;
+    }
+
     double getCost() {
       return cost_;
     }
@@ -191,6 +196,7 @@ namespace ttk {
 
     std::string method_{"Partial Bidding"};
     int wasserstein_{2};
+    double nonMatchingWeight_ = 1.0;
 
     double geometrical_factor_{1.0};
 

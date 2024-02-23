@@ -64,17 +64,18 @@ int ttkPersistenceDiagram::dispatch(
                          inputOrder, triangulation);
 
   // something wrong in baseCode
-  if(status != 0 || CTDiagram.empty()) {
-    this->printErr("PersistenceDiagram::execute() error code : "
+  if(status != 0) {
+    this->printErr("PersistenceDiagram::execute() error code: "
                    + std::to_string(status));
     return 0;
   }
 
-  vtkNew<vtkUnstructuredGrid> vtu{};
+  if(CTDiagram.empty()) {
+    this->printErr("Empty diagram!");
+    return 0;
+  }
 
-  // fill missing data in CTDiagram (critical points coordinates & value)
-  fillPersistenceDiagram(
-    CTDiagram, outputScalars, *triangulation, this->threadNumber_);
+  vtkNew<vtkUnstructuredGrid> const vtu{};
 
   // convert CTDiagram to vtkUnstructuredGrid
   DiagramToVTU(vtu, CTDiagram, inputScalarsArray, *this,
@@ -116,8 +117,8 @@ int ttkPersistenceDiagram::RequestData(vtkInformation *ttkNotUsed(request),
   }
 #endif
 
-  vtkDataArray *offsetField
-    = this->GetOrderArray(input, 0, 1, ForceInputOffsetScalarField);
+  vtkDataArray *offsetField = this->GetOrderArray(
+    input, 0, triangulation, false, 1, ForceInputOffsetScalarField);
 
 #ifndef TTK_ENABLE_KAMIKAZE
   if(!offsetField) {
@@ -142,7 +143,7 @@ int ttkPersistenceDiagram::RequestData(vtkInformation *ttkNotUsed(request),
   outputMonotonyOffsets->SetName("outputMonotonyffsets");
   outputMonotonyOffsets->FillComponent(0, 0);
 
-  vtkSmartPointer<vtkDataArray> outputScalars
+  vtkSmartPointer<vtkDataArray> const outputScalars
     = vtkSmartPointer<vtkDataArray>::Take(inputScalars->NewInstance());
   outputScalars->SetNumberOfComponents(1);
   outputScalars->SetNumberOfTuples(inputScalars->GetNumberOfTuples());

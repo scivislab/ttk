@@ -1444,34 +1444,83 @@ namespace ttk {
         treesNodeCorr_.resize(trees.size());
         for(unsigned int i = 0; i < trees.size(); ++i){
           if(baseModule_==2){
+            branchDecomposition_ = false;
             ftm::FTMTree_MT *tree = &(trees[i].tree);
-            preprocessTree<dataType>(tree, true);
-
-            // - Delete null persistence pairs and persistence thresholding
-            persistenceThresholding<dataType>(tree, persistenceThreshold_);
-
-            // - Merge saddle points according epsilon
-            if(not isPersistenceDiagram_) {
-              if(epsilonTree2_ != 0){
-                std::vector<std::vector<ftm::idNode>> treeNodeMerged( tree->getNumberOfNodes() );
-                mergeSaddle<dataType>(tree, epsilonTree2_, treeNodeMerged);
-                for(unsigned int j=0; j<treeNodeMerged.size(); j++){
-                  for(auto k : treeNodeMerged[j]){
-                    auto nodeToDelete = tree->getNode(j)->getOrigin();
-                    tree->getNode(k)->setOrigin(j);
-                    tree->getNode(nodeToDelete)->setOrigin(-1);
-                  }
-                }
-                ftm::cleanMergeTree<dataType>(trees[i], treesNodeCorr_[i], true);
-              }
-              else{
-                std::vector<ttk::SimplexId> nodeCorr(tree->getNumberOfNodes());
-                for(unsigned int j=0; j<nodeCorr.size(); j++) nodeCorr[j] = j;
-                treesNodeCorr_[i] = nodeCorr;
-              }
+            std::vector<dataType> scalars(tree->getNumberOfNodes());
+            std::vector<std::vector<ftm::idNode>> children(tree->getNumberOfNodes());
+            std::vector<ftm::idNode> origins(tree->getNumberOfNodes());
+            std::vector<ftm::idNode> parents(tree->getNumberOfNodes());
+            std::vector<ftm::idNode> parentsSafe(tree->getNumberOfNodes());
+            for(ftm::idNode ni=0; ni<tree->getNumberOfNodes(); ni++){
+              scalars[ni] = tree->getValue<dataType>(ni);
+              origins[ni] = tree->getNode(ni)->getOrigin();
+              parents[ni] = tree->getParent(ni);
+              parentsSafe[ni] = tree->getParentSafe(ni);
+              tree->getChildren(ni, children[ni]);
             }
-            if(deleteMultiPersPairs_)
-              deleteMultiPersPairs<dataType>(tree, false);
+            preprocessingPipeline<dataType>(trees[i], epsilonTree2_,
+                                            epsilon2Tree2_, epsilon3Tree2_,
+                                            branchDecomposition_, useMinMaxPair_,
+                                            cleanTree_, treesNodeCorr_[i]);
+            std::vector<dataType> scalars2(tree->getNumberOfNodes());
+            std::vector<std::vector<ftm::idNode>> children2(tree->getNumberOfNodes());
+            std::vector<ftm::idNode> origins2(tree->getNumberOfNodes());
+            std::vector<ftm::idNode> parents2(tree->getNumberOfNodes());
+            std::vector<ftm::idNode> parentsSafe2(tree->getNumberOfNodes());
+            for(ftm::idNode ni=0; ni<tree->getNumberOfNodes(); ni++){
+              scalars2[ni] = tree->getValue<dataType>(ni);
+              origins2[ni] = tree->getNode(ni)->getOrigin();
+              parents2[ni] = tree->getParent(ni);
+              parentsSafe2[ni] = tree->getParentSafe(ni);
+              tree->getChildren(ni, children2[ni]);
+            }
+            std::cout << "" << std::endl;
+            // ftm::FTMTree_MT *tree = &(trees[i].tree);
+            // preprocessTree<dataType>(tree, true);
+
+            // // - Delete null persistence pairs and persistence thresholding
+            // persistenceThresholding<dataType>(tree, persistenceThreshold_);
+
+            // // - Merge saddle points according epsilon
+            // if(not isPersistenceDiagram_) {
+            //   if(epsilonTree2_ != 0){
+            //     std::vector<std::vector<ftm::idNode>> treeNodeMerged( tree->getNumberOfNodes() );
+            //     std::vector<dataType> scalars(tree->getNumberOfNodes());
+            //     std::vector<std::vector<ftm::idNode>> children(tree->getNumberOfNodes());
+            //     std::vector<ftm::idNode> origins(tree->getNumberOfNodes());
+            //     for(ftm::idNode ni=0; ni<tree->getNumberOfNodes(); ni++){
+            //       scalars[ni] = tree->getValue<dataType>(ni);
+            //       origins[ni] = tree->getNode(ni)->getOrigin();
+            //       tree->getChildren(ni, children[ni]);
+            //     }
+            //     mergeSaddle<dataType>(tree, epsilonTree2_, treeNodeMerged);
+            //     std::vector<dataType> scalars2(tree->getNumberOfNodes());
+            //     std::vector<std::vector<ftm::idNode>> children2(tree->getNumberOfNodes());
+            //     std::vector<ftm::idNode> origins2(tree->getNumberOfNodes());
+            //     for(ftm::idNode ni=0; ni<tree->getNumberOfNodes(); ni++){
+            //       scalars2[ni] = tree->getValue<dataType>(ni);
+            //       origins2[ni] = tree->getNode(ni)->getOrigin();
+            //       tree->getChildren(ni, children2[ni]);
+            //     }
+            //     for(unsigned int j=0; j<treeNodeMerged.size(); j++){
+            //       for(auto k : treeNodeMerged[j]){
+            //         // auto nodeToDelete = tree->getNode(j)->getOrigin();
+            //         auto nodeToDelete = tree->getNode(k)->getOrigin();
+            //         tree->getNode(k)->setOrigin(j);
+            //         tree->getNode(nodeToDelete)->setOrigin(-1);
+            //       }
+            //     }
+            //     ftm::cleanMergeTree<dataType>(trees[i], treesNodeCorr_[i], true);
+            //     // ftm::cleanMergeTree<dataType>(trees[i], treesNodeCorr_[i], false);
+            //   }
+            //   else{
+            //     std::vector<ttk::SimplexId> nodeCorr(tree->getNumberOfNodes());
+            //     for(unsigned int j=0; j<nodeCorr.size(); j++) nodeCorr[j] = j;
+            //     treesNodeCorr_[i] = nodeCorr;
+            //   }
+            // }
+            // if(deleteMultiPersPairs_)
+            //   deleteMultiPersPairs<dataType>(tree, false);
           }
           else{
             preprocessingPipeline<dataType>(trees[i], epsilonTree2_,

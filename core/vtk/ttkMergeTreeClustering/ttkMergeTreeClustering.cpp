@@ -366,7 +366,7 @@ int ttkMergeTreeClustering::runCompute(
         mergeTreeBarycenter.setBranchDecomposition(false);
         mergeTreeBarycenter.setNormalizedWasserstein(false);
         mergeTreeBarycenter.setKeepSubtree(false);
-        mergeTreeBarycenter.setUseMinMaxPair(false);
+        // mergeTreeBarycenter.setUseMinMaxPair(false);
         mergeTreeBarycenter.setAddNodes(false);
         mergeTreeBarycenter.setPostprocess(false);
         mergeTreeBarycenter.setUseMedianBarycenter(useMedianBarycenter);

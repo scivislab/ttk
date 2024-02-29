@@ -652,7 +652,7 @@ namespace ttk {
         mergeTreeBary.setBranchDecomposition(false);
         mergeTreeBary.setNormalizedWasserstein(false);
         mergeTreeBary.setKeepSubtree(false);
-        mergeTreeBary.setUseMinMaxPair(false);
+        // mergeTreeBary.setUseMinMaxPair(true);
         mergeTreeBary.setAddNodes(false);
         mergeTreeBary.setPostprocess(false);
       }

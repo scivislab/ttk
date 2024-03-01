@@ -220,6 +220,14 @@ int ttkMergeTreeClustering::runCompute(
     NormalizedWasserstein = false;
     KeepSubtree = true;
     ComputeBarycenter = false;
+  } else if(Backend == 3) {
+    BranchDecomposition = false;
+    NormalizedWasserstein = false;
+    KeepSubtree = false;
+  } else if(Backend == 4) {
+    BranchDecomposition = false;
+    NormalizedWasserstein = false;
+    KeepSubtree = false;
   }
   if(IsPersistenceDiagram) {
     BranchDecomposition = true;
@@ -228,7 +236,8 @@ int ttkMergeTreeClustering::runCompute(
     if(not BranchDecomposition)
       printMsg("BranchDecomposition is set to true since the barycenter "
                "computation is asked.");
-    BranchDecomposition = true;
+    if(baseModule==0)
+      BranchDecomposition = true;
     if(KeepSubtree)
       printMsg("KeepSubtree is set to false since the barycenter computation "
                "is asked.");

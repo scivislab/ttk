@@ -105,11 +105,11 @@ namespace ttk {
             distanceMatrix[i][j] = 0;
           } else if(baseModule_ == 1) {
             dataType dist = branchDist.editDistance_branch<dataType>(
-              &(ftmtrees[i].tree), &(ftmtrees[j].tree));
+              ftmtrees[i], ftmtrees[j]);
             distanceMatrix[i][j] = static_cast<double>(dist);
           } else if(baseModule_ == 2) {
             dataType dist = pathDist.editDistance_path<dataType>(
-              &(ftmtrees[i].tree), &(ftmtrees[j].tree));
+              ftmtrees[i], ftmtrees[j]);
             distanceMatrix[i][j] = static_cast<double>(dist);
           }
           // distance matrix is symmetric

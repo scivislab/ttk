@@ -351,50 +351,50 @@ namespace ttk {
       Timer t_tempSub;
 
       // --- Preprocessing
-      if(not useL2Distance_ && not usePathMappings_) {
+      if(not useL2Distance_){//} && not usePathMappings_) {
         treesNodeCorr_ = std::vector<std::vector<int>>(mTrees.size());
         for(unsigned int i = 0; i < mTrees.size(); ++i) {
           preprocessingPipeline<dataType>(mTrees[i], epsilonTree2_,
                                           epsilon2Tree2_, epsilon3Tree2_,
                                           branchDecomposition_, useMinMaxPair_,
-                                          cleanTree_, treesNodeCorr_[i]);
+                                          cleanTree_, treesNodeCorr_[i],true,usePathMappings_);
         }
         printTreesStats<dataType>(mTrees);
       }
-      if(usePathMappings_){
-        treesNodeCorr_ = std::vector<std::vector<int>>(mTrees.size());
-        printMsg("uses path mapping distance");
-        for(unsigned int i = 0; i < mTrees.size(); ++i) {
-          ftm::FTMTree_MT *tree = &(mTrees[i].tree);
-          preprocessTree<dataType>(tree, true);
+      // if(usePathMappings_){
+      //   treesNodeCorr_ = std::vector<std::vector<int>>(mTrees.size());
+      //   printMsg("uses path mapping distance");
+      //   for(unsigned int i = 0; i < mTrees.size(); ++i) {
+      //     ftm::FTMTree_MT *tree = &(mTrees[i].tree);
+      //     preprocessTree<dataType>(tree, true);
 
-          // - Delete null persistence pairs and persistence thresholding
-          persistenceThresholding<dataType>(tree, persistenceThreshold_);
+      //     // - Delete null persistence pairs and persistence thresholding
+      //     persistenceThresholding<dataType>(tree, persistenceThreshold_);
 
-          // - Merge saddle points according epsilon
-          if(not isPersistenceDiagram_) {
-            if(epsilonTree2_ != 0){
-              std::vector<std::vector<ftm::idNode>> treeNodeMerged( tree->getNumberOfNodes() );
-              mergeSaddle<dataType>(tree, epsilonTree2_, treeNodeMerged);
-              for(unsigned int j=0; j<treeNodeMerged.size(); j++){
-                for(auto k : treeNodeMerged[j]){
-                  auto nodeToDelete = tree->getNode(j)->getOrigin();
-                  tree->getNode(k)->setOrigin(j);
-                  tree->getNode(nodeToDelete)->setOrigin(-1);
-                }
-              }
-              ftm::cleanMergeTree<dataType>(mTrees[i], treesNodeCorr_[i], true);
-            }
-            else{
-              std::vector<ttk::SimplexId> nodeCorri(tree->getNumberOfNodes());
-              for(unsigned int j=0; j<nodeCorri.size(); j++) nodeCorri[j] = j;
-              treesNodeCorr_[i] = nodeCorri;
-            }
-          }
-          if(deleteMultiPersPairs_)
-            deleteMultiPersPairs<dataType>(tree, false);
-        }
-      }
+      //     // - Merge saddle points according epsilon
+      //     if(not isPersistenceDiagram_) {
+      //       if(epsilonTree2_ != 0){
+      //         std::vector<std::vector<ftm::idNode>> treeNodeMerged( tree->getNumberOfNodes() );
+      //         mergeSaddle<dataType>(tree, epsilonTree2_, treeNodeMerged);
+      //         for(unsigned int j=0; j<treeNodeMerged.size(); j++){
+      //           for(auto k : treeNodeMerged[j]){
+      //             auto nodeToDelete = tree->getNode(j)->getOrigin();
+      //             tree->getNode(k)->setOrigin(j);
+      //             tree->getNode(nodeToDelete)->setOrigin(-1);
+      //           }
+      //         }
+      //         ftm::cleanMergeTree<dataType>(mTrees[i], treesNodeCorr_[i], true);
+      //       }
+      //       else{
+      //         std::vector<ttk::SimplexId> nodeCorri(tree->getNumberOfNodes());
+      //         for(unsigned int j=0; j<nodeCorri.size(); j++) nodeCorri[j] = j;
+      //         treesNodeCorr_[i] = nodeCorri;
+      //       }
+      //     }
+      //     if(deleteMultiPersPairs_)
+      //       deleteMultiPersPairs<dataType>(tree, false);
+      //   }
+      // }
 
       // --- Execute
       std::vector<ftm::MergeTree<dataType>> barycenters(mTrees.size());

@@ -340,62 +340,23 @@ namespace ttk {
     }
 
     template <class dataType>
-    dataType editDistance_path(ftm::FTMTree_MT *tree1, ftm::FTMTree_MT *tree2, std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> *outputMatching) {
+    dataType editDistance_path(ftm::FTMTree_MT *tree1,
+                               ftm::FTMTree_MT *tree2,
+                               std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> *outputMatching) {
 
-      // optional preprocessing
+      // // optional preprocessing
+      // if(preprocess_) {
+      //   treesNodeCorr_.resize(2);
+      //   preprocessingPipeline<dataType>(
+      //     mTree1, epsilonTree1_, epsilon2Tree1_, epsilon3Tree1_,
+      //     branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[0],true,true);
+      //   preprocessingPipeline<dataType>(
+      //     mTree2, epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
+      //     branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[1],true,true);
+      // }
 
-      if(preprocess_){
-        preprocessTree<dataType>(tree1, true);
-        preprocessTree<dataType>(tree2, true);
-
-        // - Delete null persistence pairs and persistence thresholding
-        persistenceThresholding<dataType>(tree1, persistenceThreshold_);
-        persistenceThresholding<dataType>(tree2, persistenceThreshold_);
-
-        // - Merge saddle points according epsilon
-        if(not isPersistenceDiagram_) {
-          treesNodeCorr_.resize(2);
-          if(epsilonTree1_ != 0){
-            std::vector<std::vector<ftm::idNode>> treeNodeMerged1( tree1->getNumberOfNodes() );
-            mergeSaddle<dataType>(tree1, epsilonTree1_, treeNodeMerged1);
-            for(unsigned int i=0; i<treeNodeMerged1.size(); i++){
-              for(auto j : treeNodeMerged1[i]){
-                auto nodeToDelete = tree1->getNode(j)->getOrigin();
-                tree1->getNode(j)->setOrigin(i);
-                tree1->getNode(nodeToDelete)->setOrigin(-1);
-              }
-            }
-            ftm::cleanMergeTree<dataType>(tree1, treesNodeCorr_[0], true);
-          }
-          else{
-            std::vector<ttk::SimplexId> nodeCorr1(tree1->getNumberOfNodes());
-            for(unsigned int i=0; i<nodeCorr1.size(); i++) nodeCorr1[i] = i;
-            treesNodeCorr_[0] = nodeCorr1;
-          }
-          if(epsilonTree2_ != 0){
-            std::vector<std::vector<ftm::idNode>> treeNodeMerged2( tree2->getNumberOfNodes() );
-            mergeSaddle<dataType>(tree2, epsilonTree2_, treeNodeMerged2);
-            for(unsigned int i=0; i<treeNodeMerged2.size(); i++){
-              for(auto j : treeNodeMerged2[i]){
-                auto nodeToDelete = tree2->getNode(j)->getOrigin();
-                tree2->getNode(j)->setOrigin(i);
-                tree2->getNode(nodeToDelete)->setOrigin(-1);
-              }
-            }
-            ftm::cleanMergeTree<dataType>(tree2, treesNodeCorr_[1], true);
-          }
-          else{
-            std::vector<ttk::SimplexId> nodeCorr2(tree2->getNumberOfNodes());
-            for(unsigned int i=0; i<nodeCorr2.size(); i++) nodeCorr2[i] = i;
-            treesNodeCorr_[1] = nodeCorr2;
-          }
-        }
-        
-        if(deleteMultiPersPairs_)
-          deleteMultiPersPairs<dataType>(tree1, false);
-        if(deleteMultiPersPairs_)
-          deleteMultiPersPairs<dataType>(tree2, false);
-      }
+      // ftm::FTMTree_MT *tree1 = (&mTree1.tree);
+      // ftm::FTMTree_MT *tree2 = (&mTree2.tree);
       
       // compute preorder of both trees (necessary for bottom-up dynamic programming)
 
@@ -740,6 +701,28 @@ namespace ttk {
     }
 
     template <class dataType>
+    dataType editDistance_path(ftm::MergeTree<dataType> &mTree1,
+                               ftm::MergeTree<dataType> &mTree2,
+                               std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> *outputMatching) {
+      
+      // optional preprocessing
+      if(preprocess_) {
+        treesNodeCorr_.resize(2);
+        preprocessingPipeline<dataType>(
+          mTree1, epsilonTree1_, epsilon2Tree1_, epsilon3Tree1_,
+          branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[0],true,true);
+        preprocessingPipeline<dataType>(
+          mTree2, epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
+          branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[1],true,true);
+      }
+
+      ftm::FTMTree_MT *tree1 = (&mTree1.tree);
+      ftm::FTMTree_MT *tree2 = (&mTree2.tree);
+
+      return editDistance_path<dataType>(tree1,tree2,outputMatching);
+    }
+
+    template <class dataType>
     dataType editDistance_path(ftm::FTMTree_MT *tree1, ftm::FTMTree_MT *tree2, std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching){
       
       std::vector<int> matchedNodes(tree1->getNumberOfNodes(),-1);
@@ -761,7 +744,51 @@ namespace ttk {
     }
 
     template <class dataType>
+    dataType editDistance_path(ftm::MergeTree<dataType> &mTree1,
+                               ftm::MergeTree<dataType> &mTree2,
+                               std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching){
+      
+      // optional preprocessing
+      if(preprocess_) {
+        treesNodeCorr_.resize(2);
+        preprocessingPipeline<dataType>(
+          mTree1, epsilonTree1_, epsilon2Tree1_, epsilon3Tree1_,
+          branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[0],true,true);
+        preprocessingPipeline<dataType>(
+          mTree2, epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
+          branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[1],true,true);
+      }
+
+      ftm::FTMTree_MT *tree1 = (&mTree1.tree);
+      ftm::FTMTree_MT *tree2 = (&mTree2.tree);
+
+      return editDistance_path<dataType>(tree1,tree2,outputMatching);
+
+    }
+
+    template <class dataType>
     dataType editDistance_path(ftm::FTMTree_MT *tree1, ftm::FTMTree_MT *tree2){
+      return editDistance_path<dataType>(tree1,tree2,(std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>*) nullptr);
+    }
+
+    template <class dataType>
+    dataType editDistance_path(ftm::MergeTree<dataType> &mTree1,
+                               ftm::MergeTree<dataType> &mTree2){
+      
+      // optional preprocessing
+      if(preprocess_) {
+        treesNodeCorr_.resize(2);
+        preprocessingPipeline<dataType>(
+          mTree1, epsilonTree1_, epsilon2Tree1_, epsilon3Tree1_,
+          branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[0],true,true);
+        preprocessingPipeline<dataType>(
+          mTree2, epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
+          branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[1],true,true);
+      }
+
+      ftm::FTMTree_MT *tree1 = (&mTree1.tree);
+      ftm::FTMTree_MT *tree2 = (&mTree2.tree);
+
       return editDistance_path<dataType>(tree1,tree2,(std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>*) nullptr);
     }
   };

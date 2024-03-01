@@ -211,35 +211,45 @@ namespace ttk {
     }
 
     template <class dataType>
+    dataType editDistance_branch(ftm::MergeTree<dataType> &mTree1,
+                                 ftm::MergeTree<dataType> &mTree2,
+                                 std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching=nullptr) {
+
+      // optional preprocessing
+      if(preprocess_ && !writeOptimalBranchDecomposition_){
+        treesNodeCorr_.resize(2);
+        preprocessingPipeline<dataType>(
+          mTree1, epsilonTree1_, epsilon2Tree1_, epsilon3Tree1_,
+          branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[0],true,true);
+        preprocessingPipeline<dataType>(
+          mTree2, epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
+          branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[1],true,true);
+      }
+
+      ftm::FTMTree_MT *tree1 = (&mTree1.tree);
+      ftm::FTMTree_MT *tree2 = (&mTree2.tree);
+
+      return editDistance_branch<dataType>(tree1,tree2, outputMatching);
+    }
+
+    template <class dataType>
     dataType editDistance_branch(ftm::FTMTree_MT *tree1,
                                  ftm::FTMTree_MT *tree2,
                                  std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching=nullptr) {
 
-      // optional preprocessing
+      // // optional preprocessing
+      // if(preprocess_ && !writeOptimalBranchDecomposition_){
+      //   treesNodeCorr_.resize(2);
+      //   preprocessingPipeline<dataType>(
+      //     mTree1, epsilonTree1_, epsilon2Tree1_, epsilon3Tree1_,
+      //     branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[0],true,true);
+      //   preprocessingPipeline<dataType>(
+      //     mTree2, epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
+      //     branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[1],true,true);
+      // }
 
-      if(preprocess_ && !writeOptimalBranchDecomposition_){
-        preprocessTree<dataType>(tree1, true);
-        preprocessTree<dataType>(tree2, true);
-
-        // - Delete null persistence pairs and persistence thresholding
-        persistenceThresholding<dataType>(tree1, persistenceThreshold_);
-        persistenceThresholding<dataType>(tree2, persistenceThreshold_);
-
-        // - Merge saddle points according epsilon
-        std::vector<std::vector<ftm::idNode>> treeNodeMerged1( tree1->getNumberOfNodes() );
-        std::vector<std::vector<ftm::idNode>> treeNodeMerged2( tree2->getNumberOfNodes() );
-        if(not isPersistenceDiagram_) {
-          if(epsilonTree1_ != 0)
-            mergeSaddle<dataType>(tree1, epsilonTree1_, treeNodeMerged1);
-          if(epsilonTree2_ != 0)
-            mergeSaddle<dataType>(tree2, epsilonTree2_, treeNodeMerged2);
-        }
-        
-        if(deleteMultiPersPairs_)
-          deleteMultiPersPairs<dataType>(tree1, false);
-        if(deleteMultiPersPairs_)
-          deleteMultiPersPairs<dataType>(tree2, false);
-      }
+      // ftm::FTMTree_MT *tree1 = (&mTree1.tree);
+      // ftm::FTMTree_MT *tree2 = (&mTree2.tree);
       
       // compute preorder of both trees (necessary for bottom-up dynamic programming)
 

@@ -282,6 +282,7 @@ int ttkMergeTreeClustering::runCompute(
       branchDist.setAssignmentSolver(AssignmentSolver);
       branchDist.setSquared(false);
       branchDist.setComputeMapping(true);
+      branchDist.setPreprocess(true);
       // branchDist.setWriteBD(false);
       branchDist.setWriteBD(true);
 
@@ -296,7 +297,7 @@ int ttkMergeTreeClustering::runCompute(
       branchDist.setDebugLevel(this->debugLevel_);
 
       distance = branchDist.editDistance_branch<dataType>(
-        intermediateTrees[0], intermediateTrees[1], &outputMatching);
+        intermediateMTrees[0], intermediateMTrees[1], &outputMatching);
 
       std::vector<ttk::SimplexId> nodeCorr1(
         intermediateTrees[0]->getNumberOfNodes());
@@ -328,7 +329,7 @@ int ttkMergeTreeClustering::runCompute(
       pathDist.setDebugLevel(this->debugLevel_);
 
       distance = pathDist.editDistance_path<dataType>(
-        intermediateTrees[0], intermediateTrees[1], &outputMatching);
+        intermediateMTrees[0], intermediateMTrees[1], &outputMatching);
       trees1NodeCorrMesh = pathDist.getTreesNodeCorr();
 
       // std::vector<ttk::SimplexId>

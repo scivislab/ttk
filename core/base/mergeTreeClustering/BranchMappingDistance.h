@@ -216,14 +216,14 @@ namespace ttk {
                                  std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching=nullptr) {
 
       // optional preprocessing
-      if(preprocess_ && !writeOptimalBranchDecomposition_){
+      if(preprocess_){
         treesNodeCorr_.resize(2);
         preprocessingPipeline<dataType>(
           mTree1, epsilonTree1_, epsilon2Tree1_, epsilon3Tree1_,
-          branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[0],true,true);
+          false, useMinMaxPair_, cleanTree_, treesNodeCorr_[0],true,true);
         preprocessingPipeline<dataType>(
           mTree2, epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
-          branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[1],true,true);
+          false, useMinMaxPair_, cleanTree_, treesNodeCorr_[1],true,true);
       }
 
       ftm::FTMTree_MT *tree1 = (&mTree1.tree);

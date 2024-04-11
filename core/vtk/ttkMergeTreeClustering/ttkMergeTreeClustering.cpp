@@ -292,6 +292,7 @@ int ttkMergeTreeClustering::runCompute(
       branchDist.setSquared(false);
       branchDist.setComputeMapping(true);
       branchDist.setPreprocess(true);
+      branchDist.setBranchDecomposition(false);
       // branchDist.setWriteBD(false);
       branchDist.setWriteBD(true);
 
@@ -299,6 +300,7 @@ int ttkMergeTreeClustering::runCompute(
       branchDist.setEpsilonTree2(EpsilonTree2);
       branchDist.setPersistenceThreshold(PersistenceThreshold);
       // branchDist.setUseMinMaxPair(UseMinMaxPair);
+      branchDist.setCleanTree(true);
       branchDist.setDeleteMultiPersPairs(DeleteMultiPersPairs);
       // branchDist.setEpsilon1UseFarthestSaddle(Epsilon1UseFarthestSaddle);
       branchDist.setPersistenceThreshold(PersistenceThreshold);
@@ -326,11 +328,13 @@ int ttkMergeTreeClustering::runCompute(
       pathDist.setSquared(false);
       pathDist.setComputeMapping(true);
       pathDist.setPreprocess(true);
+      pathDist.setBranchDecomposition(false);
 
       pathDist.setEpsilonTree1(EpsilonTree1);
       pathDist.setEpsilonTree2(EpsilonTree2);
       pathDist.setPersistenceThreshold(PersistenceThreshold);
       // pathDist.setUseMinMaxPair(UseMinMaxPair);
+      pathDist.setCleanTree(true);
       pathDist.setDeleteMultiPersPairs(DeleteMultiPersPairs);
       // pathDist.setEpsilon1UseFarthestSaddle(Epsilon1UseFarthestSaddle);
       pathDist.setPersistenceThreshold(PersistenceThreshold);

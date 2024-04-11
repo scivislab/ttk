@@ -999,7 +999,7 @@ namespace ttk {
       pathDistance.setDistanceSquaredRoot(false); // squared root
       pathDistance.setComputeMapping(true);
       distance
-        = pathDistance.editDistance_path<dataType>(baryTree, tree, &matching);
+        = pathDistance.computeDistance<dataType>(baryTree, tree, &matching);
     }
 
     template <class dataType>
@@ -1020,7 +1020,7 @@ namespace ttk {
         pathDistance.setDistanceSquaredRoot(false); // squared root
         pathDistance.setComputeMapping(false);
         distance
-          = pathDistance.editDistance_path<dataType>(baryTree, tree);
+          = pathDistance.computeDistance<dataType>(baryTree, tree);
       }
       else{
         MergeTreeDistance mergeTreeDistance;

@@ -340,24 +340,10 @@ namespace ttk {
     }
 
     template <class dataType>
-    dataType editDistance_path(ftm::FTMTree_MT *tree1,
+    dataType computeDistance(ftm::FTMTree_MT *tree1,
                                ftm::FTMTree_MT *tree2,
                                std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> *outputMatching) {
 
-      // // optional preprocessing
-      // if(preprocess_) {
-      //   treesNodeCorr_.resize(2);
-      //   preprocessingPipeline<dataType>(
-      //     mTree1, epsilonTree1_, epsilon2Tree1_, epsilon3Tree1_,
-      //     branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[0],true,true);
-      //   preprocessingPipeline<dataType>(
-      //     mTree2, epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
-      //     branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[1],true,true);
-      // }
-
-      // ftm::FTMTree_MT *tree1 = (&mTree1.tree);
-      // ftm::FTMTree_MT *tree2 = (&mTree2.tree);
-      
       // compute preorder of both trees (necessary for bottom-up dynamic programming)
 
       std::vector<std::vector<int>> predecessors1(tree1->getNumberOfNodes());
@@ -701,7 +687,7 @@ namespace ttk {
     }
 
     template <class dataType>
-    dataType editDistance_path(ftm::MergeTree<dataType> &mTree1,
+    dataType execute(ftm::MergeTree<dataType> &mTree1,
                                ftm::MergeTree<dataType> &mTree2,
                                std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> *outputMatching) {
       
@@ -719,15 +705,15 @@ namespace ttk {
       ftm::FTMTree_MT *tree1 = (&mTree1.tree);
       ftm::FTMTree_MT *tree2 = (&mTree2.tree);
 
-      return editDistance_path<dataType>(tree1,tree2,outputMatching);
+      return computeDistance<dataType>(tree1,tree2,outputMatching);
     }
 
     template <class dataType>
-    dataType editDistance_path(ftm::FTMTree_MT *tree1, ftm::FTMTree_MT *tree2, std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching){
+    dataType computeDistance(ftm::FTMTree_MT *tree1, ftm::FTMTree_MT *tree2, std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching){
       
       std::vector<int> matchedNodes(tree1->getNumberOfNodes(),-1);
       std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> mapping;
-      dataType res = editDistance_path<dataType>(tree1,tree2,&mapping);
+      dataType res = computeDistance<dataType>(tree1,tree2,&mapping);
       if(computeMapping_ && outputMatching){
         outputMatching->clear();
         for(auto m : mapping){
@@ -744,7 +730,7 @@ namespace ttk {
     }
 
     template <class dataType>
-    dataType editDistance_path(ftm::MergeTree<dataType> &mTree1,
+    dataType execute(ftm::MergeTree<dataType> &mTree1,
                                ftm::MergeTree<dataType> &mTree2,
                                std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching){
       
@@ -762,17 +748,17 @@ namespace ttk {
       ftm::FTMTree_MT *tree1 = (&mTree1.tree);
       ftm::FTMTree_MT *tree2 = (&mTree2.tree);
 
-      return editDistance_path<dataType>(tree1,tree2,outputMatching);
+      return computeDistance<dataType>(tree1,tree2,outputMatching);
 
     }
 
     template <class dataType>
-    dataType editDistance_path(ftm::FTMTree_MT *tree1, ftm::FTMTree_MT *tree2){
-      return editDistance_path<dataType>(tree1,tree2,(std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>*) nullptr);
+    dataType computeDistance(ftm::FTMTree_MT *tree1, ftm::FTMTree_MT *tree2){
+      return computeDistance<dataType>(tree1,tree2,(std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>*) nullptr);
     }
 
     template <class dataType>
-    dataType editDistance_path(ftm::MergeTree<dataType> &mTree1,
+    dataType execute(ftm::MergeTree<dataType> &mTree1,
                                ftm::MergeTree<dataType> &mTree2){
       
       // optional preprocessing
@@ -789,7 +775,7 @@ namespace ttk {
       ftm::FTMTree_MT *tree1 = (&mTree1.tree);
       ftm::FTMTree_MT *tree2 = (&mTree2.tree);
 
-      return editDistance_path<dataType>(tree1,tree2,(std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>*) nullptr);
+      return computeDistance<dataType>(tree1,tree2,(std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>*) nullptr);
     }
   };
 } // namespace ttk

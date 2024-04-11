@@ -67,7 +67,7 @@ namespace ttk {
         ftm::FTMTree_MT* mt1 = &(mTree1.tree);
         ftm::FTMTree_MT* mt2 = &(mTree2.tree);
         dataType distance
-          = mergeTreeDistance.editDistance_path<dataType>(mt1, mt2, &matching);
+          = mergeTreeDistance.computeDistance<dataType>(mt1, mt2, &matching);
 
         return distance;
       }

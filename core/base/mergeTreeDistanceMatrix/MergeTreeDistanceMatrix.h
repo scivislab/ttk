@@ -104,11 +104,11 @@ namespace ttk {
           if(baseModule_ == 0) {
             distanceMatrix[i][j] = 0;
           } else if(baseModule_ == 1) {
-            dataType dist = branchDist.editDistance_branch<dataType>(
+            dataType dist = branchDist.execute<dataType>(
               ftmtrees[i], ftmtrees[j]);
             distanceMatrix[i][j] = static_cast<double>(dist);
           } else if(baseModule_ == 2) {
-            dataType dist = pathDist.editDistance_path<dataType>(
+            dataType dist = pathDist.execute<dataType>(
               ftmtrees[i], ftmtrees[j]);
             distanceMatrix[i][j] = static_cast<double>(dist);
           }

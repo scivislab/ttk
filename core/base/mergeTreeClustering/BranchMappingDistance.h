@@ -211,7 +211,7 @@ namespace ttk {
     }
 
     template <class dataType>
-    dataType editDistance_branch(ftm::MergeTree<dataType> &mTree1,
+    dataType execute(ftm::MergeTree<dataType> &mTree1,
                                  ftm::MergeTree<dataType> &mTree2,
                                  std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching=nullptr) {
 
@@ -229,11 +229,11 @@ namespace ttk {
       ftm::FTMTree_MT *tree1 = (&mTree1.tree);
       ftm::FTMTree_MT *tree2 = (&mTree2.tree);
 
-      return editDistance_branch<dataType>(tree1,tree2, outputMatching);
+      return computeDistance<dataType>(tree1,tree2, outputMatching);
     }
 
     template <class dataType>
-    dataType editDistance_branch(ftm::FTMTree_MT *tree1,
+    dataType computeDistance(ftm::FTMTree_MT *tree1,
                                  ftm::FTMTree_MT *tree2,
                                  std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching=nullptr) {
 

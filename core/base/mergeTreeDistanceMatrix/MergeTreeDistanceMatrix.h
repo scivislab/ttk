@@ -78,61 +78,6 @@ namespace ttk {
     }
 
     template <class dataType>
-    void execute(std::vector<ftm::MergeTree<dataType>> &ftmtrees,
-                 std::vector<std::vector<double>> &distanceMatrix) {
-      for(unsigned int i = 0; i < distanceMatrix.size(); ++i) {
-        if(i % std::max(int(distanceMatrix.size() / 10), 1) == 0) {
-          std::stringstream stream;
-          stream << i << " / " << distanceMatrix.size();
-          printMsg(stream.str());
-        }
-
-        BranchMappingDistance branchDist;
-        branchDist.setBaseMetric(branchMetric_);
-        branchDist.setAssignmentSolver(assignmentSolverID_);
-        branchDist.setSquared(not distanceSquaredRoot_);
-        branchDist.setEpsilonTree1(epsilonTree1_);
-        branchDist.setEpsilonTree2(epsilonTree2_);
-        branchDist.setEpsilon2Tree1(epsilon2Tree1_);
-        branchDist.setEpsilon2Tree2(epsilon2Tree2_);
-        branchDist.setEpsilon3Tree1(epsilon3Tree1_);
-        branchDist.setEpsilon3Tree2(epsilon3Tree2_);
-        branchDist.setPersistenceThreshold(persistenceThreshold_);
-        PathMappingDistance pathDist;
-        pathDist.setBaseMetric(pathMetric_);
-        pathDist.setAssignmentSolver(assignmentSolverID_);
-        pathDist.setSquared(not distanceSquaredRoot_);
-        pathDist.setComputeMapping(true);
-        pathDist.setEpsilonTree1(epsilonTree1_);
-        pathDist.setEpsilonTree2(epsilonTree2_);
-        pathDist.setEpsilon2Tree1(epsilon2Tree1_);
-        pathDist.setEpsilon2Tree2(epsilon2Tree2_);
-        pathDist.setEpsilon3Tree1(epsilon3Tree1_);
-        pathDist.setEpsilon3Tree2(epsilon3Tree2_);
-        pathDist.setPersistenceThreshold(persistenceThreshold_);
-
-        distanceMatrix[i][i] = 0.0;
-        // compareTrees(trees[i],&(ftmtrees[i].tree));
-        for(unsigned int j = i + 1; j < distanceMatrix[0].size(); ++j) {
-          // Execute
-          if(baseModule_ == 0) {
-            distanceMatrix[i][j] = 0;
-          } else if(baseModule_ == 1) {
-            dataType dist = branchDist.execute<dataType>(
-              ftmtrees[i], ftmtrees[j]);
-            distanceMatrix[i][j] = static_cast<double>(dist);
-          } else if(baseModule_ == 2) {
-            dataType dist = pathDist.execute<dataType>(
-              ftmtrees[i], ftmtrees[j]);
-            distanceMatrix[i][j] = static_cast<double>(dist);
-          }
-          // distance matrix is symmetric
-          distanceMatrix[j][i] = distanceMatrix[i][j];
-        } // end for j
-      } // end for i
-    }
-
-    template <class dataType>
     void executePara(std::vector<ftm::MergeTree<dataType>> &trees,
                      std::vector<std::vector<double>> &distanceMatrix,
                      bool isFirstInput = true) {
@@ -198,8 +143,39 @@ namespace ttk {
               std::vector<std::tuple<ftm::idNode, ftm::idNode>> outputMatching;
               distanceMatrix[i][j] = mergeTreeDistance.execute<dataType>(
                 trees[i], trees[j], outputMatching);
-            } else {
-              distanceMatrix[i][j] = 0;
+            } else if(baseModule_ == 1) {
+              BranchMappingDistance branchDist;
+              branchDist.setBaseMetric(branchMetric_);
+              branchDist.setAssignmentSolver(assignmentSolverID_);
+              branchDist.setSquared(not distanceSquaredRoot_);
+              branchDist.setEpsilonTree1(epsilonTree1_);
+              branchDist.setEpsilonTree2(epsilonTree2_);
+              branchDist.setEpsilon2Tree1(epsilon2Tree1_);
+              branchDist.setEpsilon2Tree2(epsilon2Tree2_);
+              branchDist.setEpsilon3Tree1(epsilon3Tree1_);
+              branchDist.setEpsilon3Tree2(epsilon3Tree2_);
+              branchDist.setPersistenceThreshold(persistenceThreshold_);
+              branchDist.setSaveTree(true);
+              dataType dist = branchDist.execute<dataType>(
+                trees[i], trees[j]);
+              distanceMatrix[i][j] = static_cast<double>(dist);
+            } else if(baseModule_ == 2) {
+              PathMappingDistance pathDist;
+              pathDist.setBaseMetric(pathMetric_);
+              pathDist.setAssignmentSolver(assignmentSolverID_);
+              pathDist.setSquared(not distanceSquaredRoot_);
+              pathDist.setComputeMapping(true);
+              pathDist.setEpsilonTree1(epsilonTree1_);
+              pathDist.setEpsilonTree2(epsilonTree2_);
+              pathDist.setEpsilon2Tree1(epsilon2Tree1_);
+              pathDist.setEpsilon2Tree2(epsilon2Tree2_);
+              pathDist.setEpsilon3Tree1(epsilon3Tree1_);
+              pathDist.setEpsilon3Tree2(epsilon3Tree2_);
+              pathDist.setPersistenceThreshold(persistenceThreshold_);
+              pathDist.setSaveTree(true);
+              dataType dist = pathDist.execute<dataType>(
+                trees[i], trees[j]);
+              distanceMatrix[i][j] = static_cast<double>(dist);
             }
             // distance matrix is symmetric
             distanceMatrix[j][i] = distanceMatrix[i][j];

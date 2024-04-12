@@ -47,6 +47,7 @@ namespace ttk {
     bool writeOptimalBranchDecomposition_ = false;
 
     bool preprocess_ = true;
+    bool saveTree_ = false;
 
     template <class dataType>
     inline dataType editCost_Wasserstein1(int n1,
@@ -210,24 +211,39 @@ namespace ttk {
       preprocess_ = p;
     }
 
+    void setSaveTree(bool save) {
+      saveTree_ = save;
+    }
+
     template <class dataType>
     dataType execute(ftm::MergeTree<dataType> &mTree1,
                                  ftm::MergeTree<dataType> &mTree2,
                                  std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> *outputMatching=nullptr) {
 
+      ftm::MergeTree<dataType> mTree1Copy;
+      ftm::MergeTree<dataType> mTree2Copy;
+      if(saveTree_) {
+        mTree1Copy = ftm::copyMergeTree<dataType>(mTree1);
+        mTree2Copy = ftm::copyMergeTree<dataType>(mTree2);
+      }
+      ftm::MergeTree<dataType> &mTree1Int = (saveTree_ ? mTree1Copy : mTree1);
+      ftm::MergeTree<dataType> &mTree2Int = (saveTree_ ? mTree2Copy : mTree2);
+      ftm::FTMTree_MT *tree1 = &(mTree1Int.tree);
+      ftm::FTMTree_MT *tree2 = &(mTree2Int.tree);
+
       // optional preprocessing
       if(preprocess_){
         treesNodeCorr_.resize(2);
         preprocessingPipeline<dataType>(
-          mTree1, epsilonTree1_, epsilon2Tree1_, epsilon3Tree1_,
+          mTree1Int, epsilonTree1_, epsilon2Tree1_, epsilon3Tree1_,
           false, useMinMaxPair_, cleanTree_, treesNodeCorr_[0],true,true);
         preprocessingPipeline<dataType>(
-          mTree2, epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
+          mTree2Int, epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
           false, useMinMaxPair_, cleanTree_, treesNodeCorr_[1],true,true);
       }
-
-      ftm::FTMTree_MT *tree1 = (&mTree1.tree);
-      ftm::FTMTree_MT *tree2 = (&mTree2.tree);
+      
+      tree1 = &(mTree1Int.tree);
+      tree2 = &(mTree2Int.tree);
 
       return computeDistance<dataType>(tree1,tree2, outputMatching);
     }

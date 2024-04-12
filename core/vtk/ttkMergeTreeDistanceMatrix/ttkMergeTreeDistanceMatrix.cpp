@@ -188,10 +188,7 @@ int ttkMergeTreeDistanceMatrix::run(
   // --- Call base
   std::vector<std::vector<double>> treesDistMat(
     numInputs, std::vector<double>(numInputs));
-  if(baseModule_ == 0)
-    execute<dataType>(intermediateTrees, intermediateTrees2, treesDistMat);
-  else
-    execute<dataType>(intermediateTrees, treesDistMat);
+  execute<dataType>(intermediateTrees, intermediateTrees2, treesDistMat);
 
   // --- Create output
   auto treesDistTable = vtkTable::GetData(outputVector);

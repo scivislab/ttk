@@ -91,11 +91,25 @@ namespace ttk {
         branchDist.setBaseMetric(branchMetric_);
         branchDist.setAssignmentSolver(assignmentSolverID_);
         branchDist.setSquared(not distanceSquaredRoot_);
+        branchDist.setEpsilonTree1(epsilonTree1_);
+        branchDist.setEpsilonTree2(epsilonTree2_);
+        branchDist.setEpsilon2Tree1(epsilon2Tree1_);
+        branchDist.setEpsilon2Tree2(epsilon2Tree2_);
+        branchDist.setEpsilon3Tree1(epsilon3Tree1_);
+        branchDist.setEpsilon3Tree2(epsilon3Tree2_);
+        branchDist.setPersistenceThreshold(persistenceThreshold_);
         PathMappingDistance pathDist;
         pathDist.setBaseMetric(pathMetric_);
         pathDist.setAssignmentSolver(assignmentSolverID_);
         pathDist.setSquared(not distanceSquaredRoot_);
         pathDist.setComputeMapping(true);
+        pathDist.setEpsilonTree1(epsilonTree1_);
+        pathDist.setEpsilonTree2(epsilonTree2_);
+        pathDist.setEpsilon2Tree1(epsilon2Tree1_);
+        pathDist.setEpsilon2Tree2(epsilon2Tree2_);
+        pathDist.setEpsilon3Tree1(epsilon3Tree1_);
+        pathDist.setEpsilon3Tree2(epsilon3Tree2_);
+        pathDist.setPersistenceThreshold(persistenceThreshold_);
 
         distanceMatrix[i][i] = 0.0;
         // compareTrees(trees[i],&(ftmtrees[i].tree));

@@ -437,10 +437,12 @@ namespace ttk {
         std::vector<dataType> distances(assignedTrees[i].size(), 0);
         std::vector<dataType> distances2(assignedTrees[i].size(), 0);
         treesMatchingVector matching(trees.size()), matching2(trees2.size());
+        std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>> matching_path(trees.size());
         if(baseModule_ == 2){
-          std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>> matching_path(trees.size());
-          assignment_path<dataType>(
-            assignedTrees[i], centroids[i], matching_path, distances);
+          // assignment_path<dataType>(
+          //   assignedTrees[i], centroids[i], matching_path, distances);
+          assignment<dataType>(
+            assignedTrees[i], centroids[i], matching, matching_path, distances);
           for(unsigned int j=0; j<assignedTrees[i].size(); j++){
             std::vector<int> matchedNodes(assignedTrees[i][j]->getNumberOfNodes(),-1);
             for(auto m : matching_path[j]){
@@ -455,10 +457,10 @@ namespace ttk {
         }
         else{
           assignment<dataType>(
-            assignedTrees[i], centroids[i], matching, distances, useDoubleInput_);
+            assignedTrees[i], centroids[i], matching, matching_path, distances, useDoubleInput_);
           matchingsC[i] = matching;
           if(trees2.size() != 0) {
-            assignment<dataType>(assignedTrees2[i], centroids2[i], matching2,
+            assignment<dataType>(assignedTrees2[i], centroids2[i], matching2, matching_path,
                                 distances2, useDoubleInput_, false);
             matchingsC2[i] = matching2;
             for(unsigned int j = 0; j < assignedTreesIndex[i].size(); ++j)

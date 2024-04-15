@@ -180,8 +180,9 @@ namespace ttk {
       for(unsigned int i = 0; i < trees.size(); ++i)
         for(unsigned int j = i + 1; j < trees.size(); ++j) {
           std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> matching;
+          std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> matching_path;
           dataType distance;
-          computeOneDistance<dataType>(trees[i], trees2[j], matching, distance,
+          computeOneDistance<dataType>(trees[i], trees2[j], matching, matching_path, distance,
                                        useDoubleInput, isFirstInput);
           distanceMatrix[i][j] = distance;
           distanceMatrix[j][i] = distance;
@@ -984,29 +985,30 @@ namespace ttk {
     // ------------------------------------------------------------------------
     // Assignment
     // ------------------------------------------------------------------------
-    template <class dataType>
-    void computeOneDistance_pathMapping(
-      ftm::FTMTree_MT *tree,
-      ftm::FTMTree_MT *baryTree,
-      std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> &matching,
-      dataType &distance) {
-      // Timer t_distance;
-      PathMappingDistance pathDistance;
-      pathDistance.setDebugLevel(std::min(debugLevel_, 2));
-      pathDistance.setPreprocess(false);
-      pathDistance.setAssignmentSolver(assignmentSolverID_);
-      pathDistance.setThreadNumber(this->threadNumber_);
-      pathDistance.setDistanceSquaredRoot(false); // squared root
-      pathDistance.setComputeMapping(true);
-      distance
-        = pathDistance.computeDistance<dataType>(baryTree, tree, &matching);
-    }
+    // template <class dataType>
+    // void computeOneDistance_pathMapping(
+    //   ftm::FTMTree_MT *tree,
+    //   ftm::FTMTree_MT *baryTree,
+    //   std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> &matching,
+    //   dataType &distance) {
+    //   // Timer t_distance;
+    //   PathMappingDistance pathDistance;
+    //   pathDistance.setDebugLevel(std::min(debugLevel_, 2));
+    //   pathDistance.setPreprocess(false);
+    //   pathDistance.setAssignmentSolver(assignmentSolverID_);
+    //   pathDistance.setThreadNumber(this->threadNumber_);
+    //   pathDistance.setDistanceSquaredRoot(false); // squared root
+    //   pathDistance.setComputeMapping(true);
+    //   distance
+    //     = pathDistance.computeDistance<dataType>(baryTree, tree, &matching);
+    // }
 
     template <class dataType>
     void computeOneDistance(
       ftm::FTMTree_MT *tree,
       ftm::FTMTree_MT *baryTree,
       std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> &matching,
+      std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> &matching_path,
       dataType &distance,
       bool useDoubleInput = false,
       bool isFirstInput = true) {
@@ -1018,9 +1020,9 @@ namespace ttk {
         pathDistance.setAssignmentSolver(assignmentSolverID_);
         pathDistance.setThreadNumber(this->threadNumber_);
         pathDistance.setDistanceSquaredRoot(false); // squared root
-        pathDistance.setComputeMapping(false);
+        pathDistance.setComputeMapping(true);
         distance
-          = pathDistance.computeDistance<dataType>(baryTree, tree);
+          = pathDistance.computeDistance<dataType>(baryTree, tree, &matching_path);
       }
       else{
         MergeTreeDistance mergeTreeDistance;
@@ -1061,10 +1063,52 @@ namespace ttk {
       ftm::FTMTree_MT *tree,
       ftm::MergeTree<dataType> &baryMergeTree,
       std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> &matching,
+      std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> &matching_path,
       dataType &distance,
       bool useDoubleInput = false,
       bool isFirstInput = true) {
-      computeOneDistance<dataType>(tree, &(baryMergeTree.tree), matching,
+      computeOneDistance<dataType>(tree, &(baryMergeTree.tree), matching, matching_path,
+                                   distance, useDoubleInput, isFirstInput);
+    }
+
+    template <class dataType>
+    void computeOneDistance(
+      ftm::MergeTree<dataType> &baryMergeTree,
+      ftm::MergeTree<dataType> &baryMergeTree2,
+      std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> &matching,
+      std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> &matching_path,
+      dataType &distance,
+      bool useDoubleInput = false,
+      bool isFirstInput = true) {
+      computeOneDistance<dataType>(&(baryMergeTree.tree), baryMergeTree2,
+                                   matching, matching_path, distance, useDoubleInput,
+                                   isFirstInput);
+    }
+
+    template <class dataType>
+    void computeOneDistance(
+      ftm::FTMTree_MT *tree,
+      ftm::FTMTree_MT *baryTree,
+      std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> &matching,
+      dataType &distance,
+      bool useDoubleInput = false,
+      bool isFirstInput = true) {
+      std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> matching_path;
+      computeOneDistance<dataType>(tree, baryTree,
+                                   matching, matching_path, distance, useDoubleInput,
+                                   isFirstInput);
+    }
+
+    template <class dataType>
+    void computeOneDistance(
+      ftm::FTMTree_MT *tree,
+      ftm::MergeTree<dataType> &baryMergeTree,
+      std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> &matching,
+      dataType &distance,
+      bool useDoubleInput = false,
+      bool isFirstInput = true) {
+      std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> matching_path;
+      computeOneDistance<dataType>(tree, &(baryMergeTree.tree), matching, matching_path,
                                    distance, useDoubleInput, isFirstInput);
     }
 
@@ -1076,23 +1120,24 @@ namespace ttk {
       dataType &distance,
       bool useDoubleInput = false,
       bool isFirstInput = true) {
+      std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> matching_path;
       computeOneDistance<dataType>(&(baryMergeTree.tree), baryMergeTree2,
-                                   matching, distance, useDoubleInput,
+                                   matching, matching_path, distance, useDoubleInput,
                                    isFirstInput);
     }
 
-    template <class dataType>
-    void assignment_path(
-      std::vector<ftm::FTMTree_MT *> &trees,
-      ftm::MergeTree<dataType> &baryMergeTree,
-      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
-        &matchings,
-      std::vector<dataType> &distances) {
-      for(unsigned int i = 0; i < trees.size(); ++i){
-        computeOneDistance_pathMapping<dataType>(trees[i], &(baryMergeTree.tree), matchings[i],
-                                     distances[i]);
-      }
-    }
+    // template <class dataType>
+    // void assignment_path(
+    //   std::vector<ftm::FTMTree_MT *> &trees,
+    //   ftm::MergeTree<dataType> &baryMergeTree,
+    //   std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
+    //     &matchings,
+    //   std::vector<dataType> &distances) {
+    //   for(unsigned int i = 0; i < trees.size(); ++i){
+    //     computeOneDistance_pathMapping<dataType>(trees[i], &(baryMergeTree.tree), matchings[i],
+    //                                  distances[i]);
+    //   }
+    // }
 
     template <class dataType>
     void assignment(
@@ -1100,14 +1145,16 @@ namespace ttk {
       ftm::MergeTree<dataType> &baryMergeTree,
       std::vector<std::vector<std::tuple<ftm::idNode, ftm::idNode, double>>>
         &matchings,
+      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
+        &matchings_path,
       std::vector<dataType> &distances,
       bool useDoubleInput = false,
       bool isFirstInput = true) {
       if(not isCalled_)
-        assignmentPara(trees, baryMergeTree, matchings, distances,
+        assignmentPara(trees, baryMergeTree, matchings, matchings_path, distances,
                        useDoubleInput, isFirstInput);
       else
-        assignmentTask(trees, baryMergeTree, matchings, distances,
+        assignmentTask(trees, baryMergeTree, matchings, matchings_path, distances,
                        useDoubleInput, isFirstInput);
     }
 
@@ -1117,6 +1164,8 @@ namespace ttk {
       ftm::MergeTree<dataType> &baryMergeTree,
       std::vector<std::vector<std::tuple<ftm::idNode, ftm::idNode, double>>>
         &matchings,
+      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
+        &matchings_path,
       std::vector<dataType> &distances,
       bool useDoubleInput = false,
       bool isFirstInput = true) {
@@ -1126,7 +1175,7 @@ namespace ttk {
       {
 #pragma omp single nowait
 #endif
-        assignmentTask(trees, baryMergeTree, matchings, distances,
+        assignmentTask(trees, baryMergeTree, matchings, matchings_path, distances,
                        useDoubleInput, isFirstInput);
 #ifdef TTK_ENABLE_OPENMP4
       } // pragma omp parallel
@@ -1139,15 +1188,17 @@ namespace ttk {
       ftm::MergeTree<dataType> &baryMergeTree,
       std::vector<std::vector<std::tuple<ftm::idNode, ftm::idNode, double>>>
         &matchings,
+      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
+        &matchings_path,
       std::vector<dataType> &distances,
       bool useDoubleInput = false,
       bool isFirstInput = true) {
       for(unsigned int i = 0; i < trees.size(); ++i)
 #ifdef TTK_ENABLE_OPENMP4
 #pragma omp task firstprivate(i) UNTIED() \
-  shared(baryMergeTree, matchings, distances)
+  shared(baryMergeTree, matchings, matchings_path, distances)
 #endif
-        computeOneDistance<dataType>(trees[i], baryMergeTree, matchings[i],
+        computeOneDistance<dataType>(trees[i], baryMergeTree, matchings[i],matchings_path[i],
                                      distances[i], useDoubleInput,
                                      isFirstInput);
 #ifdef TTK_ENABLE_OPENMP4
@@ -1284,12 +1335,13 @@ namespace ttk {
           matchings_path(trees.size());
         std::vector<dataType> distances(trees.size(), -1);
         Timer t_assignment;
-        if(baseModule_ == 2){
-          assignment_path<dataType>(trees, baryMergeTree, matchings_path, distances);
-        }
-        else{
-          assignment<dataType>(trees, baryMergeTree, matchings, distances);
-        }
+        // if(baseModule_ == 2){
+        //   assignment_path<dataType>(trees, baryMergeTree, matchings_path, distances);
+        // }
+        // else{
+        //   assignment<dataType>(trees, baryMergeTree, matchings, distances);
+        // }
+        assignment<dataType>(trees, baryMergeTree, matchings, matchings_path, distances);
         Timer t_addDeletedNodes;
         if(progressiveBarycenter_)
           addScaledDeletedNodesCost<dataType>(
@@ -1369,7 +1421,10 @@ namespace ttk {
       if(baseModule_ == 2){
         std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
           matchings_path(trees.size());
-        assignment_path<dataType>(trees, baryMergeTree, matchings_path, distances);
+        std::vector<std::vector<std::tuple<ftm::idNode, ftm::idNode, double>>>
+          matchings;
+        // assignment_path<dataType>(trees, baryMergeTree, matchings_path, distances);
+        assignment<dataType>(trees, baryMergeTree, matchings, matchings_path, distances);
         finalMatchings_path = matchings_path;
         for(unsigned int i=0; i<matchings_path.size(); i++){
           finalMatchings[i].clear();
@@ -1384,7 +1439,7 @@ namespace ttk {
         }
       }
       else{
-        assignment<dataType>(trees, baryMergeTree, finalMatchings, distances,
+        assignment<dataType>(trees, baryMergeTree, finalMatchings, finalMatchings_path, distances,
                              finalAsgnDoubleInput, finalAsgnFirstInput);
       }
       for(auto dist : distances)
@@ -1654,8 +1709,9 @@ namespace ttk {
         &finalMatchings,
       std::vector<dataType> distances) {
       std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> matching;
+      std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>> matching_path;
       dataType distance;
-      computeOneDistance(trees[0], trees[1], matching, distance);
+      computeOneDistance(trees[0], trees[1], matching, matching_path, distance);
       if(distance != (distances[0] + distances[1])) {
         std::stringstream ss, ss2, ss3, ss4;
         ss << "distance T1 T2    : " << distance;

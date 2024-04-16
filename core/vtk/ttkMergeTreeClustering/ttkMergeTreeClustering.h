@@ -100,7 +100,7 @@ private:
   bool useFixedInit = false;
   int fixedInitNumber = 0;
   bool useEarlyOut = true;
-  // int iterationLimit = 0;
+  int iterationLimit = 100;
   double NonMatchingWeight = 1.0;
 
   // Output Options
@@ -382,11 +382,12 @@ public:
     resetDataVisualization();
   }
 
-  // void SetIterationLimit(int l) {
-  //   iterationLimit = l;
-  //   Modified();
-  //   resetDataVisualization();
-  // }
+  void SetIterationLimit(int l) {
+    iterationLimit = l;
+    Modified();
+    resetDataVisualization();
+  }
+  
   void SetNonMatchingWeight(double weight) {
     NonMatchingWeight = weight;
     Modified();

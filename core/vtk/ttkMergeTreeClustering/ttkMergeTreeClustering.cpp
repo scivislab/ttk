@@ -374,7 +374,7 @@ int ttkMergeTreeClustering::runCompute(
       mergeTreeBarycenter.setUseFixedInit(useFixedInit);
       mergeTreeBarycenter.setFixedInitNumber(fixedInitNumber);
       mergeTreeBarycenter.setUseEarlyOut(useEarlyOut);
-      // mergeTreeBarycenter.setIterationLimit(iterationLimit);
+      mergeTreeBarycenter.setIterationLimit(iterationLimit);
       if(baseModule == 2) {
         mergeTreeBarycenter.setPathMetric(this->pathMetric);
         mergeTreeBarycenter.setBranchDecomposition(false);

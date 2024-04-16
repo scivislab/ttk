@@ -269,12 +269,13 @@ Online examples:
                   <BooleanDomain name="bool"/>
                 </IntVectorProperty>
 
-                <!-- <IntVectorProperty
+                <IntVectorProperty
                 name="IterationLimit"
                 command="SetIterationLimit"
                 label="Max Number of Iterations"
                 number_of_elements="1"
-                default_values="20">
+                default_values="100"
+                panel_visibility="advanced">
                   <Hints>
                   <PropertyWidgetDecorator type="CompositeDecorator">
                     <Expression type="and">
@@ -316,7 +317,7 @@ Online examples:
                   <Documentation>
                     Maximum number of iterations in barycenter computation.
                   </Documentation>
-                </IntVectorProperty> -->
+                </IntVectorProperty>
 
                 <DoubleVectorProperty
                 name="BarycenterSizeLimitPercent"
@@ -422,7 +423,7 @@ Online examples:
                 label="Alpha"
                 number_of_elements="1"
                 default_values="0.5"
-                panel_visibility="advanced">>
+                panel_visibility="advanced">
                   <Hints>
                   <PropertyWidgetDecorator type="GenericDecorator"
                                            mode="visibility"
@@ -681,6 +682,7 @@ Online examples:
               <Property name="UseFixedInit"/>
               <Property name="FixedInitNumber"/>
               <Property name="UseEarlyOut"/>
+              <Property name="IterationLimit"/>
               <Property name="NonMatchingWeight"/>
               <!-- <Property name="UseMinMaxPair"/> -->
             </PropertyGroup>

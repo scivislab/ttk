@@ -59,7 +59,7 @@ namespace ttk {
     bool useFixedInit_ = false;
     bool useEarlyOut_ = true;
     int fixedInitNumber_ = 0;
-    //int iterationLimit_ = 0;
+    int iterationLimit_ = 100;
 
     // Output
     std::vector<double> finalDistances_;
@@ -155,9 +155,9 @@ namespace ttk {
       fixedInitNumber_ = fixedInitNumber;
     }
 
-    // void setIterationLimit(int l) {
-    //   iterationLimit_ = l;
-    // }
+    void setIterationLimit(int l) {
+      iterationLimit_ = l;
+    }
 
     /**
      * Implementation of the algorithm.
@@ -1320,7 +1320,7 @@ namespace ttk {
       std::stringstream energySequence;
       int minBarySize = std::numeric_limits<int>::max();
       int maxBarySize = 0;
-      while(not converged && NoIteration<100){// && NoIteration<iterationLimit_) {
+      while(not converged && NoIteration<iterationLimit_) {
         ++NoIteration;
 
         printMsg(debug::Separator::L2);

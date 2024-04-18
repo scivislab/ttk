@@ -67,8 +67,22 @@ namespace ttk {
     void execute(std::vector<ftm::MergeTree<dataType>> &trees,
                  std::vector<ftm::MergeTree<dataType>> &trees2,
                  std::vector<std::vector<double>> &distanceMatrix) {
+      treesNodeCorr_.resize(trees.size());
+      for(unsigned int i = 0; i < trees.size(); ++i){
+        preprocessingPipeline<dataType>(trees[i], epsilonTree2_,
+                                        epsilon2Tree2_, epsilon3Tree2_,
+                                        baseModule_==0?branchDecomposition_:false, useMinMaxPair_,
+                                        true, treesNodeCorr_[i],true,baseModule_==2);
+      }
       executePara<dataType>(trees, distanceMatrix);
       if(trees2.size() != 0) {
+        std::vector<std::vector<int>> trees2NodeCorr(trees2.size());
+        for(unsigned int i = 0; i < trees.size(); ++i){
+          preprocessingPipeline<dataType>(trees2[i], epsilonTree2_,
+                                          epsilon2Tree2_, epsilon3Tree2_,
+                                          baseModule_==0?branchDecomposition_:false, useMinMaxPair_,
+                                          true, treesNodeCorr_[i],true,baseModule_==2);
+        }
         useDoubleInput_ = true;
         std::vector<std::vector<double>> distanceMatrix2(
           trees2.size(), std::vector<double>(trees2.size()));
@@ -129,7 +143,9 @@ namespace ttk {
               mergeTreeDistance.setKeepSubtree(keepSubtree_);
               mergeTreeDistance.setDistanceSquaredRoot(distanceSquaredRoot_);
               mergeTreeDistance.setUseMinMaxPair(useMinMaxPair_);
-              mergeTreeDistance.setSaveTree(true);
+              mergeTreeDistance.setPreprocess(false);
+              // mergeTreeDistance.setSaveTree(true);
+              mergeTreeDistance.setSaveTree(false);
               mergeTreeDistance.setCleanTree(true);
               mergeTreeDistance.setIsCalled(true);
               mergeTreeDistance.setPostprocess(false);
@@ -155,7 +171,9 @@ namespace ttk {
               branchDist.setEpsilon3Tree1(epsilon3Tree1_);
               branchDist.setEpsilon3Tree2(epsilon3Tree2_);
               branchDist.setPersistenceThreshold(persistenceThreshold_);
-              branchDist.setSaveTree(true);
+              branchDist.setPreprocess(false);
+              // branchDist.setSaveTree(true);
+              branchDist.setSaveTree(false);
               dataType dist = branchDist.execute<dataType>(
                 trees[i], trees[j]);
               distanceMatrix[i][j] = static_cast<double>(dist);
@@ -172,7 +190,9 @@ namespace ttk {
               pathDist.setEpsilon3Tree1(epsilon3Tree1_);
               pathDist.setEpsilon3Tree2(epsilon3Tree2_);
               pathDist.setPersistenceThreshold(persistenceThreshold_);
-              pathDist.setSaveTree(true);
+              pathDist.setPreprocess(false);
+              // pathDist.setSaveTree(true);
+              pathDist.setSaveTree(false);
               dataType dist = pathDist.execute<dataType>(
                 trees[i], trees[j]);
               distanceMatrix[i][j] = static_cast<double>(dist);

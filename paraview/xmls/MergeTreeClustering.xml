@@ -251,7 +251,7 @@ Online examples:
                   </Documentation>
                 </IntVectorProperty>
 
-                <IntVectorProperty
+                <!-- <IntVectorProperty
                 name="UseEarlyOut"
                 command="SetUseEarlyOut"
                 label="Stop when converged"
@@ -267,7 +267,7 @@ Online examples:
                     Stop barycenter iteration when convergence good enough.
                   </Documentation>
                   <BooleanDomain name="bool"/>
-                </IntVectorProperty>
+                </IntVectorProperty> -->
 
                 <IntVectorProperty
                 name="IterationLimit"
@@ -681,7 +681,7 @@ Online examples:
               <Property name="UseMedianBarycenter"/>
               <Property name="UseFixedInit"/>
               <Property name="FixedInitNumber"/>
-              <Property name="UseEarlyOut"/>
+              <!-- <Property name="UseEarlyOut"/> -->
               <Property name="IterationLimit"/>
               <Property name="NonMatchingWeight"/>
               <!-- <Property name="UseMinMaxPair"/> -->

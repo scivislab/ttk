@@ -99,7 +99,7 @@ private:
   bool useMedianBarycenter = false;
   bool useFixedInit = false;
   int fixedInitNumber = 0;
-  bool useEarlyOut = true;
+  // bool useEarlyOut = true;
   int iterationLimit = 100;
   double NonMatchingWeight = 1.0;
 
@@ -376,18 +376,18 @@ public:
     resetDataVisualization();
   }
 
-  void SetUseEarlyOut(bool eo) {
-    useEarlyOut = eo;
-    Modified();
-    resetDataVisualization();
-  }
+  // void SetUseEarlyOut(bool eo) {
+  //   useEarlyOut = eo;
+  //   Modified();
+  //   resetDataVisualization();
+  // }
 
   void SetIterationLimit(int l) {
     iterationLimit = l;
     Modified();
     resetDataVisualization();
   }
-  
+
   void SetNonMatchingWeight(double weight) {
     NonMatchingWeight = weight;
     Modified();

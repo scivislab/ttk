@@ -57,7 +57,7 @@ namespace ttk {
     int baseModule_ = 0;
     bool useMedianBarycenter_ = false;
     bool useFixedInit_ = false;
-    bool useEarlyOut_ = true;
+    // bool useEarlyOut_ = true;
     int fixedInitNumber_ = 0;
     int iterationLimit_ = 100;
 
@@ -147,9 +147,9 @@ namespace ttk {
       useFixedInit_ = useFixedInit;
     }
 
-    void setUseEarlyOut(bool useEarlyOut) {
-      useEarlyOut_ = useEarlyOut;
-    }
+    // void setUseEarlyOut(bool useEarlyOut) {
+    //   useEarlyOut_ = useEarlyOut;
+    // }
 
     void setFixedInitNumber(int fixedInitNumber) {
       fixedInitNumber_ = fixedInitNumber;
@@ -1320,7 +1320,7 @@ namespace ttk {
       std::stringstream energySequence;
       int minBarySize = std::numeric_limits<int>::max();
       int maxBarySize = 0;
-      while(not converged && NoIteration<iterationLimit_) {
+      while(not converged && (iterationLimit_<0 || NoIteration<iterationLimit_)) {
         ++NoIteration;
 
         printMsg(debug::Separator::L2);
@@ -1398,7 +1398,7 @@ namespace ttk {
           cptBlocked = (minFrechet < frechetEnergy) ? cptBlocked + 1 : 0;
           converged = (cptBlocked >= 10);
         }
-        if(!useEarlyOut_) converged = false;
+        // if(!useEarlyOut_) converged = false;
 
         // --- Persistence scaling
         if(progressiveBarycenter_) {

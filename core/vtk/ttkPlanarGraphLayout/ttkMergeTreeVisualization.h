@@ -564,8 +564,10 @@ public:
                                           : nodeCorr1[0][tree1NodeId];
           double *point1 = vtkOutputNode2->GetPoints()->GetPoint(pointToGet1);
           const SimplexId nextPointId1 = pointsM->InsertNextPoint(point1);
-          if(not clusteringOutput) isBarycenterNodeField->InsertNextTuple1(0);
-          else isBarycenterNodeField->InsertNextTuple1(1);
+          if(not clusteringOutput)
+            isBarycenterNodeField->InsertNextTuple1(0);
+          else
+            isBarycenterNodeField->InsertNextTuple1(1);
           pointIds[0] = nextPointId1;
 
           // Get second point

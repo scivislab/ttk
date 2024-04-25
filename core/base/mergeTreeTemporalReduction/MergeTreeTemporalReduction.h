@@ -105,7 +105,7 @@ namespace ttk {
                              ftm::MergeTree<dataType> &mTree2,
                              bool emptyTreeDistance = false) {
       dataType distance;
-      if(usePathMappings_){
+      if(usePathMappings_) {
         PathMappingDistance mergeTreeDistance;
         mergeTreeDistance.setAssignmentSolver(assignmentSolverID_);
         mergeTreeDistance.setEpsilonTree1(epsilonTree1_);
@@ -117,11 +117,10 @@ namespace ttk {
         mergeTreeDistance.setPreprocess(false);
         mergeTreeDistance.setComputeMapping(false);
 
-        ftm::FTMTree_MT* mt1 = &(mTree1.tree);
-        ftm::FTMTree_MT* mt2 = &(mTree2.tree);
+        ftm::FTMTree_MT *mt1 = &(mTree1.tree);
+        ftm::FTMTree_MT *mt2 = &(mTree2.tree);
         distance = mergeTreeDistance.computeDistance<dataType>(mt1, mt2);
-      }
-      else{
+      } else {
         MergeTreeDistance mergeTreeDistance;
         mergeTreeDistance.setAssignmentSolver(assignmentSolverID_);
         mergeTreeDistance.setEpsilonTree1(epsilonTree1_);
@@ -145,7 +144,8 @@ namespace ttk {
         mergeTreeDistance.setOnlyEmptyTreeDistance(emptyTreeDistance);
 
         std::vector<std::tuple<ftm::idNode, ftm::idNode, double>> matching;
-        distance = mergeTreeDistance.execute<dataType>(mTree1, mTree2, matching);
+        distance
+          = mergeTreeDistance.execute<dataType>(mTree1, mTree2, matching);
       }
 
       return distance;
@@ -175,7 +175,7 @@ namespace ttk {
       mergeTreeBarycenter.setPostprocess(false);
       // mergeTreeBarycenter.setIsCalled(true);
 
-      if(usePathMappings_){
+      if(usePathMappings_) {
         mergeTreeBarycenter.setBaseModule(2);
         mergeTreeBarycenter.setBranchDecomposition(false);
         mergeTreeBarycenter.setNormalizedWasserstein(false);
@@ -183,8 +183,7 @@ namespace ttk {
         mergeTreeBarycenter.setUseMinMaxPair(false);
         mergeTreeBarycenter.setAddNodes(false);
         mergeTreeBarycenter.setPostprocess(false);
-      }
-      else{
+      } else {
         mergeTreeBarycenter.setBranchDecomposition(true);
         mergeTreeBarycenter.setNormalizedWasserstein(normalizedWasserstein_);
         // mergeTreeBarycenter.setNormalizedWassersteinReg(normalizedWassersteinReg_);
@@ -358,13 +357,13 @@ namespace ttk {
       Timer t_tempSub;
 
       // --- Preprocessing
-      if(not useL2Distance_){//} && not usePathMappings_) {
+      if(not useL2Distance_) { //} && not usePathMappings_) {
         treesNodeCorr_ = std::vector<std::vector<int>>(mTrees.size());
         for(unsigned int i = 0; i < mTrees.size(); ++i) {
-          preprocessingPipeline<dataType>(mTrees[i], epsilonTree2_,
-                                          epsilon2Tree2_, epsilon3Tree2_,
-                                          branchDecomposition_, useMinMaxPair_,
-                                          cleanTree_, treesNodeCorr_[i],true,usePathMappings_);
+          preprocessingPipeline<dataType>(
+            mTrees[i], epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
+            branchDecomposition_, useMinMaxPair_, cleanTree_, treesNodeCorr_[i],
+            true, usePathMappings_);
         }
         printTreesStats<dataType>(mTrees);
       }
@@ -381,21 +380,24 @@ namespace ttk {
       //     // - Merge saddle points according epsilon
       //     if(not isPersistenceDiagram_) {
       //       if(epsilonTree2_ != 0){
-      //         std::vector<std::vector<ftm::idNode>> treeNodeMerged( tree->getNumberOfNodes() );
-      //         mergeSaddle<dataType>(tree, epsilonTree2_, treeNodeMerged);
-      //         for(unsigned int j=0; j<treeNodeMerged.size(); j++){
+      //         std::vector<std::vector<ftm::idNode>> treeNodeMerged(
+      //         tree->getNumberOfNodes() ); mergeSaddle<dataType>(tree,
+      //         epsilonTree2_, treeNodeMerged); for(unsigned int j=0;
+      //         j<treeNodeMerged.size(); j++){
       //           for(auto k : treeNodeMerged[j]){
       //             auto nodeToDelete = tree->getNode(j)->getOrigin();
       //             tree->getNode(k)->setOrigin(j);
       //             tree->getNode(nodeToDelete)->setOrigin(-1);
       //           }
       //         }
-      //         ftm::cleanMergeTree<dataType>(mTrees[i], treesNodeCorr_[i], true);
+      //         ftm::cleanMergeTree<dataType>(mTrees[i], treesNodeCorr_[i],
+      //         true);
       //       }
       //       else{
-      //         std::vector<ttk::SimplexId> nodeCorri(tree->getNumberOfNodes());
-      //         for(unsigned int j=0; j<nodeCorri.size(); j++) nodeCorri[j] = j;
-      //         treesNodeCorr_[i] = nodeCorri;
+      //         std::vector<ttk::SimplexId>
+      //         nodeCorri(tree->getNumberOfNodes()); for(unsigned int j=0;
+      //         j<nodeCorri.size(); j++) nodeCorri[j] = j; treesNodeCorr_[i] =
+      //         nodeCorri;
       //       }
       //     }
       //     if(deleteMultiPersPairs_)

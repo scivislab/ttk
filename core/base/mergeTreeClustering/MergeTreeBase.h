@@ -651,11 +651,11 @@ namespace ttk {
       std::vector<std::vector<ftm::idNode>> treeNodeMerged(
         tree->getNumberOfNodes());
       if(not isPersistenceDiagram_ or convertToDiagram_) {
-        if(epsilonTree != 0){
+        if(epsilonTree != 0) {
           mergeSaddle<dataType>(tree, epsilonTree, treeNodeMerged);
-          if(removeMergedSaddles){
-            for(unsigned int j=0; j<treeNodeMerged.size(); j++){
-              for(auto k : treeNodeMerged[j]){
+          if(removeMergedSaddles) {
+            for(unsigned int j = 0; j < treeNodeMerged.size(); j++) {
+              for(auto k : treeNodeMerged[j]) {
                 auto nodeToDelete = tree->getNode(k)->getOrigin();
                 tree->getNode(k)->setOrigin(j);
                 tree->getNode(nodeToDelete)->setOrigin(-1);
@@ -1305,7 +1305,7 @@ namespace ttk {
       std::stringstream ss;
       ss << trees.size() << " trees average [node: " << avgNodes << " / "
          << avgNodesT << ", depth: " << avgDepth << "]";
-      printMsg(ss.str(),debug::Priority::PERFORMANCE);
+      printMsg(ss.str(), debug::Priority::PERFORMANCE);
     }
 
     template <class dataType>

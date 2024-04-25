@@ -90,20 +90,20 @@ namespace ttk {
                  std::vector<ftm::MergeTree<dataType>> &trees2,
                  std::vector<std::vector<double>> &distanceMatrix) {
       treesNodeCorr_.resize(trees.size());
-      for(unsigned int i = 0; i < trees.size(); ++i){
-        preprocessingPipeline<dataType>(trees[i], epsilonTree2_,
-                                        epsilon2Tree2_, epsilon3Tree2_,
-                                        baseModule_==0?branchDecomposition_:false, useMinMaxPair_,
-                                        true, treesNodeCorr_[i],true,baseModule_==2);
+      for(unsigned int i = 0; i < trees.size(); ++i) {
+        preprocessingPipeline<dataType>(
+          trees[i], epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
+          baseModule_ == 0 ? branchDecomposition_ : false, useMinMaxPair_, true,
+          treesNodeCorr_[i], true, baseModule_ == 2);
       }
       executePara<dataType>(trees, distanceMatrix);
       if(trees2.size() != 0) {
         std::vector<std::vector<int>> trees2NodeCorr(trees2.size());
-        for(unsigned int i = 0; i < trees.size(); ++i){
-          preprocessingPipeline<dataType>(trees2[i], epsilonTree2_,
-                                          epsilon2Tree2_, epsilon3Tree2_,
-                                          baseModule_==0?branchDecomposition_:false, useMinMaxPair_,
-                                          true, treesNodeCorr_[i],true,baseModule_==2);
+        for(unsigned int i = 0; i < trees.size(); ++i) {
+          preprocessingPipeline<dataType>(
+            trees2[i], epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
+            baseModule_ == 0 ? branchDecomposition_ : false, useMinMaxPair_,
+            true, treesNodeCorr_[i], true, baseModule_ == 2);
         }
         useDoubleInput_ = true;
         std::vector<std::vector<double>> distanceMatrix2(
@@ -196,8 +196,7 @@ namespace ttk {
               branchDist.setPreprocess(false);
               // branchDist.setSaveTree(true);
               branchDist.setSaveTree(false);
-              dataType dist = branchDist.execute<dataType>(
-                trees[i], trees[j]);
+              dataType dist = branchDist.execute<dataType>(trees[i], trees[j]);
               distanceMatrix[i][j] = static_cast<double>(dist);
             } else if(baseModule_ == 2) {
               PathMappingDistance pathDist;
@@ -215,8 +214,7 @@ namespace ttk {
               pathDist.setPreprocess(false);
               // pathDist.setSaveTree(true);
               pathDist.setSaveTree(false);
-              dataType dist = pathDist.execute<dataType>(
-                trees[i], trees[j]);
+              dataType dist = pathDist.execute<dataType>(trees[i], trees[j]);
               distanceMatrix[i][j] = static_cast<double>(dist);
             }
             // distance matrix is symmetric

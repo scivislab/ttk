@@ -158,12 +158,12 @@ namespace ttk {
           "Init index : " + std::to_string(bestIndex), debug::Priority::DETAIL);
         // Create new centroid
         allCentroids[0][i]
-          = ftm::copyMergeTree<dataType>(trees[bestIndex], baseModule_!=2);
+          = ftm::copyMergeTree<dataType>(trees[bestIndex], baseModule_ != 2);
         limitSizeBarycenter(allCentroids[0][i], trees, limitPercent);
         ftm::cleanMergeTree<dataType>(allCentroids[0][i]);
         if(trees2.size() != 0) {
           allCentroids[1][i]
-            = ftm::copyMergeTree<dataType>(trees2[bestIndex], baseModule_!=2);
+            = ftm::copyMergeTree<dataType>(trees2[bestIndex], baseModule_ != 2);
           limitSizeBarycenter(allCentroids[1][i], trees2, limitPercent);
           ftm::cleanMergeTree<dataType>(allCentroids[1][i]);
         }
@@ -205,7 +205,8 @@ namespace ttk {
         distancesAndIndexes[i] = std::make_tuple(-bestDistance_[i], i);
       std::sort(distancesAndIndexes.begin(), distancesAndIndexes.end());
       int const bestIndex = std::get<1>(distancesAndIndexes[noNewCentroid]);
-      centroid = ftm::copyMergeTree<dataType>(trees[bestIndex], baseModule_!=2);
+      centroid
+        = ftm::copyMergeTree<dataType>(trees[bestIndex], baseModule_ != 2);
       limitSizeBarycenter(centroid, trees);
       ftm::cleanMergeTree<dataType>(centroid);
     }
@@ -444,34 +445,40 @@ namespace ttk {
         std::vector<dataType> distances(assignedTrees[i].size(), 0);
         std::vector<dataType> distances2(assignedTrees[i].size(), 0);
         treesMatchingVector matching(trees.size()), matching2(trees2.size());
-        std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>> matching_path(trees.size());
-        if(baseModule_ == 2){
+        std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,
+                                          std::pair<ftm::idNode, ftm::idNode>>>>
+          matching_path(trees.size());
+        if(baseModule_ == 2) {
           // assignment_path<dataType>(
           //   assignedTrees[i], centroids[i], matching_path, distances);
           assignment<dataType>(
             assignedTrees[i], centroids[i], matching, matching_path, distances);
-          for(unsigned int j=0; j<assignedTrees[i].size(); j++){
-            std::vector<int> matchedNodes(assignedTrees[i][j]->getNumberOfNodes(),-1);
-            for(auto m : matching_path[j]){
+          for(unsigned int j = 0; j < assignedTrees[i].size(); j++) {
+            std::vector<int> matchedNodes(
+              assignedTrees[i][j]->getNumberOfNodes(), -1);
+            for(auto m : matching_path[j]) {
               matchedNodes[m.second.first] = m.first.first;
               matchedNodes[m.second.second] = m.first.second;
             }
-            for(ftm::idNode k=0; k<matchedNodes.size(); k++){
-              if(matchedNodes[k]>=0) matching[j].emplace_back(std::make_tuple(matchedNodes[k],k, 0.0));
+            for(ftm::idNode k = 0; k < matchedNodes.size(); k++) {
+              if(matchedNodes[k] >= 0)
+                matching[j].emplace_back(
+                  std::make_tuple(matchedNodes[k], k, 0.0));
             }
           }
           matchingsC[i] = matching;
-        }
-        else{
-          assignment<dataType>(
-            assignedTrees[i], centroids[i], matching, matching_path, distances, useDoubleInput_);
+        } else {
+          assignment<dataType>(assignedTrees[i], centroids[i], matching,
+                               matching_path, distances, useDoubleInput_);
           matchingsC[i] = matching;
           if(trees2.size() != 0) {
-            assignment<dataType>(assignedTrees2[i], centroids2[i], matching2, matching_path,
-                                distances2, useDoubleInput_, false);
+            assignment<dataType>(assignedTrees2[i], centroids2[i], matching2,
+                                 matching_path, distances2, useDoubleInput_,
+                                 false);
             matchingsC2[i] = matching2;
             for(unsigned int j = 0; j < assignedTreesIndex[i].size(); ++j)
-              distances[j] = mixDistances<dataType>(distances[j], distances2[j]);
+              distances[j]
+                = mixDistances<dataType>(distances[j], distances2[j]);
           }
         }
         for(unsigned int j = 0; j < assignedTreesIndex[i].size(); ++j) {
@@ -601,8 +608,8 @@ namespace ttk {
                 for(unsigned int t = 0; t < trees.size(); ++t)
                   lowerBound_[t][i] = 0;
               } else if(assignedTrees[i].size() == 1) {
-                centroids[i]
-                  = ftm::copyMergeTree<dataType>(assignedTrees[i][0], baseModule_!=2);
+                centroids[i] = ftm::copyMergeTree<dataType>(
+                  assignedTrees[i][0], baseModule_ != 2);
                 limitSizeBarycenter(centroids[i], assignedTrees[i]);
                 ftm::cleanMergeTree<dataType>(centroids[i]);
               } else if(not samePreviousAssignment(i)) {
@@ -656,7 +663,7 @@ namespace ttk {
         barycenterMaximumNumberOfPairs_);
       mergeTreeBary.setBarycenterSizeLimitPercent(barycenterSizeLimitPercent_);
 
-      if(baseModule_==2){
+      if(baseModule_ == 2) {
         mergeTreeBary.setPathMetric(this->pathMetric_);
         mergeTreeBary.setBranchDecomposition(false);
         mergeTreeBary.setNormalizedWasserstein(false);
@@ -664,8 +671,7 @@ namespace ttk {
         // mergeTreeBary.setUseMinMaxPair(true);
         mergeTreeBary.setAddNodes(false);
         mergeTreeBary.setPostprocess(false);
-      }
-      else{
+      } else {
         mergeTreeBary.setBranchDecomposition(true);
         mergeTreeBary.setNormalizedWasserstein(normalizedWasserstein_);
         // mergeTreeBary.setNormalizedWassersteinReg(normalizedWassersteinReg_);
@@ -674,19 +680,20 @@ namespace ttk {
         mergeTreeBary.setProgressiveBarycenter(progressiveBarycenter_);
       }
 
-      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,std::pair<ftm::idNode, ftm::idNode>>>>
+      std::vector<std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,
+                                        std::pair<ftm::idNode, ftm::idNode>>>>
         finalMatchings_path;
       mergeTreeBary.computeBarycenter<dataType>(
         trees, baryMergeTree, alphas, finalMatchings, finalMatchings_path);
 
       addDeletedNodesTime_ += mergeTreeBary.getAddDeletedNodesTime();
-    
-      if(baseModule_==2){
-        ftm::FTMTree_MT* baryTree = &(baryMergeTree.tree);
-        for(ftm::idNode node=0; node<baryTree->getNumberOfNodes(); node++){
+
+      if(baseModule_ == 2) {
+        ftm::FTMTree_MT *baryTree = &(baryMergeTree.tree);
+        for(ftm::idNode node = 0; node < baryTree->getNumberOfNodes(); node++) {
           baryTree->getNode(node)->setOrigin(-1);
         }
-        preprocessTree<dataType>(baryTree,false);
+        preprocessTree<dataType>(baryTree, false);
       }
     }
 
@@ -852,7 +859,7 @@ namespace ttk {
                                  outputMatching2);
 
       // --- Postprocessing
-      if(baseModule_==0 && postprocess_) {
+      if(baseModule_ == 0 && postprocess_) {
         // fixMergedRootOriginClustering<dataType>(centroids);
         postprocessingClustering<dataType>(
           trees, centroids, outputMatching, clusteringAssignment);
@@ -902,9 +909,10 @@ namespace ttk {
                                  std::vector<std::vector<int>> &nodeCorr,
                                  bool useMinMaxPairT = true) {
       for(unsigned int i = 0; i < trees.size(); ++i) {
-        preprocessingPipeline<dataType>(
-          trees[i], epsilonTree2_, epsilon2Tree2_, epsilon3Tree2_,
-          branchDecomposition_, useMinMaxPairT, cleanTree_, nodeCorr[i],true,baseModule_==2);
+        preprocessingPipeline<dataType>(trees[i], epsilonTree2_, epsilon2Tree2_,
+                                        epsilon3Tree2_, branchDecomposition_,
+                                        useMinMaxPairT, cleanTree_, nodeCorr[i],
+                                        true, baseModule_ == 2);
         if(trees.size() < 40)
           printTreeStats(trees[i]);
       }

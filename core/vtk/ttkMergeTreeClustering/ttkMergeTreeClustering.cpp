@@ -236,7 +236,7 @@ int ttkMergeTreeClustering::runCompute(
     if(not BranchDecomposition)
       printMsg("BranchDecomposition is set to true since the barycenter "
                "computation is asked.");
-    if(baseModule==0)
+    if(baseModule == 0)
       BranchDecomposition = true;
     if(KeepSubtree)
       printMsg("KeepSubtree is set to false since the barycenter computation "

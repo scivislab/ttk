@@ -318,8 +318,7 @@ int ttkMergeTreeClustering::runCompute(
         nodeCorr1[i] = i;
       for(unsigned int i = 0; i < nodeCorr2.size(); i++)
         nodeCorr2[i] = i;
-      trees1NodeCorrMesh
-        = std::vector<std::vector<ttk::SimplexId>>{nodeCorr1, nodeCorr2};
+      trees1NodeCorrMesh = branchDist.getTreesNodeCorr();
       finalDistances = std::vector<double>{distance};
     } else {
       PathMappingDistance pathDist;

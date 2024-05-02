@@ -247,7 +247,6 @@ int ttkMergeTreeClustering::runCompute(
     BranchDecomposition = false;
     NormalizedWasserstein = false;
     KeepSubtree = true;
-    ComputeBarycenter = false;
   } else if(Backend == 3) {
     BranchDecomposition = false;
     NormalizedWasserstein = false;

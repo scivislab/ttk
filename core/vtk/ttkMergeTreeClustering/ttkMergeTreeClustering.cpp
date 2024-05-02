@@ -130,11 +130,39 @@ int ttkMergeTreeClustering::RequestData(vtkInformation *ttkNotUsed(request),
     baseModule = 0;
   }
 
-  // filter out new backends (not yet supported)
+  // filter out backends (not yet supported)
   if(baseModule == 1 && ComputeBarycenter) {
     printErr("Invalid Backend chosen. Branch Mapping Distance not yet "
              "supported for Barycenter computation. Canceling computation.");
-    return 1;
+    return -1;
+  }
+  if(Backend == 1 && ComputeBarycenter) {
+    printErr("Invalid Backend chosen. Edit Distance is not yet supported for "
+             "Barycenter computation. Canceling computation.");
+    return -1;
+  }
+  if(Backend == 2) {
+    if(ComputeBarycenter) {
+      if(not BranchDecomposition) {
+        printErr(
+          "Invalid Backend chosen. Custom Backend without Branch "
+          "Decomposition is not yet supported for Barycenter computation. "
+          "Canceling computation.");
+        return -1;
+      }
+      if(KeepSubtree) {
+        printErr(
+          "Invalid Backend chosen. Custom Backend with Keep Subtree is not yet "
+          "supported for Barycenter computation. Canceling computation.");
+        return -1;
+      }
+    }
+    if(not BranchDecomposition and NormalizedWasserstein) {
+      printErr(
+        "Invalid Backend chosen. Custom Backend with Normalized Wasserstein "
+        "and without Branch Decomposition is not yet. Canceling computation.");
+      return -1;
+    }
   }
 
   // ------------------------------------------------------------------------------------
@@ -231,23 +259,6 @@ int ttkMergeTreeClustering::runCompute(
   }
   if(IsPersistenceDiagram) {
     BranchDecomposition = true;
-  }
-  if(ComputeBarycenter) {
-    if(not BranchDecomposition)
-      printMsg("BranchDecomposition is set to true since the barycenter "
-               "computation is asked.");
-    if(baseModule == 0)
-      BranchDecomposition = true;
-    if(KeepSubtree)
-      printMsg("KeepSubtree is set to false since the barycenter computation "
-               "is asked.");
-    KeepSubtree = false;
-  }
-  if(not BranchDecomposition) {
-    if(NormalizedWasserstein)
-      printMsg("NormalizedWasserstein is set to false since branch "
-               "decomposition is not asked.");
-    NormalizedWasserstein = false;
   }
   EpsilonTree2 = EpsilonTree1;
   Epsilon2Tree2 = Epsilon2Tree1;

@@ -108,26 +108,28 @@ Online examples:
                   <Hints>
                   <PropertyWidgetDecorator type="CompositeDecorator">
                     <Expression type="or">
-                      <Expression type="and">
+                      <Expression type="or">
                         <Expression type="and">
+                          <Expression type="and">
+                            <PropertyWidgetDecorator type="GenericDecorator"
+                                                    mode="visibility"
+                                                    property="BranchDecomposition"
+                                                    value="1" />
+                            <PropertyWidgetDecorator type="GenericDecorator"
+                                                    mode="visibility"
+                                                    property="Backend"
+                                                    value="2" />
+                          </Expression>
                           <PropertyWidgetDecorator type="GenericDecorator"
                                                   mode="visibility"
-                                                  property="BranchDecomposition"
-                                                  value="1" />
-                          <PropertyWidgetDecorator type="GenericDecorator"
-                                                  mode="visibility"
-                                                  property="Backend"
-                                                  value="2" />
+                                                  property="KeepSubtree"
+                                                  value="0" />
                         </Expression>
                         <PropertyWidgetDecorator type="GenericDecorator"
                                                 mode="visibility"
-                                                property="KeepSubtree"
+                                                property="Backend"
                                                 value="0" />
                       </Expression>
-                      <PropertyWidgetDecorator type="GenericDecorator"
-                                              mode="visibility"
-                                              property="Backend"
-                                              value="0" />
                       <PropertyWidgetDecorator type="GenericDecorator"
                                                   mode="visibility"
                                                   property="Backend"
@@ -151,8 +153,8 @@ Online examples:
                   <PropertyWidgetDecorator type="CompositeDecorator">
                     <Expression type="and">
                       <Expression type="or">
-                        <Expression type="and">
-                          <Expression type="or">
+                        <Expression type="or">
+                          <Expression type="and">
                             <Expression type="and">
                               <PropertyWidgetDecorator type="GenericDecorator"
                                                       mode="visibility"
@@ -165,19 +167,19 @@ Online examples:
                             </Expression>
                             <PropertyWidgetDecorator type="GenericDecorator"
                                                     mode="visibility"
-                                                    property="Backend"
+                                                    property="KeepSubtree"
                                                     value="0" />
                           </Expression>
                           <PropertyWidgetDecorator type="GenericDecorator"
                                                   mode="visibility"
-                                                  property="KeepSubtree"
+                                                  property="Backend"
                                                   value="0" />
                         </Expression>
                         <PropertyWidgetDecorator type="GenericDecorator"
                                                     mode="visibility"
                                                     property="Backend"
                                                     value="4" />
-                        </Expression>
+                      </Expression>
                       <PropertyWidgetDecorator type="GenericDecorator"
                                               mode="visibility"
                                               property="ComputeBarycenter"
@@ -223,10 +225,42 @@ Online examples:
                 number_of_elements="1"
                 default_values="0">
                   <Hints>
-                    <PropertyWidgetDecorator type="GenericDecorator"
+                  <PropertyWidgetDecorator type="CompositeDecorator">
+                    <Expression type="and">
+                      <Expression type="or">
+                        <Expression type="or">
+                          <Expression type="and">
+                            <Expression type="and">
+                              <PropertyWidgetDecorator type="GenericDecorator"
+                                                      mode="visibility"
+                                                      property="BranchDecomposition"
+                                                      value="1" />
+                              <PropertyWidgetDecorator type="GenericDecorator"
+                                                      mode="visibility"
+                                                      property="Backend"
+                                                      value="2" />
+                            </Expression>
+                            <PropertyWidgetDecorator type="GenericDecorator"
+                                                    mode="visibility"
+                                                    property="KeepSubtree"
+                                                    value="0" />
+                          </Expression>
+                          <PropertyWidgetDecorator type="GenericDecorator"
+                                                  mode="visibility"
+                                                  property="Backend"
+                                                  value="0" />
+                        </Expression>
+                        <PropertyWidgetDecorator type="GenericDecorator"
+                                                    mode="visibility"
+                                                    property="Backend"
+                                                    value="4" />
+                      </Expression>
+                      <PropertyWidgetDecorator type="GenericDecorator"
                                               mode="visibility"
                                               property="ComputeBarycenter"
                                               value="1" />
+                    </Expression>
+                  </PropertyWidgetDecorator>
                   </Hints>
                   <Documentation>
                     Use fixed member for initial barycenter candidate.
@@ -241,10 +275,48 @@ Online examples:
                 number_of_elements="1"
                 default_values="0">
                   <Hints>
-                    <PropertyWidgetDecorator type="GenericDecorator"
-                                            mode="visibility"
-                                            property="UseFixedInit"
-                                            value="1" />
+                  <PropertyWidgetDecorator type="CompositeDecorator">
+                    <Expression type="and">
+                      <Expression type="and">
+                        <Expression type="or">
+                          <Expression type="or">
+                            <Expression type="and">
+                              <Expression type="and">
+                                <PropertyWidgetDecorator type="GenericDecorator"
+                                                        mode="visibility"
+                                                        property="BranchDecomposition"
+                                                        value="1" />
+                                <PropertyWidgetDecorator type="GenericDecorator"
+                                                        mode="visibility"
+                                                        property="Backend"
+                                                        value="2" />
+                              </Expression>
+                              <PropertyWidgetDecorator type="GenericDecorator"
+                                                      mode="visibility"
+                                                      property="KeepSubtree"
+                                                      value="0" />
+                            </Expression>
+                            <PropertyWidgetDecorator type="GenericDecorator"
+                                                    mode="visibility"
+                                                    property="Backend"
+                                                    value="0" />
+                          </Expression>
+                          <PropertyWidgetDecorator type="GenericDecorator"
+                                                      mode="visibility"
+                                                      property="Backend"
+                                                      value="4" />
+                        </Expression>
+                        <PropertyWidgetDecorator type="GenericDecorator"
+                                                mode="visibility"
+                                                property="ComputeBarycenter"
+                                                value="1" />
+                      </Expression>
+                      <PropertyWidgetDecorator type="GenericDecorator"
+                                              mode="visibility"
+                                              property="UseFixedInit"
+                                              value="1" />
+                    </Expression>
+                  </PropertyWidgetDecorator>
                   </Hints>
                   <Documentation>
                     Member index for initial barycenter candidate.
@@ -280,8 +352,8 @@ Online examples:
                   <PropertyWidgetDecorator type="CompositeDecorator">
                     <Expression type="and">
                       <Expression type="or">
-                        <Expression type="and">
-                          <Expression type="or">
+                        <Expression type="or">
+                          <Expression type="and">
                             <Expression type="and">
                               <PropertyWidgetDecorator type="GenericDecorator"
                                                       mode="visibility"
@@ -294,19 +366,19 @@ Online examples:
                             </Expression>
                             <PropertyWidgetDecorator type="GenericDecorator"
                                                     mode="visibility"
-                                                    property="Backend"
+                                                    property="KeepSubtree"
                                                     value="0" />
                           </Expression>
                           <PropertyWidgetDecorator type="GenericDecorator"
                                                   mode="visibility"
-                                                  property="KeepSubtree"
+                                                  property="Backend"
                                                   value="0" />
                         </Expression>
                         <PropertyWidgetDecorator type="GenericDecorator"
                                                     mode="visibility"
                                                     property="Backend"
                                                     value="4" />
-                        </Expression>
+                      </Expression>
                       <PropertyWidgetDecorator type="GenericDecorator"
                                               mode="visibility"
                                               property="ComputeBarycenter"
@@ -374,8 +446,8 @@ Online examples:
                   <PropertyWidgetDecorator type="CompositeDecorator">
                     <Expression type="and">
                       <Expression type="or">
-                        <Expression type="and">
-                          <Expression type="or">
+                        <Expression type="or">
+                          <Expression type="and">
                             <Expression type="and">
                               <PropertyWidgetDecorator type="GenericDecorator"
                                                       mode="visibility"
@@ -388,18 +460,18 @@ Online examples:
                             </Expression>
                             <PropertyWidgetDecorator type="GenericDecorator"
                                                     mode="visibility"
-                                                    property="Backend"
+                                                    property="KeepSubtree"
                                                     value="0" />
                           </Expression>
                           <PropertyWidgetDecorator type="GenericDecorator"
                                                   mode="visibility"
-                                                  property="KeepSubtree"
+                                                  property="Backend"
                                                   value="0" />
                         </Expression>
                         <PropertyWidgetDecorator type="GenericDecorator"
-                                                mode="visibility"
-                                                property="Backend"
-                                                value="4" />
+                                                    mode="visibility"
+                                                    property="Backend"
+                                                    value="4" />
                       </Expression>
                       <PropertyWidgetDecorator type="GenericDecorator"
                                               mode="visibility"

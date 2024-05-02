@@ -650,7 +650,7 @@ namespace ttk {
         &finalMatchings) {
       MergeTreeBarycenter mergeTreeBary;
 
-      mergeTreeBary.setDebugLevel(std::min(debugLevel_, 2));
+      mergeTreeBary.setDebugLevel(std::min(debugLevel_, 1));
       mergeTreeBary.setBaseModule(this->baseModule_);
       // mergeTreeBary.setProgressiveComputation(false);
       mergeTreeBary.setAssignmentSolver(assignmentSolverID_);

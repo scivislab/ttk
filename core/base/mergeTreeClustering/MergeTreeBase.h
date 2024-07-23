@@ -195,6 +195,7 @@ namespace ttk {
     void mergeSaddle(ftm::FTMTree_MT *tree,
                      double epsilon,
                      std::vector<std::vector<ftm::idNode>> &treeNodeMerged,
+                     bool branchDecompositionT = true,
                      bool mergeByPersistence = false) {
       bool fullMerge = (epsilon == 100);
       fullMerge &= useFullMerge_;
@@ -265,6 +266,7 @@ namespace ttk {
         nodeStack.pop();
         if(!tree->isRoot(nodeId) and !tree->isLeaf(nodeId)) {
           ftm::idNode const parentNodeId = tree->getParentSafe(nodeId);
+          if(!branchDecompositionT and tree->isRoot(parentNodeId)) continue;
           dataType nodeValue = tree->getValue<dataType>(nodeId);
           if(epsilon1UseFarthestSaddle_)
             nodeValue = tree->getValue<dataType>(farthestSaddle[nodeId]);
@@ -652,7 +654,7 @@ namespace ttk {
         tree->getNumberOfNodes());
       if(not isPersistenceDiagram_ or convertToDiagram_) {
         if(epsilonTree != 0) {
-          mergeSaddle<dataType>(tree, epsilonTree, treeNodeMerged);
+          mergeSaddle<dataType>(tree, epsilonTree, treeNodeMerged,branchDecompositionT);
           if(removeMergedSaddles) {
             for(unsigned int j = 0; j < treeNodeMerged.size(); j++) {
               for(auto k : treeNodeMerged[j]) {

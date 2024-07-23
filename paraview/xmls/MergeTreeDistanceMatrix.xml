@@ -95,6 +95,23 @@ Online examples:
                   </Documentation>
                   <BooleanDomain name="bool"/>
                 </IntVectorProperty>
+
+                <IntVectorProperty
+                name="PathMappingLookahead"
+                command="SetPathMappingLookahead"
+                label="Path Mapping Lookehead"
+                number_of_elements="1"
+                default_values="0">
+                  <Hints>
+                  <PropertyWidgetDecorator type="GenericDecorator"
+                                                mode="visibility"
+                                                property="Backend"
+                                                value="4" />
+                  </Hints>
+                  <Documentation>
+                    This parameter controls how many consecutive saddle swaps the path mapping distance allows.
+                  </Documentation>
+                </IntVectorProperty>
                 
             <PropertyGroup panel_widget="Line" label="Input options">
               <Property name="UseFieldDataParameters"/>

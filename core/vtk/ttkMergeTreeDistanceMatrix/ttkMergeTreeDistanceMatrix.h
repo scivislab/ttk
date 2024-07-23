@@ -146,6 +146,11 @@ public:
     Modified();
   }
 
+  void SetPathMappingLookahead(int l) {
+    pathMappingLookahead_ = l;
+    Modified();
+  }
+
   // Execution Options
   void SetBackend(int newBackend) {
     if(Backend == 2) { // Custom

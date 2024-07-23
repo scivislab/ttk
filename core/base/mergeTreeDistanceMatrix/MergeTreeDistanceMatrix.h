@@ -60,6 +60,7 @@ namespace ttk {
     int baseModule_ = 0;
     int branchMetric_ = 0;
     int pathMetric_ = 0;
+    int pathMappingLookahead_ = 0;
 
   public:
     MergeTreeDistanceMatrix() {
@@ -80,6 +81,10 @@ namespace ttk {
 
     void setPathMetric(int m) {
       pathMetric_ = m;
+    }
+
+    void setPathMappingLookahead(int l) {
+      pathMappingLookahead_ = l;
     }
 
     /**
@@ -138,7 +143,7 @@ namespace ttk {
 #pragma omp task firstprivate(i) UNTIED() shared(distanceMatrix, trees)
         {
 #endif
-          if(i % std::max(int(distanceMatrix.size() / 10), 1) == 0) {
+          if(debugLevel_<3 and i % std::max(int(distanceMatrix.size() / 10), 1) == 0) {
             std::stringstream stream;
             stream << i << " / " << distanceMatrix.size();
             printMsg(stream.str());
@@ -185,7 +190,7 @@ namespace ttk {
               BranchMappingDistance branchDist;
               branchDist.setBaseMetric(branchMetric_);
               branchDist.setAssignmentSolver(assignmentSolverID_);
-              branchDist.setSquared(not distanceSquaredRoot_);
+              branchDist.setSquared(distanceSquaredRoot_);
               branchDist.setEpsilonTree1(epsilonTree1_);
               branchDist.setEpsilonTree2(epsilonTree2_);
               branchDist.setEpsilon2Tree1(epsilon2Tree1_);
@@ -202,7 +207,7 @@ namespace ttk {
               PathMappingDistance pathDist;
               pathDist.setBaseMetric(pathMetric_);
               pathDist.setAssignmentSolver(assignmentSolverID_);
-              pathDist.setSquared(not distanceSquaredRoot_);
+              pathDist.setSquared(distanceSquaredRoot_);
               pathDist.setComputeMapping(true);
               pathDist.setEpsilonTree1(epsilonTree1_);
               pathDist.setEpsilonTree2(epsilonTree2_);
@@ -214,12 +219,25 @@ namespace ttk {
               pathDist.setPreprocess(false);
               // pathDist.setSaveTree(true);
               pathDist.setSaveTree(false);
+              pathDist.setlookahead(pathMappingLookahead_);
+              // std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
               dataType dist = pathDist.execute<dataType>(trees[i], trees[j]);
+              // std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+              // auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+              // std::cout << i << " " << j << " ; "
+              //           << trees[i].tree.getNumberOfNodes() << " "
+              //           << trees[j].tree.getNumberOfNodes()  << " ; "
+              //           << time << "[µs]" << std::endl;
               distanceMatrix[i][j] = static_cast<double>(dist);
             }
             // distance matrix is symmetric
             distanceMatrix[j][i] = distanceMatrix[i][j];
           } // end for j
+          if(debugLevel_>2) {
+            std::stringstream stream;
+            stream << i << " / " << distanceMatrix.size();
+            printMsg(stream.str());
+          }
 #ifdef TTK_ENABLE_OPENMP
         } // end task
 #endif

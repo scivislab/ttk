@@ -44,6 +44,7 @@ namespace ttk {
     int assignmentSolverID_ = 0;
     bool squared_ = false;
     bool computeMapping_ = false;
+    int lookahead = 0;
 
     bool preprocess_ = true;
     bool saveTree_ = false;
@@ -336,6 +337,10 @@ namespace ttk {
       computeMapping_ = m;
     }
 
+    void setlookahead(int l) {
+      lookahead = l;
+    }
+
     void setPreprocess(bool p) {
       preprocess_ = p;
     }
@@ -361,15 +366,21 @@ namespace ttk {
       int const rootID2 = tree2->getRoot();
       std::vector<int> preorder1(tree1->getNumberOfNodes());
       std::vector<int> preorder2(tree2->getNumberOfNodes());
+      std::vector<dataType> scalarDepth1(tree1->getNumberOfNodes());
+      std::vector<dataType> totalPersistence1(tree1->getNumberOfNodes());
+      std::vector<dataType> scalarDepth2(tree2->getNumberOfNodes());
+      std::vector<dataType> totalPersistence2(tree2->getNumberOfNodes());
 
       int depth1 = 0;
       int depth2 = 0;
       std::stack<int> stack;
+      std::stack<int> postorderstack;
       stack.push(rootID1);
       int count = tree1->getNumberOfNodes() - 1;
       while(!stack.empty()) {
         int const nIdx = stack.top();
         stack.pop();
+        postorderstack.push(nIdx);
         preorder1[count] = nIdx;
         count--;
         depth1 = std::max((int)predecessors1[nIdx].size(), depth1);
@@ -384,11 +395,30 @@ namespace ttk {
           predecessors1[cIdx].push_back(nIdx);
         }
       }
+      while(!postorderstack.empty()) {
+        int const nIdx = postorderstack.top();
+        postorderstack.pop();
+        dataType total = 0;
+        dataType longest = 0;
+        std::vector<ftm::idNode> children;
+        tree1->getChildren(nIdx, children);
+        auto nv = tree1->getValue<dataType>(nIdx);
+        for(int const cIdx : children) {
+          auto cv = tree1->getValue<dataType>(cIdx);
+          auto pers = nv > cv ? nv-cv : cv-nv;
+          total += pers + totalPersistence1[cIdx];
+          longest = std::max(longest,pers + scalarDepth1[cIdx]);
+        }
+        totalPersistence1[nIdx] = total;
+        scalarDepth1[nIdx] = longest;
+      }
+      postorderstack = std::stack<int>();
       stack.push(rootID2);
       count = tree2->getNumberOfNodes() - 1;
       while(!stack.empty()) {
         int const nIdx = stack.top();
         stack.pop();
+        postorderstack.push(nIdx);
         preorder2[count] = nIdx;
         count--;
         depth2 = std::max((int)predecessors2[nIdx].size(), depth2);
@@ -402,6 +432,46 @@ namespace ttk {
                                      predecessors2[nIdx].end());
           predecessors2[cIdx].push_back(nIdx);
         }
+      }
+      while(!postorderstack.empty()) {
+        int const nIdx = postorderstack.top();
+        postorderstack.pop();
+        dataType total = 0;
+        dataType longest = 0;
+        std::vector<ftm::idNode> children;
+        tree2->getChildren(nIdx, children);
+        auto nv = tree2->getValue<dataType>(nIdx);
+        for(int const cIdx : children) {
+          auto cv = tree2->getValue<dataType>(cIdx);
+          auto pers = nv > cv ? nv-cv : cv-nv;
+          total += pers + totalPersistence2[cIdx];
+          longest = std::max(longest,pers + scalarDepth2[cIdx]);
+        }
+        totalPersistence2[nIdx] = total;
+        scalarDepth2[nIdx] = longest;
+      }
+
+      dataType tP1 = totalPersistence1[rootID1];
+      dataType tP2 = totalPersistence2[rootID2];
+      dataType lP1 = scalarDepth1[rootID1];
+      dataType lP2 = scalarDepth2[rootID2];
+      dataType globalLowerBound = tP1>tP2 ? tP1-tP2 : tP2-tP1;
+      dataType globalUpperBound = lP1>lP2 ? lP1-lP2 : lP2-lP1;
+      globalUpperBound += tP1-lP1 + tP2-lP2;
+
+      if(lookahead>0){
+        auto lookahead_tmp = lookahead;
+        auto computeMapping_tmp = computeMapping_;
+        auto preprocess_tmp = preprocess_;
+        lookahead = 0;
+        computeMapping_ = false;
+
+        auto dist = computeDistance<dataType>(tree1,tree2,outputMatching);
+        globalUpperBound = dist;
+
+        preprocess_ = preprocess_tmp;
+        computeMapping_ = computeMapping_tmp;
+        lookahead = lookahead_tmp;
       }
 
       // initialize memoization tables
@@ -466,6 +536,232 @@ namespace ttk {
           int curr2 = preorder2[j];
           std::vector<ftm::idNode> children2;
           tree2->getChildren(curr2, children2);
+          // compute optimal lookahead mapping between children
+          int64_t time1;
+          int64_t time2;
+          int64_t time3;
+          bool hasSaddleChildren1 = false;
+          bool hasSaddleChildren2 = false;
+          for (auto c : children1){
+            if(!tree1->isLeaf(c)){
+              hasSaddleChildren1 = true;
+              break;
+            }
+          }
+          for (auto c : children2){
+            if(!tree2->isLeaf(c)){
+              hasSaddleChildren2 = true;
+              break;
+            }
+          }
+          tP1 = totalPersistence1[curr1];
+          tP2 = totalPersistence2[curr2];
+          dataType localLowerBound = tP1>tP2 ? tP1-tP2 : tP2-tP1;
+          bool useLookahead = lookahead>0
+                              and !children1.empty() and !children2.empty()
+                              and hasSaddleChildren1 and hasSaddleChildren2
+                              and localLowerBound<globalUpperBound;
+          // bool test = localLowerBound<globalUpperBound;
+          // if(useLookahead and !test){
+          //   std::cout << "===================\n";
+          //   std::cout << curr1 << "\n";
+          //   std::cout << " > ";
+          //   for(auto c : children1){
+          //     std::cout << c << " ";
+          //   }
+          //   std::cout << "\n--------\n" << curr2 << "\n";
+          //   std::cout << " > ";
+          //   for(auto c : children2){
+          //     std::cout << c << " ";
+          //   }
+          //   std::cout << "\n--------\n" << curr2 << "\n";
+          //   std::cout << localLowerBound << " " << globalLowerBound << " " << globalUpperBound << "\n";
+          //   std::cout << totalPersistence1[rootID1] << " " << totalPersistence2[rootID2] << "\n";
+          //   std::cout << "\n===================" << std::endl;
+          // }
+          if(useLookahead){  
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+            std::list<unsigned int> todo_nodes;
+            for (auto c : children1){
+              // if(!tree1->isLeaf(c)) todo_nodes.push_back(c);
+              todo_nodes.push_back(c);
+            }
+            std::vector<std::pair<std::vector<unsigned int>,std::vector<unsigned int>>> cases1;
+            std::queue<std::tuple<std::list<unsigned int>,std::vector<unsigned int>,std::vector<unsigned int>>> worklist;
+            worklist.push(std::make_tuple(todo_nodes,std::vector<unsigned int>(),std::vector<unsigned int>()));
+            while (!worklist.empty()){
+              auto curr_tuple = worklist.front();
+              worklist.pop();
+              todo_nodes = std::get<0>(curr_tuple);
+              auto deleted_nodes = std::get<1>(curr_tuple);
+              auto kept_nodes = std::get<2>(curr_tuple);
+              if(todo_nodes.empty()){
+                if(kept_nodes.size()>1) cases1.push_back(std::make_pair(deleted_nodes,kept_nodes));
+                continue;
+              }
+              auto next_node = todo_nodes.front();
+              todo_nodes.pop_front();
+              auto n = next_node;
+              auto p = predecessors1[n].back();
+              auto l = predecessors1[n].size()-predecessors1[curr1].size()-1;
+              if (l<lookahead and tree1->getNumberOfChildren(n)>0){
+                std::vector<unsigned int> topo1_n;
+                tree1->getChildren(n, topo1_n);
+                std::list<unsigned int> todo_nodes_ = todo_nodes;
+                todo_nodes_.insert(todo_nodes_.end(),topo1_n.begin(),topo1_n.end());
+                std::vector<unsigned int> deleted_nodes_ = deleted_nodes;
+                deleted_nodes_.push_back(n);
+                worklist.push(std::make_tuple(todo_nodes_,deleted_nodes_,kept_nodes));
+              }
+              std::vector<unsigned int> kept_nodes_ = kept_nodes;
+              kept_nodes_.push_back(n);
+              if(todo_nodes.empty()){
+                if(kept_nodes.size()>1) cases1.push_back(std::make_pair(deleted_nodes,kept_nodes_));
+              }
+              else{
+                worklist.push(std::make_tuple(todo_nodes,deleted_nodes,kept_nodes_));
+              }
+            }
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            time1 = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+
+            // std::cout << time1 << "   ;   " << time2 << std::endl;
+
+            begin = std::chrono::steady_clock::now();
+            todo_nodes.clear();
+            for (auto c : children2){
+              // if(!tree2->isLeaf(c)) todo_nodes.push_back(c);
+              todo_nodes.push_back(c);
+            }
+            std::vector<std::pair<std::vector<unsigned int>,std::vector<unsigned int>>> cases2;
+            worklist = std::queue<std::tuple<std::list<unsigned int>,std::vector<unsigned int>,std::vector<unsigned int>>>();
+            worklist.push(std::make_tuple(todo_nodes,std::vector<unsigned int>(),std::vector<unsigned int>()));
+            while (!worklist.empty()){
+              auto curr_tuple = worklist.front();
+              worklist.pop();
+              todo_nodes = std::get<0>(curr_tuple);
+              auto deleted_nodes = std::get<1>(curr_tuple);
+              auto kept_nodes = std::get<2>(curr_tuple);
+              if(todo_nodes.empty()){
+                if(kept_nodes.size()>1) cases2.push_back(std::make_pair(deleted_nodes,kept_nodes));
+                continue;
+              }
+              auto next_node = todo_nodes.front();
+              todo_nodes.pop_front();
+              auto n = next_node;
+              auto p = predecessors2[n].back();
+              auto l = predecessors2[n].size()-predecessors2[curr2].size()-1;
+              if (l<lookahead and tree2->getNumberOfChildren(n)>0){
+                std::vector<unsigned int> topo2_n;
+                tree2->getChildren(n, topo2_n);
+                std::list<unsigned int> todo_nodes_ = todo_nodes;
+                todo_nodes_.insert(todo_nodes_.end(),topo2_n.begin(),topo2_n.end());
+                std::vector<unsigned int> deleted_nodes_ = deleted_nodes;
+                deleted_nodes_.push_back(n);
+                worklist.push(std::make_tuple(todo_nodes_,deleted_nodes_,kept_nodes));
+              }
+              std::vector<unsigned int> kept_nodes_ = kept_nodes;
+              kept_nodes_.push_back(n);
+              if(todo_nodes.empty()){
+                if(kept_nodes.size()>1) cases2.push_back(std::make_pair(deleted_nodes,kept_nodes_));
+                continue;
+              }
+              else{
+                worklist.push(std::make_tuple(todo_nodes,deleted_nodes,kept_nodes_));
+              }
+            }
+            end = std::chrono::steady_clock::now();
+            time2 = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+
+            // std::cout << time1 << "   ;   " << time2 << std::endl;
+
+            // if(cases2.empty()){
+            //   std::cout << "===================\n";
+            //   std::cout << curr2 << "\n";
+            //   std::cout << " > ";
+            //   for(auto c : children2){
+            //     std::cout << c << " ";
+            //   }
+            //   std::cout << "\n===================" << std::endl;
+            // }
+
+            begin = std::chrono::steady_clock::now();
+
+            dataType opt_case_cost = std::numeric_limits<dataType>::max();
+            for (auto case1 : cases1){
+              auto deleted_edges1 = std::get<0>(case1);
+              auto actual_children1 = std::get<1>(case1);
+              for (auto case2 : cases2){
+                auto deleted_edges2 = std::get<0>(case2);
+                auto actual_children2 = std::get<1>(case2);
+                dataType case_cost = 0;
+                for (auto n : deleted_edges1){
+                  auto p = predecessors1[n].back();
+                  case_cost += editCost_Persistence<dataType>(n,p,-1,-1, tree1, tree2);
+                }
+                for (auto n : deleted_edges2){
+                  auto p = predecessors2[n].back();
+                  case_cost += editCost_Persistence<dataType>(-1,-1,n,p, tree1, tree2);
+                }
+
+                auto f = [&](int r, int c) {
+                  size_t const c1 = r < actual_children1.size()
+                                      ? actual_children1[r]
+                                      : nn1;
+                  size_t const c2 = c < actual_children2.size()
+                                      ? actual_children2[c]
+                                      : nn2;
+                  int const l1_ = c1 == nn1 ? 0 : 1;
+                  int const l2_ = c2 == nn2 ? 0 : 1;
+                  return memT[c1 + l1_ * dim2 + c2 * dim3 + l2_ * dim4];
+                };
+                int size = std::max(actual_children1.size(),actual_children2.size()) + 1;
+                auto costMatrix = std::vector<std::vector<dataType>>(
+                  size, std::vector<dataType>(size, 0));
+                std::vector<MatchingType> matching;
+                for(int r = 0; r < size; r++) {
+                  for(int c = 0; c < size; c++) {
+                    costMatrix[r][c] = f(r, c);
+                  }
+                }
+
+                AssignmentSolver<dataType> *assignmentSolver;
+                AssignmentExhaustive<dataType> solverExhaustive;
+                AssignmentMunkres<dataType> solverMunkres;
+                AssignmentAuction<dataType> solverAuction;
+                switch(assignmentSolverID_) {
+                  case 1:
+                    solverExhaustive = AssignmentExhaustive<dataType>();
+                    assignmentSolver = &solverExhaustive;
+                    break;
+                  case 2:
+                    solverMunkres = AssignmentMunkres<dataType>();
+                    assignmentSolver = &solverMunkres;
+                    break;
+                  case 0:
+                  default:
+                    solverAuction = AssignmentAuction<dataType>();
+                    assignmentSolver = &solverAuction;
+                }
+                assignmentSolver->setInput(costMatrix);
+                assignmentSolver->setBalanced(true);
+                assignmentSolver->run(matching);
+                for(auto m : matching)
+                  case_cost += std::get<2>(m);
+                opt_case_cost = std::min(opt_case_cost, case_cost);
+              }
+            }
+            end = std::chrono::steady_clock::now();
+            time3 = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+
+            // std::cout << "----------------\n"
+            //           << time1 << "   ;   " << time2 << "   ;   " << time3 << "\n"
+            //           << cases1.size() << "   ;   " << cases2.size() << "\n"
+            //           << "----------------" << std::endl;
+
+            memT[curr1 + 0 * dim2 + curr2 * dim3 + 0 * dim4] = opt_case_cost;
+          }
+          // normal recursions
           for(size_t l1 = 1; l1 <= predecessors1[preorder1[i]].size(); l1++) {
             int parent1
               = predecessors1[preorder1[i]]
@@ -598,6 +894,13 @@ namespace ttk {
                   for(auto m : matching)
                     d_ += std::get<2>(m);
                   d = std::min(d, d_);
+                }
+                //-----------------------------------------------------------------------
+                // Try to look-ahead
+                if(useLookahead){
+                  dataType case_cost = editCost_Persistence<dataType>(curr1,parent1,curr2,parent2, tree1, tree2);
+                  case_cost += memT[curr1 + 0 * dim2 + curr2 * dim3 + 0 * dim4];
+                  d = std::min(d, case_cost);
                 }
                 //-----------------------------------------------------------------------
                 // Try to continue main branch on one child of first tree and

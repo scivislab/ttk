@@ -313,31 +313,43 @@ namespace ttk {
           parentOfImportantPair[node] = true;
           if(!tree->isLeaf(node) and !tree->isRoot(node)) {
             float nodeX = retVec[treeSimplexId[node] * 2];
-            ftm::idNode child1 = children[0];
-            ftm::idNode child2 = children[1];
-            if(not nodeDone[child1] or not nodeDone[child2])
-              printErr("not nodeDone[child1] or not nodeDone[child2]");
-            if(children.size() != 2)
-              printWrn("children.size() != 2");
+            std::vector<std::tuple<double, ftm::idNode>> childLowestValues(
+              children.size());
+            if(children.size() != 2) {
+              for(unsigned int i = 0; i < children.size(); ++i)
+                childLowestValues[i]
+                  = std::make_tuple(lowestValue[children[i]], children[i]);
+              std::sort(childLowestValues.begin(), childLowestValues.end());
+            } else {
+              int firstIndex
+                = (lowestValue[children[0]] > lowestValue[children[1]] ? 1 : 0);
+              int secondIndex
+                = (lowestValue[children[0]] > lowestValue[children[1]] ? 0 : 1);
+              childLowestValues[0] = std::make_tuple(
+                lowestValue[children[firstIndex]], children[firstIndex]);
+              childLowestValues[1] = std::make_tuple(
+                lowestValue[children[secondIndex]], children[secondIndex]);
+            }
+            for(unsigned int i = 0; i < childLowestValues.size(); ++i) {
+              ftm::idNode child = std::get<1>(childLowestValues[i]);
+              if(not nodeDone[child])
+                printErr("not nodeDone[child]");
+              double sign = (i % 2 == 0 ? -1 : 1);
+              if(childLowestValues.size() % 2 == 0)
+                sign *= -1;
+              if(isJT)
+                sign *= -1;
 
-            double sign = (lowestValue[child1] > lowestValue[child2] ? -1 : 1);
-            if(isJT)
-              sign *= -1;
-
-            float child1XBound = bounds[child1][(sign == -1 ? 1 : 0)];
-            double child1Shift
-              = -child1XBound + nodeX + sign * importantPairsGap / 2.0;
-            shiftSubtreeBounds(
-              tree, child1, child1Shift, retVec, treeSimplexId);
-            bounds[child1][0] += child1Shift;
-            bounds[child1][1] += child1Shift;
-            float child2XBound = bounds[child2][(sign == -1 ? 0 : 1)];
-            double child2Shift
-              = -child2XBound + nodeX + sign * -1 * importantPairsGap / 2.0;
-            shiftSubtreeBounds(
-              tree, child2, child2Shift, retVec, treeSimplexId);
-            bounds[child2][0] += child2Shift;
-            bounds[child2][1] += child2Shift;
+              int dim = (sign == -1 ? 1 : 0);
+              float childXBound = bounds[child][dim];
+              int factor = static_cast<int>(i / 2) + 1;
+              double childShift = -childXBound + nodeX
+                                  + sign * importantPairsGap / 2.0 * factor;
+              shiftSubtreeBounds(
+                tree, child, childShift, retVec, treeSimplexId);
+              bounds[child][0] += childShift;
+              bounds[child][1] += childShift;
+            }
           }
         }
 

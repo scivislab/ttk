@@ -333,6 +333,7 @@ int ttkMergeTreeClustering::runCompute(
     } else {
       PathMappingDistance pathDist;
       pathDist.setBaseMetric(pathMetric);
+      pathDist.setlookahead(PathMappingLookahead);
       pathDist.setAssignmentSolver(AssignmentSolver);
       pathDist.setSquared(false);
       pathDist.setComputeMapping(true);

@@ -99,7 +99,7 @@ Online examples:
                 <IntVectorProperty
                 name="PathMappingLookahead"
                 command="SetPathMappingLookahead"
-                label="Path Mapping Lookehead"
+                label="Path Mapping Lookahead"
                 number_of_elements="1"
                 default_values="0">
                   <Hints>

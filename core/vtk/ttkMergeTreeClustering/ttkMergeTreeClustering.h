@@ -109,6 +109,7 @@ private:
   // bool useEarlyOut = true;
   int iterationLimit = 100;
   double NonMatchingWeight = 1.0;
+  int PathMappingLookahead = 0;
 
   // Output Options
   bool OutputTrees = true;
@@ -364,6 +365,13 @@ public:
     Modified();
     resetDataVisualization();
   }
+
+  void SetPathMappingLookahead(int l) {
+    PathMappingLookahead = l;
+    Modified();
+    resetDataVisualization();
+  }
+  vtkGetMacro(PathMappingLookahead, double);
 
   void SetUseMedianBarycenter(bool useMedian) {
     useMedianBarycenter = useMedian;

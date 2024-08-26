@@ -487,6 +487,31 @@ Online examples:
                   <BooleanDomain name="bool"/>
                 </IntVectorProperty>
 
+                <IntVectorProperty
+                name="PathMappingLookahead"
+                command="SetPathMappingLookahead"
+                label="Path Mapping Lookahead"
+                number_of_elements="1"
+                default_values="0">
+                  <Hints>
+                  <PropertyWidgetDecorator type="CompositeDecorator">
+                    <Expression type="and">
+                      <PropertyWidgetDecorator type="GenericDecorator"
+                                                    mode="visibility"
+                                                    property="Backend"
+                                                    value="4" />
+                      <PropertyWidgetDecorator type="GenericDecorator"
+                                                    mode="visibility"
+                                                    property="ComputeBarycenter"
+                                                    value="0" />
+                    </Expression>
+                  </PropertyWidgetDecorator>
+                  </Hints>
+                  <Documentation>
+                    This parameter controls how many consecutive saddle swaps the path mapping distance allows.
+                  </Documentation>
+                </IntVectorProperty>
+
                 
                 
                 <DoubleVectorProperty
@@ -757,6 +782,7 @@ Online examples:
               <Property name="IterationLimit"/>
               <Property name="NonMatchingWeight"/>
               <!-- <Property name="UseMinMaxPair"/> -->
+              <Property name="PathMappingLookahead"/>
             </PropertyGroup>
             ${MERGE_TREE_PREPROCESS_WIDGETS}
                 

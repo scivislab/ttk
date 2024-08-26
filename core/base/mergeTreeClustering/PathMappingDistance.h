@@ -26,6 +26,7 @@
 #include <stack>
 #include <tuple>
 #include <vector>
+#include <boost/dynamic_bitset.hpp>
 
 // ttk common includes
 #include "MergeTreeBase.h"
@@ -34,6 +35,7 @@
 #include <AssignmentMunkres.h>
 #include <Debug.h>
 #include <FTMTree_MT.h>
+#include "munkres.hpp"
 
 namespace ttk {
 
@@ -90,6 +92,7 @@ namespace ttk {
       int depth1,
       int depth2,
       std::vector<dataType> &memT,
+      std::vector<std::pair<dataType,std::vector<std::pair<ftm::idNode, ftm::idNode>>>> &memLA,
       std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,
                             std::pair<ftm::idNode, ftm::idNode>>> &mapping) {
 
@@ -134,7 +137,7 @@ namespace ttk {
           if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4] == d_) {
             traceMapping_path(tree1, tree2, curr1, l1, child2_mb, l2 + 1,
                               predecessors1, predecessors2, depth1, depth2,
-                              memT, mapping);
+                              memT, memLA, mapping);
             return;
           }
         }
@@ -157,7 +160,7 @@ namespace ttk {
           if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4] == d_) {
             traceMapping_path(tree1, tree2, child1_mb, l1 + 1, curr2, l2,
                               predecessors1, predecessors2, depth1, depth2,
-                              memT, mapping);
+                              memT, memLA, mapping);
             return;
           }
         }
@@ -185,10 +188,10 @@ namespace ttk {
               std::make_pair(curr1, parent1), std::make_pair(curr2, parent2));
             traceMapping_path(tree1, tree2, child11, 1, child21, 1,
                               predecessors1, predecessors2, depth1, depth2,
-                              memT, mapping);
+                              memT, memLA, mapping);
             traceMapping_path(tree1, tree2, child12, 1, child22, 1,
                               predecessors1, predecessors2, depth1, depth2,
-                              memT, mapping);
+                              memT, memLA, mapping);
             return;
           }
           if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4]
@@ -200,10 +203,10 @@ namespace ttk {
               std::make_pair(curr1, parent1), std::make_pair(curr2, parent2));
             traceMapping_path(tree1, tree2, child11, 1, child22, 1,
                               predecessors1, predecessors2, depth1, depth2,
-                              memT, mapping);
+                              memT, memLA, mapping);
             traceMapping_path(tree1, tree2, child12, 1, child21, 1,
                               predecessors1, predecessors2, depth1, depth2,
-                              memT, mapping);
+                              memT, memLA, mapping);
             return;
           }
         } else {
@@ -265,7 +268,23 @@ namespace ttk {
                          : -1;
               if(n1 >= 0 && n2 >= 0)
                 traceMapping_path(tree1, tree2, n1, 1, n2, 1, predecessors1,
-                                  predecessors2, depth1, depth2, memT, mapping);
+                                  predecessors2, depth1, depth2, memT, memLA, mapping);
+            }
+            return;
+          }
+        }    
+        //-----------------------------------------------------------------------
+        // Try to look-ahead
+        if(memLA.size()>0 and memLA[curr1+curr2*nn1].first>=0){
+          dataType d_ = editCost_Persistence<dataType>(
+              curr1, parent1, curr2, parent2, tree1, tree2) 
+              +memLA[curr1+curr2*nn1].first;
+          if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4] == d_){
+            mapping.emplace_back(
+                std::make_pair(curr1, parent1), std::make_pair(curr2, parent2));
+            for(auto m : memLA[curr1+curr2*nn1].second){
+              traceMapping_path(tree1, tree2, m.first, 1, m.second, 1, predecessors1,
+                                    predecessors2, depth1, depth2, memT, memLA, mapping);
             }
             return;
           }
@@ -286,7 +305,7 @@ namespace ttk {
           if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4] == d_) {
             traceMapping_path(tree1, tree2, child1_mb, l1 + 1, curr2, l2,
                               predecessors1, predecessors2, depth1, depth2,
-                              memT, mapping);
+                              memT, memLA, mapping);
             return;
           }
         }
@@ -306,7 +325,7 @@ namespace ttk {
           if(memT[curr1 + l1 * dim2 + curr2 * dim3 + l2 * dim4] == d_) {
             traceMapping_path(tree1, tree2, curr1, l1, child2_mb, l2 + 1,
                               predecessors1, predecessors2, depth1, depth2,
-                              memT, mapping);
+                              memT, memLA, mapping);
             return;
           }
         }
@@ -359,6 +378,21 @@ namespace ttk {
 
       // compute preorder of both trees (necessary for bottom-up dynamic
       // programming)
+
+      // AssignmentExhaustive<dataType> solverExhaustive_test;
+      // std::vector<std::vector<int>> test_vec;
+      // solverExhaustive_test.enumerateAssignments(3,3,test_vec);
+      // std::cout << "{";
+      // for(auto c : test_vec){
+      //   std::cout << "{";
+      //   for(int i=0; i<c.size()-1; i++){
+      //     std::cout << c[i] << ",";
+      //   }
+      //   std::cout << c.back() << "},\n";
+      // }
+      // std::cout << "}\n" << std::endl;
+
+      std::chrono::steady_clock::time_point beginT = std::chrono::steady_clock::now();
 
       std::vector<std::vector<int>> predecessors1(tree1->getNumberOfNodes());
       std::vector<std::vector<int>> predecessors2(tree2->getNumberOfNodes());
@@ -459,6 +493,7 @@ namespace ttk {
       dataType globalUpperBound = lP1>lP2 ? lP1-lP2 : lP2-lP1;
       globalUpperBound += tP1-lP1 + tP2-lP2;
 
+      std::chrono::steady_clock::time_point beginP = std::chrono::steady_clock::now();
       if(lookahead>0){
         auto lookahead_tmp = lookahead;
         auto computeMapping_tmp = computeMapping_;
@@ -473,6 +508,8 @@ namespace ttk {
         computeMapping_ = computeMapping_tmp;
         lookahead = lookahead_tmp;
       }
+      std::chrono::steady_clock::time_point endP = std::chrono::steady_clock::now();
+      auto timeP = std::chrono::duration_cast<std::chrono::nanoseconds>(endP - beginP).count();
 
       // initialize memoization tables
 
@@ -487,6 +524,10 @@ namespace ttk {
       // sizeof(dataType) << std::endl;
       std::vector<dataType> memT((nn1 + 1) * (depth1 + 1) * (nn2 + 1)
                                  * (depth2 + 1));
+      std::vector<std::pair<dataType,std::vector<std::pair<ftm::idNode, ftm::idNode>>>> memLA;
+      if(lookahead>0 and computeMapping_){
+        memLA.resize((nn1) * (nn2),std::make_pair(-1.0,std::vector<std::pair<ftm::idNode, ftm::idNode>>()));
+      }
 
       memT[nn1 + 0 * dim2 + nn2 * dim3 + 0 * dim4] = 0;
       for(size_t i = 0; i < nn1; i++) {
@@ -528,6 +569,15 @@ namespace ttk {
         }
       }
 
+      int64_t time1_old = 0;
+      int64_t time1_new = 0;
+      int64_t time2_old = 0;
+      int64_t time2_new = 0;
+      int64_t time3_old = 0;
+      int64_t time3_new = 0;
+      int64_t timeLA_old = 0;
+      int64_t timeLA_new = 0;
+      std::chrono::steady_clock::time_point beginM = std::chrono::steady_clock::now();
       for(size_t i = 0; i < nn1; i++) {
         int curr1 = preorder1[i];
         std::vector<ftm::idNode> children1;
@@ -579,7 +629,12 @@ namespace ttk {
           //   std::cout << totalPersistence1[rootID1] << " " << totalPersistence2[rootID2] << "\n";
           //   std::cout << "\n===================" << std::endl;
           // }
+          std::vector<std::pair<std::vector<unsigned int>,std::vector<unsigned int>>> cases1_mem;
+          std::vector<std::pair<std::vector<unsigned int>,std::vector<unsigned int>>> cases2_mem;
+          dataType opt_case_cost_mem;
+          std::vector<std::pair<ftm::idNode,ftm::idNode>> opt_case_mem;
           if(useLookahead){  
+            std::chrono::steady_clock::time_point beginLA = std::chrono::steady_clock::now();
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             std::list<unsigned int> todo_nodes;
             for (auto c : children1){
@@ -596,7 +651,8 @@ namespace ttk {
               auto deleted_nodes = std::get<1>(curr_tuple);
               auto kept_nodes = std::get<2>(curr_tuple);
               if(todo_nodes.empty()){
-                if(kept_nodes.size()>1) cases1.push_back(std::make_pair(deleted_nodes,kept_nodes));
+                if(kept_nodes.size()>1 && deleted_nodes.size()>0)
+                  cases1.push_back(std::make_pair(deleted_nodes,kept_nodes));
                 continue;
               }
               auto next_node = todo_nodes.front();
@@ -616,7 +672,8 @@ namespace ttk {
               std::vector<unsigned int> kept_nodes_ = kept_nodes;
               kept_nodes_.push_back(n);
               if(todo_nodes.empty()){
-                if(kept_nodes.size()>1) cases1.push_back(std::make_pair(deleted_nodes,kept_nodes_));
+                if(kept_nodes_.size()>1 && deleted_nodes.size()>0)
+                  cases1.push_back(std::make_pair(deleted_nodes,kept_nodes_));
               }
               else{
                 worklist.push(std::make_tuple(todo_nodes,deleted_nodes,kept_nodes_));
@@ -626,6 +683,10 @@ namespace ttk {
             time1 = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
 
             // std::cout << time1 << "   ;   " << time2 << std::endl;
+
+            // std::cout << cases1.size() << "   ;   " << time1 << "\n";
+            time1_old += time1;
+            cases1_mem = cases1;
 
             begin = std::chrono::steady_clock::now();
             todo_nodes.clear();
@@ -643,7 +704,8 @@ namespace ttk {
               auto deleted_nodes = std::get<1>(curr_tuple);
               auto kept_nodes = std::get<2>(curr_tuple);
               if(todo_nodes.empty()){
-                if(kept_nodes.size()>1) cases2.push_back(std::make_pair(deleted_nodes,kept_nodes));
+                if(kept_nodes.size()>1 && deleted_nodes.size()>0)
+                  cases2.push_back(std::make_pair(deleted_nodes,kept_nodes));
                 continue;
               }
               auto next_node = todo_nodes.front();
@@ -663,7 +725,8 @@ namespace ttk {
               std::vector<unsigned int> kept_nodes_ = kept_nodes;
               kept_nodes_.push_back(n);
               if(todo_nodes.empty()){
-                if(kept_nodes.size()>1) cases2.push_back(std::make_pair(deleted_nodes,kept_nodes_));
+                if(kept_nodes_.size()>1 && deleted_nodes.size()>0)
+                  cases2.push_back(std::make_pair(deleted_nodes,kept_nodes_));
                 continue;
               }
               else{
@@ -675,19 +738,14 @@ namespace ttk {
 
             // std::cout << time1 << "   ;   " << time2 << std::endl;
 
-            // if(cases2.empty()){
-            //   std::cout << "===================\n";
-            //   std::cout << curr2 << "\n";
-            //   std::cout << " > ";
-            //   for(auto c : children2){
-            //     std::cout << c << " ";
-            //   }
-            //   std::cout << "\n===================" << std::endl;
-            // }
+            // std::cout << cases2.size() << "   ;   " << time2 << "\n";
+            time2_old += time2;
+            cases2_mem = cases2;
 
             begin = std::chrono::steady_clock::now();
 
             dataType opt_case_cost = std::numeric_limits<dataType>::max();
+            std::vector<std::pair<ftm::idNode,ftm::idNode>> opt_case;
             for (auto case1 : cases1){
               auto deleted_edges1 = std::get<0>(case1);
               auto actual_children1 = std::get<1>(case1);
@@ -749,17 +807,252 @@ namespace ttk {
                 for(auto m : matching)
                   case_cost += std::get<2>(m);
                 opt_case_cost = std::min(opt_case_cost, case_cost);
+                if(opt_case_cost==case_cost){
+                  opt_case = std::vector<std::pair<ftm::idNode,ftm::idNode>>();
+                  for(auto m : matching){
+                    auto m1 = std::get<0>(m);
+                    auto m2 = std::get<1>(m);
+                    if(m1<actual_children1.size() and m2<actual_children2.size()){
+                      opt_case.push_back(std::make_pair(actual_children1[m1],actual_children2[m2]));
+                    }
+                  }
+                }
               }
             }
             end = std::chrono::steady_clock::now();
             time3 = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
 
+            time3_old += time3;
+            opt_case_cost_mem = opt_case_cost;
+            opt_case_mem = opt_case;
+
             // std::cout << "----------------\n"
             //           << time1 << "   ;   " << time2 << "   ;   " << time3 << "\n"
-            //           << cases1.size() << "   ;   " << cases2.size() << "\n"
-            //           << "----------------" << std::endl;
+            //           << cases1.size() << "   ;   " << cases2.size() << "\n" << std::endl;
 
             memT[curr1 + 0 * dim2 + curr2 * dim3 + 0 * dim4] = opt_case_cost;
+            memLA[curr1+curr2*nn1] = std::make_pair(opt_case_cost,opt_case);
+            std::chrono::steady_clock::time_point endLA = std::chrono::steady_clock::now();
+            auto timeLA = std::chrono::duration_cast<std::chrono::nanoseconds>(endLA - beginLA).count();
+            timeLA_old += timeLA;
+          }
+          if(false&&useLookahead){  
+            std::chrono::steady_clock::time_point beginLA = std::chrono::steady_clock::now();
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+            std::stack<std::pair<ftm::idNode,ftm::idNode>> s;
+            std::unordered_map<ftm::idNode,ftm::idNode> right;
+            std::unordered_map<ftm::idNode,ftm::idNode> down;
+            for (auto ci=0; ci<children1.size()-1; ci++){
+              s.push(std::make_pair(children1[ci],children1[ci+1]));
+            }
+            s.push(std::make_pair(children1.back(),children1.back()));
+            while(not s.empty()){
+              auto cn = s.top().first;
+              auto cr = s.top().second;
+              s.pop();
+              if(predecessors1[cn].size()-predecessors1[curr1].size()>lookahead+1){
+                continue;
+              }
+              right[cn] = cr;
+              if(tree1->getNumberOfChildren(cn)>0){
+                std::vector<unsigned int> children_cn;
+                tree1->getChildren(cn, children_cn);
+                down[cn] = children_cn.front();
+                for(auto ci=0; ci<children_cn.size()-1; ci++){
+                  s.push(std::make_pair(children_cn[ci],children_cn[ci+1]));
+                }
+                s.push(std::make_pair(children_cn.back(),cn==cr?children_cn.back():cr));
+              }
+            }
+            std::vector<std::pair<dataType,std::vector<unsigned int>>> cases1;
+            std::vector<std::tuple<ftm::idNode,dataType,std::vector<unsigned int>>> worklist;
+            cases1.reserve(right.size());
+            worklist.reserve(right.size());
+            worklist.push_back(std::make_tuple(children1[0],0,std::vector<unsigned int>()));
+            while (!worklist.empty()){
+              auto curr_tuple = worklist.back();
+              auto cn = std::get<0>(curr_tuple);
+              auto deleted_cost = std::get<1>(curr_tuple);
+              auto kept_nodes = std::get<2>(curr_tuple);
+              worklist.pop_back();
+              auto p = predecessors1[cn].back();
+              auto l = predecessors1[cn].size()-predecessors1[curr1].size();
+              if (l<=lookahead and tree1->getNumberOfChildren(cn)>0){
+                auto deletion_cost = editCost_Persistence<dataType>(cn,p,-1,-1,tree1,tree2);
+                worklist.push_back(std::make_tuple(down[cn],deleted_cost+deletion_cost,kept_nodes));
+              }
+              std::vector<unsigned int> kept_nodes_ = kept_nodes;
+              kept_nodes_.push_back(cn);
+              if(right[cn]==cn){
+                if(kept_nodes_.size()>1 && deleted_cost>0) cases1.push_back(std::make_pair(deleted_cost,kept_nodes_));
+              }
+              else{
+                worklist.push_back(std::make_tuple(right[cn],deleted_cost,kept_nodes_));
+              }
+            }
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            time1 = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+
+            // std::cout << cases1.size() << "   ;   " << time1 << "\n";
+            // std::cout << "=========================" << std::endl;
+            time1_new += time1;
+            assert(cases1.size()==cases1_mem.size());
+
+            begin = std::chrono::steady_clock::now();
+            s = std::stack<std::pair<ftm::idNode,ftm::idNode>>();
+            right = std::unordered_map<ftm::idNode,ftm::idNode>();
+            down = std::unordered_map<ftm::idNode,ftm::idNode>();
+            for (auto ci=0; ci<children2.size()-1; ci++){
+              s.push(std::make_pair(children2[ci],children2[ci+1]));
+            }
+            s.push(std::make_pair(children2.back(),children2.back()));
+            while(not s.empty()){
+              auto cn = s.top().first;
+              auto cr = s.top().second;
+              s.pop();
+              if(predecessors2[cn].size()-predecessors2[curr2].size()>lookahead+1){
+                continue;
+              }
+              right[cn] = cr;
+              if(tree2->getNumberOfChildren(cn)>0){
+                std::vector<unsigned int> children_cn;
+                tree2->getChildren(cn, children_cn);
+                down[cn] = children_cn.front();
+                for(auto ci=0; ci<children_cn.size()-1; ci++){
+                  s.push(std::make_pair(children_cn[ci],children_cn[ci+1]));
+                }
+                s.push(std::make_pair(children_cn.back(),cn==cr?children_cn.back():cr));
+              }
+            }
+            std::vector<std::pair<dataType,std::vector<unsigned int>>> cases2;
+            worklist = std::vector<std::tuple<ftm::idNode,dataType,std::vector<unsigned int>>>();
+            cases2.reserve(right.size());
+            worklist.reserve(right.size());
+            worklist.push_back(std::make_tuple(children2[0],0,std::vector<unsigned int>()));
+            while (!worklist.empty()){
+              auto curr_tuple = worklist.back();
+              auto cn = std::get<0>(curr_tuple);
+              auto deleted_cost = std::get<1>(curr_tuple);
+              auto kept_nodes = std::get<2>(curr_tuple);
+              worklist.pop_back();
+              auto p = predecessors2[cn].back();
+              auto l = predecessors2[cn].size()-predecessors2[curr2].size();
+              if (l<=lookahead and tree2->getNumberOfChildren(cn)>0){
+                auto deletion_cost = editCost_Persistence<dataType>(-1,-1,cn,p,tree1,tree2);
+                worklist.push_back(std::make_tuple(down[cn],deleted_cost+deletion_cost,kept_nodes));
+              }
+              std::vector<unsigned int> kept_nodes_ = kept_nodes;
+              kept_nodes_.push_back(cn);
+              if(right[cn]==cn){
+                if(kept_nodes_.size()>1 && deleted_cost>0) cases2.push_back(std::make_pair(deleted_cost,kept_nodes_));
+              }
+              else{
+                worklist.push_back(std::make_tuple(right[cn],deleted_cost,kept_nodes_));
+              }
+            }
+            end = std::chrono::steady_clock::now();
+            time2 = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+
+            // std::cout << cases2.size() << "   ;   " << time2 << "\n";
+            // std::cout << "=========================" << std::endl;
+            time2_new += time2;
+            assert(cases2.size()==cases2_mem.size());
+
+            begin = std::chrono::steady_clock::now();
+
+            dataType opt_case_cost = std::numeric_limits<dataType>::max();
+            std::vector<std::pair<ftm::idNode,ftm::idNode>> opt_case;
+            for (auto case1 : cases1){
+              auto delete_costs1 = std::get<0>(case1);
+              if(delete_costs1>globalUpperBound) continue;
+              auto actual_children1 = std::get<1>(case1);
+              dataType tP1_ = tP1-delete_costs1;
+              dataType tP1__ = totalPersistence1[rootID1]-tP1;
+              for (auto case2 : cases2){
+                auto delete_costs2 = std::get<0>(case2);
+                if(delete_costs1+delete_costs2>globalUpperBound) continue;
+                dataType case_cost = delete_costs1+delete_costs2;
+                dataType tP2_ = tP2-delete_costs2;
+                dataType tP2__ = totalPersistence2[rootID2]-tP2;
+                // dataType localBound = (tP1_>tP2_ ? tP1_-tP2_ : tP2_-tP1_) + case_cost;
+                dataType localBound = (tP1__>tP2__ ? tP1__-tP2__ : tP2__-tP1__)
+                                    + (tP1_>tP2_ ? tP1_-tP2_ : tP2_-tP1_) 
+                                    + case_cost;
+                if(localBound>globalUpperBound) continue;
+                auto actual_children2 = std::get<1>(case2);
+
+                auto f = [&](int r, int c) {
+                  size_t const c1 = r < actual_children1.size()
+                                      ? actual_children1[r]
+                                      : nn1;
+                  size_t const c2 = c < actual_children2.size()
+                                      ? actual_children2[c]
+                                      : nn2;
+                  int const l1_ = c1 == nn1 ? 0 : 1;
+                  int const l2_ = c2 == nn2 ? 0 : 1;
+                  return memT[c1 + l1_ * dim2 + c2 * dim3 + l2_ * dim4];
+                };
+                int size = std::max(actual_children1.size(),actual_children2.size()) + 1;
+                auto costMatrix = std::vector<std::vector<dataType>>(
+                  size, std::vector<dataType>(size, 0));
+                std::vector<MatchingType> matching;
+                for(int r = 0; r < size; r++) {
+                  for(int c = 0; c < size; c++) {
+                    costMatrix[r][c] = f(r, c);
+                  }
+                }
+
+                AssignmentSolver<dataType> *assignmentSolver;
+                AssignmentExhaustive<dataType> solverExhaustive;
+                AssignmentMunkres<dataType> solverMunkres;
+                AssignmentAuction<dataType> solverAuction;
+                switch(assignmentSolverID_) {
+                  case 1:
+                    solverExhaustive = AssignmentExhaustive<dataType>();
+                    assignmentSolver = &solverExhaustive;
+                    break;
+                  case 2:
+                    solverMunkres = AssignmentMunkres<dataType>();
+                    assignmentSolver = &solverMunkres;
+                    break;
+                  case 0:
+                  default:
+                    solverAuction = AssignmentAuction<dataType>();
+                    assignmentSolver = &solverAuction;
+                }
+                assignmentSolver->setInput(costMatrix);
+                assignmentSolver->setBalanced(true);
+                assignmentSolver->run(matching);
+                for(auto m : matching)
+                  case_cost += std::get<2>(m);
+                opt_case_cost = std::min(opt_case_cost, case_cost);
+                if(opt_case_cost==case_cost){
+                  opt_case = std::vector<std::pair<ftm::idNode,ftm::idNode>>();
+                  for(auto m : matching){
+                    auto m1 = std::get<0>(m);
+                    auto m2 = std::get<1>(m);
+                    if(m1<actual_children1.size() and m2<actual_children2.size()){
+                      opt_case.push_back(std::make_pair(actual_children1[m1],actual_children2[m2]));
+                    }
+                  }
+                }
+              }
+            }
+            end = std::chrono::steady_clock::now();
+            time3 = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+            
+            time3_new += time3;
+            // std::cout << opt_case_cost << " " << opt_case_cost_mem << "\n";
+            if(opt_case_cost<globalUpperBound){
+              assert(opt_case_cost-opt_case_cost_mem<0.01);
+              assert(opt_case_cost-opt_case_cost_mem>-0.01);
+            }
+
+            memT[curr1 + 0 * dim2 + curr2 * dim3 + 0 * dim4] = opt_case_cost;
+            memLA[curr1+curr2*nn1] = std::make_pair(opt_case_cost,opt_case);
+            std::chrono::steady_clock::time_point endLA = std::chrono::steady_clock::now();
+            auto timeLA = std::chrono::duration_cast<std::chrono::nanoseconds>(endLA - beginLA).count();
+            timeLA_new += timeLA;
           }
           // normal recursions
           for(size_t l1 = 1; l1 <= predecessors1[preorder1[i]].size(); l1++) {
@@ -895,6 +1188,7 @@ namespace ttk {
                     d_ += std::get<2>(m);
                   d = std::min(d, d_);
                 }
+                
                 //-----------------------------------------------------------------------
                 // Try to look-ahead
                 if(useLookahead){
@@ -938,6 +1232,8 @@ namespace ttk {
           }
         }
       }
+      std::chrono::steady_clock::time_point endM = std::chrono::steady_clock::now();
+      auto timeM = std::chrono::duration_cast<std::chrono::nanoseconds>(endM - beginM).count();
 
       std::vector<ftm::idNode> children1;
       tree1->getChildren(rootID1, children1);
@@ -947,11 +1243,41 @@ namespace ttk {
       dataType res
         = memT[children1[0] + 1 * dim2 + children2[0] * dim3 + 1 * dim4];
 
+      std::chrono::steady_clock::time_point endT = std::chrono::steady_clock::now();
+      auto timeT = std::chrono::duration_cast<std::chrono::nanoseconds>(endT - beginT).count();
+
+      if(false&&lookahead>0){
+        std::cout << " -- \n";
+
+        // std::cout << std::setw(10) << std::setfill('0') << time1_old << " "
+        //           << std::setw(10) << std::setfill('0') << time1_new << " \n";
+
+        // std::cout << std::setw(10) << std::setfill('0') << time2_old << " "
+        //           << std::setw(10) << std::setfill('0') << time2_new << " \n";
+
+        // std::cout << std::setw(10) << std::setfill('0') << time3_old << " "
+        //           << std::setw(10) << std::setfill('0') << time3_new << " \n";
+
+        std::cout << std::setw(12) << std::setfill('0') << timeLA_old << " "
+                  << std::setw(12) << std::setfill('0') << timeLA_new << " \n";
+
+
+        // std::cout << std::setw(10) << std::setfill('0') << timeT << " \n";
+
+        // std::cout << std::setw(10) << std::setfill('0') << timeP << " \n";
+
+        // std::cout << std::setw(10) << std::setfill('0') << timeM << " \n";
+
+        // std::cout << std::setw(10) << std::setfill('0') << timeLA_new << " \n";
+
+        std::cout << " -- " << std::endl;
+      }
+
       if(computeMapping_ && outputMatching) {
 
         outputMatching->clear();
         traceMapping_path(tree1, tree2, children1[0], 1, children2[0], 1,
-                          predecessors1, predecessors2, depth1, depth2, memT,
+                          predecessors1, predecessors2, depth1, depth2, memT, memLA,
                           *outputMatching);
 
         // dataType cost_mapping = 0;
@@ -1052,6 +1378,19 @@ namespace ttk {
                       std::vector<std::tuple<ftm::idNode, ftm::idNode, double>>
                         *outputMatching) {
 
+      std::vector<std::vector<ftm::idNode>> children1(tree1->getNumberOfNodes());
+      std::vector<ftm::idNode> parents1(tree1->getNumberOfNodes());
+      for(auto nIdx=0; nIdx<tree1->getNumberOfNodes(); nIdx++){
+        tree1->getChildren(nIdx,children1[nIdx]);
+        parents1[nIdx] = tree1->getParentSafe(nIdx);
+      }
+      std::vector<std::vector<ftm::idNode>> children2(tree2->getNumberOfNodes());
+      std::vector<ftm::idNode> parents2(tree2->getNumberOfNodes());
+      for(auto nIdx=0; nIdx<tree2->getNumberOfNodes(); nIdx++){
+        tree2->getChildren(nIdx,children2[nIdx]);
+        parents2[nIdx] = tree2->getParentSafe(nIdx);
+      }
+
       std::vector<int> matchedNodes(tree1->getNumberOfNodes(), -1);
       std::vector<std::pair<std::pair<ftm::idNode, ftm::idNode>,
                             std::pair<ftm::idNode, ftm::idNode>>>
@@ -1061,7 +1400,8 @@ namespace ttk {
         outputMatching->clear();
         for(auto m : mapping) {
           matchedNodes[m.first.first] = m.second.first;
-          matchedNodes[m.first.second] = m.second.second;
+          if(m.first.second==tree1->getRoot())
+            matchedNodes[m.first.second] = m.second.second;
         }
         for(ftm::idNode i = 0; i < matchedNodes.size(); i++) {
           if(matchedNodes[i] >= 0)

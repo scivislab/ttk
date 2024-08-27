@@ -139,17 +139,17 @@ namespace ttk {
                          std::vector<std::vector<double>> &distanceMatrix,
                          bool isFirstInput = true) {
       for(unsigned int i = 0; i < distanceMatrix.size(); ++i) {
+          // if(debugLevel_<3 and i % std::max(int(distanceMatrix.size() / 10), 1) == 0) {
+          //   std::stringstream stream;
+          //   stream << i << " / " << distanceMatrix.size();
+          //   printMsg(stream.str());
+          // }
+          distanceMatrix[i][i] = 0.0;
+          for(unsigned int j = i + 1; j < distanceMatrix[0].size(); ++j) {
 #ifdef TTK_ENABLE_OPENMP
 #pragma omp task firstprivate(i) UNTIED() shared(distanceMatrix, trees)
         {
 #endif
-          if(debugLevel_<3 and i % std::max(int(distanceMatrix.size() / 10), 1) == 0) {
-            std::stringstream stream;
-            stream << i << " / " << distanceMatrix.size();
-            printMsg(stream.str());
-          }
-          distanceMatrix[i][i] = 0.0;
-          for(unsigned int j = i + 1; j < distanceMatrix[0].size(); ++j) {
             // Execute
             if(baseModule_ == 0) {
               MergeTreeDistance mergeTreeDistance;
@@ -232,15 +232,20 @@ namespace ttk {
             }
             // distance matrix is symmetric
             distanceMatrix[j][i] = distanceMatrix[i][j];
-          } // end for j
-          if(debugLevel_>2) {
-            std::stringstream stream;
-            stream << i << " / " << distanceMatrix.size();
-            printMsg(stream.str());
-          }
+            if(debugLevel_>2) {
+              std::stringstream stream;
+              stream << i << "," << j << " / " << distanceMatrix.size() << "x" << distanceMatrix.size();
+              printMsg(stream.str());
+            }
 #ifdef TTK_ENABLE_OPENMP
         } // end task
 #endif
+          } // end for j
+          // if(debugLevel_>2) {
+          //   std::stringstream stream;
+          //   stream << i << " / " << distanceMatrix.size();
+          //   printMsg(stream.str());
+          // }
       } // end for i
     }
 

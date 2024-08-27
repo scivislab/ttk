@@ -35,7 +35,6 @@
 #include <AssignmentMunkres.h>
 #include <Debug.h>
 #include <FTMTree_MT.h>
-#include "munkres.hpp"
 
 namespace ttk {
 

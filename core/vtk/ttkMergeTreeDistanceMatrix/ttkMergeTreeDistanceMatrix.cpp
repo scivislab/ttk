@@ -112,6 +112,27 @@ int ttkMergeTreeDistanceMatrix::run(
     constructTrees(inputTrees2ToUse, intermediateTrees2, !useSadMaxPairs);
   }
 
+  // extract geometric constraints
+  vid_to_seg = std::vector<std::map<ftm::idNode,int>>();
+  val_to_seg = std::vector<std::map<double,int>>();
+  for(int i = 0; i < numInputs; i++) {
+    if(inputTrees[i]->GetNumberOfBlocks() >= 2) {
+      auto treesNodes
+        = vtkUnstructuredGrid::SafeDownCast(inputTrees[i]->GetBlock(0));
+      if(treesNodes->GetPointData()->HasArray("VoronoiSeg")){
+        vid_to_seg.push_back(std::map<ftm::idNode,int>());
+        val_to_seg.push_back(std::map<double,int>());
+        for(int nIdx=0; nIdx<treesNodes->GetNumberOfPoints(); nIdx++){
+          auto vIdx = treesNodes->GetPointData()->GetArray("VertexId")->GetTuple1(nIdx);
+          auto val = treesNodes->GetPointData()->GetArray("Scalar")->GetTuple1(nIdx);
+          auto seg = treesNodes->GetPointData()->GetArray("VoronoiSeg")->GetTuple1(nIdx);
+          vid_to_seg.back()[vIdx] = seg;
+          val_to_seg.back()[val] = seg;
+        }
+      }
+    }
+  }
+
   // Verify parameters
   if(not UseFieldDataParameters) {
     if(Backend == 0) {

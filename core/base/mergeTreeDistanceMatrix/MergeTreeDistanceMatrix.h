@@ -61,6 +61,8 @@ namespace ttk {
     int branchMetric_ = 0;
     int pathMetric_ = 0;
     int pathMappingLookahead_ = 0;
+    std::vector<std::map<ftm::idNode,int>> vid_to_seg;
+    std::vector<std::map<double,int>> val_to_seg;
 
   public:
     MergeTreeDistanceMatrix() {
@@ -147,7 +149,7 @@ namespace ttk {
           distanceMatrix[i][i] = 0.0;
           for(unsigned int j = i + 1; j < distanceMatrix[0].size(); ++j) {
 #ifdef TTK_ENABLE_OPENMP
-#pragma omp task firstprivate(i) UNTIED() shared(distanceMatrix, trees)
+#pragma omp task firstprivate(i,j) UNTIED() shared(distanceMatrix, trees)
         {
 #endif
             // Execute
@@ -220,6 +222,8 @@ namespace ttk {
               // pathDist.setSaveTree(true);
               pathDist.setSaveTree(false);
               pathDist.setlookahead(pathMappingLookahead_);
+              if(vid_to_seg.size()==trees.size()) pathDist.setVidToSeg(vid_to_seg[i],vid_to_seg[j]);
+              if(vid_to_seg.size()==trees.size()) pathDist.setValToSeg(val_to_seg[i],val_to_seg[j]);
               // std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
               dataType dist = pathDist.execute<dataType>(trees[i], trees[j]);
               // std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();

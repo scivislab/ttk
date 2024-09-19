@@ -612,179 +612,10 @@ namespace ttk {
                               and hasSaddleChildren1 and hasSaddleChildren2
                               and localLowerBound<globalUpperBound;
           if(useLookahead){  
-            std::list<unsigned int> todo_nodes;
-            for (auto c : children1){
-              // if(!tree1->isLeaf(c)) todo_nodes.push_back(c);
-              todo_nodes.push_back(c);
-            }
-            std::vector<std::pair<std::vector<unsigned int>,std::vector<unsigned int>>> cases1;
-            std::queue<std::tuple<std::list<unsigned int>,std::vector<unsigned int>,std::vector<unsigned int>>> worklist;
-            worklist.push(std::make_tuple(todo_nodes,std::vector<unsigned int>(),std::vector<unsigned int>()));
-            while (!worklist.empty()){
-              auto curr_tuple = worklist.front();
-              worklist.pop();
-              todo_nodes = std::get<0>(curr_tuple);
-              auto deleted_nodes = std::get<1>(curr_tuple);
-              auto kept_nodes = std::get<2>(curr_tuple);
-              if(todo_nodes.empty()){
-                if(kept_nodes.size()>1 && deleted_nodes.size()>0)
-                  cases1.push_back(std::make_pair(deleted_nodes,kept_nodes));
-                continue;
-              }
-              auto next_node = todo_nodes.front();
-              todo_nodes.pop_front();
-              auto n = next_node;
-              // auto p = predecessors1[n].back();
-              auto l = predecessors1[n].size()-predecessors1[curr1].size()-1;
-              if (l<lookahead and tree1->getNumberOfChildren(n)>0){
-                std::vector<unsigned int> topo1_n;
-                tree1->getChildren(n, topo1_n);
-                std::list<unsigned int> todo_nodes_ = todo_nodes;
-                todo_nodes_.insert(todo_nodes_.end(),topo1_n.begin(),topo1_n.end());
-                std::vector<unsigned int> deleted_nodes_ = deleted_nodes;
-                deleted_nodes_.push_back(n);
-                worklist.push(std::make_tuple(todo_nodes_,deleted_nodes_,kept_nodes));
-              }
-              std::vector<unsigned int> kept_nodes_ = kept_nodes;
-              kept_nodes_.push_back(n);
-              if(todo_nodes.empty()){
-                if(kept_nodes_.size()>1 && deleted_nodes.size()>0)
-                  cases1.push_back(std::make_pair(deleted_nodes,kept_nodes_));
-              }
-              else{
-                worklist.push(std::make_tuple(todo_nodes,deleted_nodes,kept_nodes_));
-              }
-            }
-
-            todo_nodes.clear();
-            for (auto c : children2){
-              // if(!tree2->isLeaf(c)) todo_nodes.push_back(c);
-              todo_nodes.push_back(c);
-            }
-            std::vector<std::pair<std::vector<unsigned int>,std::vector<unsigned int>>> cases2;
-            worklist = std::queue<std::tuple<std::list<unsigned int>,std::vector<unsigned int>,std::vector<unsigned int>>>();
-            worklist.push(std::make_tuple(todo_nodes,std::vector<unsigned int>(),std::vector<unsigned int>()));
-            while (!worklist.empty()){
-              auto curr_tuple = worklist.front();
-              worklist.pop();
-              todo_nodes = std::get<0>(curr_tuple);
-              auto deleted_nodes = std::get<1>(curr_tuple);
-              auto kept_nodes = std::get<2>(curr_tuple);
-              if(todo_nodes.empty()){
-                if(kept_nodes.size()>1 && deleted_nodes.size()>0)
-                  cases2.push_back(std::make_pair(deleted_nodes,kept_nodes));
-                continue;
-              }
-              auto next_node = todo_nodes.front();
-              todo_nodes.pop_front();
-              auto n = next_node;
-              // auto p = predecessors2[n].back();
-              auto l = predecessors2[n].size()-predecessors2[curr2].size()-1;
-              if (l<lookahead and tree2->getNumberOfChildren(n)>0){
-                std::vector<unsigned int> topo2_n;
-                tree2->getChildren(n, topo2_n);
-                std::list<unsigned int> todo_nodes_ = todo_nodes;
-                todo_nodes_.insert(todo_nodes_.end(),topo2_n.begin(),topo2_n.end());
-                std::vector<unsigned int> deleted_nodes_ = deleted_nodes;
-                deleted_nodes_.push_back(n);
-                worklist.push(std::make_tuple(todo_nodes_,deleted_nodes_,kept_nodes));
-              }
-              std::vector<unsigned int> kept_nodes_ = kept_nodes;
-              kept_nodes_.push_back(n);
-              if(todo_nodes.empty()){
-                if(kept_nodes_.size()>1 && deleted_nodes.size()>0)
-                  cases2.push_back(std::make_pair(deleted_nodes,kept_nodes_));
-                continue;
-              }
-              else{
-                worklist.push(std::make_tuple(todo_nodes,deleted_nodes,kept_nodes_));
-              }
-            }
-
-            dataType opt_case_cost = std::numeric_limits<dataType>::max();
-            std::vector<std::pair<ftm::idNode,ftm::idNode>> opt_case;
-            for (auto case1 : cases1){
-              auto deleted_edges1 = std::get<0>(case1);
-              auto actual_children1 = std::get<1>(case1);
-              for (auto case2 : cases2){
-                auto deleted_edges2 = std::get<0>(case2);
-                auto actual_children2 = std::get<1>(case2);
-                dataType case_cost = 0;
-                for (auto n : deleted_edges1){
-                  auto p = predecessors1[n].back();
-                  case_cost += editCost_Persistence<dataType>(n,p,-1,-1, tree1, tree2);
-                }
-                for (auto n : deleted_edges2){
-                  auto p = predecessors2[n].back();
-                  case_cost += editCost_Persistence<dataType>(-1,-1,n,p, tree1, tree2);
-                }
-
-                auto f = [&](unsigned int r, unsigned int c) {
-                  size_t const c1 = r < actual_children1.size()
-                                      ? actual_children1[r]
-                                      : nn1;
-                  size_t const c2 = c < actual_children2.size()
-                                      ? actual_children2[c]
-                                      : nn2;
-                  int const l1_ = c1 == nn1 ? 0 : 1;
-                  int const l2_ = c2 == nn2 ? 0 : 1;
-                  return memT[c1 + l1_ * dim2 + c2 * dim3 + l2_ * dim4];
-                };
-                int size = std::max(actual_children1.size(),actual_children2.size()) + 1;
-                auto costMatrix = std::vector<std::vector<dataType>>(
-                  size, std::vector<dataType>(size, 0));
-                std::vector<MatchingType> matching;
-                for(int r = 0; r < size; r++) {
-                  for(int c = 0; c < size; c++) {
-                    costMatrix[r][c] = f(r, c);
-                  }
-                }
-
-                AssignmentSolver<dataType> *assignmentSolver;
-                AssignmentExhaustive<dataType> solverExhaustive;
-                AssignmentMunkres<dataType> solverMunkres;
-                AssignmentAuction<dataType> solverAuction;
-                switch(assignmentSolverID_) {
-                  case 1:
-                    solverExhaustive = AssignmentExhaustive<dataType>();
-                    assignmentSolver = &solverExhaustive;
-                    break;
-                  case 2:
-                    solverMunkres = AssignmentMunkres<dataType>();
-                    assignmentSolver = &solverMunkres;
-                    break;
-                  case 0:
-                  default:
-                    solverAuction = AssignmentAuction<dataType>();
-                    assignmentSolver = &solverAuction;
-                }
-                assignmentSolver->setInput(costMatrix);
-                assignmentSolver->setBalanced(true);
-                assignmentSolver->run(matching);
-                for(auto m : matching)
-                  case_cost += std::get<2>(m);
-                opt_case_cost = std::min(opt_case_cost, case_cost);
-                if(opt_case_cost==case_cost){
-                  opt_case = std::vector<std::pair<ftm::idNode,ftm::idNode>>();
-                  for(auto m : matching){
-                    ftm::idNode m1 = std::get<0>(m);
-                    ftm::idNode m2 = std::get<1>(m);
-                    if(m1<actual_children1.size() and m2<actual_children2.size()){
-                      opt_case.push_back(std::make_pair(actual_children1[m1],actual_children2[m2]));
-                    }
-                  }
-                }
-              }
-            }
-
-            memT[curr1 + 0 * dim2 + curr2 * dim3 + 0 * dim4] = opt_case_cost;
-            memLA[curr1+curr2*nn1] = std::make_pair(opt_case_cost,opt_case);
-          }
-          if(false&&useLookahead){  
             std::stack<std::pair<ftm::idNode,ftm::idNode>> s;
             std::unordered_map<ftm::idNode,ftm::idNode> right;
             std::unordered_map<ftm::idNode,ftm::idNode> down;
-            for (auto ci=0; ci<children1.size()-1; ci++){
+            for (ftm::idNode ci=0; ci<children1.size()-1; ci++){
               s.push(std::make_pair(children1[ci],children1[ci+1]));
             }
             s.push(std::make_pair(children1.back(),children1.back()));
@@ -800,7 +631,7 @@ namespace ttk {
                 std::vector<unsigned int> children_cn;
                 tree1->getChildren(cn, children_cn);
                 down[cn] = children_cn.front();
-                for(auto ci=0; ci<children_cn.size()-1; ci++){
+                for(ftm::idNode ci=0; ci<children_cn.size()-1; ci++){
                   s.push(std::make_pair(children_cn[ci],children_cn[ci+1]));
                 }
                 s.push(std::make_pair(children_cn.back(),cn==cr?children_cn.back():cr));
@@ -836,13 +667,13 @@ namespace ttk {
             s = std::stack<std::pair<ftm::idNode,ftm::idNode>>();
             right = std::unordered_map<ftm::idNode,ftm::idNode>();
             down = std::unordered_map<ftm::idNode,ftm::idNode>();
-            for (auto ci=0; ci<children2.size()-1; ci++){
+            for (ftm::idNode ci=0; ci<children2.size()-1; ci++){
               s.push(std::make_pair(children2[ci],children2[ci+1]));
             }
             s.push(std::make_pair(children2.back(),children2.back()));
             while(not s.empty()){
-              auto cn = s.top().first;
-              auto cr = s.top().second;
+              ftm::idNode cn = s.top().first;
+              ftm::idNode cr = s.top().second;
               s.pop();
               if(predecessors2[cn].size()-predecessors2[curr2].size()>lookahead+1){
                 continue;
@@ -852,7 +683,7 @@ namespace ttk {
                 std::vector<unsigned int> children_cn;
                 tree2->getChildren(cn, children_cn);
                 down[cn] = children_cn.front();
-                for(auto ci=0; ci<children_cn.size()-1; ci++){
+                for(ftm::idNode ci=0; ci<children_cn.size()-1; ci++){
                   s.push(std::make_pair(children_cn[ci],children_cn[ci+1]));
                 }
                 s.push(std::make_pair(children_cn.back(),cn==cr?children_cn.back():cr));
@@ -954,8 +785,8 @@ namespace ttk {
                 if(opt_case_cost==case_cost){
                   opt_case = std::vector<std::pair<ftm::idNode,ftm::idNode>>();
                   for(auto m : matching){
-                    auto m1 = std::get<0>(m);
-                    auto m2 = std::get<1>(m);
+                    ftm::idNode m1 = std::get<0>(m);
+                    ftm::idNode m2 = std::get<1>(m);
                     if(m1<actual_children1.size() and m2<actual_children2.size()){
                       opt_case.push_back(std::make_pair(actual_children1[m1],actual_children2[m2]));
                     }
